@@ -1,0 +1,68 @@
+{
+  "name": "@lotun/vitest-cucumber",
+  "version": "0.1.0",
+  "description": "Vitest plugin for Cucumber",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "keywords": [
+    "vitest",
+    "cucumber",
+    "testing",
+    "bdd",
+    "plugin"
+  ],
+  "exports": {
+    ".": {
+      "source": "./src/index.ts"
+    }
+  },
+  "publishConfig": {
+    "exports": {
+      ".": {
+        "import": "./dist/esm/index.mjs",
+        "types": "./dist/esm/index.d.mts"
+      }
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "!**/__*__/**"
+  ],
+  "scripts": {
+    "lint": "tsc && pnpm lint:eslint",
+    "lint:eslint": "eslint",
+    "build": "tsdown",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@cucumber/gherkin": "^38.0.0",
+    "@cucumber/messages": "^32.3.1",
+    "@cucumber/query": "^15.0.1",
+    "glob": "^13.0.6",
+    "string-argv": "^0.3.2"
+  },
+  "peerDependencies": {
+    "@cucumber/cucumber": "^12.x",
+    "@cucumber/gherkin": "^38.x",
+    "@cucumber/messages": "^32.x",
+    "@cucumber/query": "^15.x",
+    "vitest": "^4.x"
+  },
+  "devDependencies": {
+    "@cucumber/cucumber": "^12.9.0",
+    "@tsconfig/node24": "^24.0.4",
+    "@types/node": "^24.12.4",
+    "@vitest/coverage-v8": "^4.1.7",
+    "eslint": "^10.4.0",
+    "eslint-plugin-n": "^18.0.1",
+    "jiti": "^2.7.0",
+    "tsdown": "^0.22.0",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.59.4",
+    "vitest": "^4.1.7"
+  }
+}
