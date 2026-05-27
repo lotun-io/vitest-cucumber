@@ -1,5 +1,11 @@
 # @lotun/vitest-cucumber
 
+## 0.1.4
+
+### Patch Changes
+
+- 1d624e2: Add example folder
+
 ## 0.1.3
 
 ### Patch Changes
