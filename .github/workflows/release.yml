@@ -45,7 +45,11 @@ jobs:
       - name: Publish next
         if: inputs.type == 'next'
         run: |
-          pnpm changeset version --snapshot next
+          pnpm changeset version
+          if [[ ! -f .changeset/pre.json ]]; then
+            echo "Not in prerelease mode. Run 'pnpm changeset pre enter next' first."
+            exit 1
+          fi
           pnpm publish --access public --tag next --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
