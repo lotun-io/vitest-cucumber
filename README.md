@@ -31,27 +31,24 @@ import { defineConfig } from "vitest/config";
 import { cucumber } from "@lotun/vitest-cucumber";
 
 export default defineConfig({
+  plugins: [
+    cucumber({
+      import: ["features/support/**/*.ts", "features/step_definitions/**/*.ts"],
+    }),
+  ],
   test: {
-    plugins: [
-      cucumber({
-        import: [
-          "features/support/**/*.ts",
-          "features/step_definitions/**/*.ts",
-        ],
-      }),
-    ],
-    test: {
-      include: ["features/**/*.feature"],
-    },
+    include: ["features/**/*.feature"],
   },
 });
 ```
 
 The `cucumber()` plugin accepts an optional partial [`IConfiguration`](https://github.com/cucumber/cucumber-js/blob/main/docs/configuration.md) object — the same options you would pass to Cucumber CLI.
 
+> **Tip:** Setting [`isolate: false`](https://vitest.dev/config/isolate) in Vitest config allows workers to reuse cached support files (step definitions, hooks, world) across feature files, which can significantly speed up test runs with many feature files.
+
 ## Usage
 
-### 4. Run tests
+### Run tests
 
 ```bash
 pnpm vitest run
