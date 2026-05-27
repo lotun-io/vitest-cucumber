@@ -8,6 +8,7 @@ export const parseFeature = (content: string, uri = "") => {
   const newId = IdGenerator.uuid();
   const query = new Query();
   let featureName = "Feature";
+  const parseErrors: string[] = [];
 
   for (const envelope of generateMessages(
     content,
@@ -19,10 +20,18 @@ export const parseFeature = (content: string, uri = "") => {
       newId,
     },
   )) {
+    query.update(envelope);
+    if (envelope.parseError) {
+      const { source, message: msg } = envelope.parseError;
+      parseErrors.push(`Parse error in "${source.uri}" ${msg}`);
+    }
     if (envelope.gherkinDocument) {
       featureName = envelope.gherkinDocument.feature?.name || "Feature";
     }
-    query.update(envelope);
+  }
+
+  if (parseErrors.length > 0) {
+    throw new Error(`Parse failure\n${parseErrors.join("\n")}`);
   }
 
   // Deduplicate names: when two pickles share the same name, append " (2)", " (3)", …

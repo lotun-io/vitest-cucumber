@@ -5,10 +5,19 @@ import type {
 } from "@cucumber/cucumber/api";
 import * as cucumberApi from "@cucumber/cucumber/api";
 import { Query } from "@cucumber/query";
+import type {
+  Step,
+  TestStepResult,
+  TestStepResultStatus,
+} from "@cucumber/messages";
 
 export type Results = Map<
   string,
-  { message: string; failingStepLine?: number }
+  {
+    status: `${TestStepResultStatus}`;
+    stepResult?: TestStepResult;
+    step?: Step;
+  }
 >;
 
 export async function runCucumber({
@@ -35,57 +44,40 @@ export async function runCucumber({
       support,
     },
     {},
-    (message) => {
-      if (message.parseError) {
-        const { source, message: msg } = message.parseError;
+    (envelope) => {
+      query.update(envelope);
+      if (envelope.parseError) {
+        const { source, message: msg } = envelope.parseError;
         parseErrors.push(`Parse error in "${source.uri}" ${msg}`);
-        return;
       }
-      query.update(message);
-      if (message.pickle) {
-        const { id: pickleId, name } = message.pickle;
+      if (envelope.pickle) {
+        const { id: pickleId, name } = envelope.pickle;
         const count = (runtimeNameCount.get(name) ?? 0) + 1;
         runtimeNameCount.set(name, count);
         pickleIdToKey.set(pickleId, count === 1 ? name : `${name} (${count})`);
       }
-      if (message.testCaseStarted) {
-        const pickle = query.findPickleBy(message.testCaseStarted)!;
+      if (envelope.testCaseStarted) {
+        const pickle = query.findPickleBy(envelope.testCaseStarted)!;
         const key = pickleIdToKey.get(pickle.id)!;
-        testCaseStartedToKey.set(message.testCaseStarted.id, key);
-        results.set(key, { message: "skipped" }); // default; updated by step events below
+        testCaseStartedToKey.set(envelope.testCaseStarted.id, key);
       }
-      if (message.testStepFinished) {
-        const testStep = query.findTestStepBy(message.testStepFinished);
+      if (envelope.testStepFinished) {
+        const testStep = query.findTestStepBy(envelope.testStepFinished);
         const pickleStep = testStep && query.findPickleStepBy(testStep);
-        const key = testCaseStartedToKey.get(
-          message.testStepFinished.testCaseStartedId,
-        )!;
-        const current = results.get(key)!;
-        const { status, message: failMsg } =
-          message.testStepFinished.testStepResult;
-        const caseHasFailed =
-          current.message !== "skipped" && current.message !== "passed";
+        const key =
+          testCaseStartedToKey.get(
+            envelope.testStepFinished.testCaseStartedId,
+          ) ?? "";
+        const current = results.get(key);
+        const stepResult = envelope.testStepFinished.testStepResult;
 
-        if (!pickleStep) {
-          // Before/After hook — only track failures, ignore passes/skips
-          if (status === "FAILED" && !caseHasFailed) {
-            results.set(key, { message: failMsg ?? "Hook failed" });
-          }
-        }
-        if (status === "PASSED" && current.message === "skipped") {
-          results.set(key, { message: "passed" });
-        }
-        // failure — first failure wins, ignore subsequent step failures
-        if (
-          status === "PASSED" ||
-          status === "SKIPPED" ||
-          caseHasFailed ||
-          !pickleStep
-        ) {
+        // After a step fails, Cucumber still emits testStepFinished for remaining (skipped) steps.
+        // Keep the first failure so we don't overwrite the real error with a SKIPPED result.
+        if (current?.stepResult?.exception) {
           return;
         }
-        const failingStepLine = query.findStepBy(pickleStep)?.location?.line;
-        results.set(key, { message: failMsg ?? status, failingStepLine });
+        const step = pickleStep ? query.findStepBy(pickleStep) : undefined;
+        results.set(key, { status: stepResult.status, stepResult, step });
       }
     },
   );
@@ -124,19 +116,18 @@ export function registerFeatureTests({
         for (const { name, line } of ruleScenarios) {
           test(name, (ctx) => {
             // If no result exists, the scenario was filtered out by Cucumber (e.g. by tags) and should be skipped.
-            const result = results.get(name) ?? { message: "skipped" };
-            if (result.message === "skipped") {
+            const result = results.get(name) ?? { status: "SKIPPED" as const };
+            if (result.status === "SKIPPED") {
               ctx.skip();
             }
-            if (result.message !== "passed") {
-              const cucumberError =
-                result.message ?? "Cucumber scenario did not run";
+            if (result.status !== "PASSED") {
+              const cucumberError = result.stepResult?.message ?? result.status;
               const err = new Error(cucumberError);
-              const stepLine = result.failingStepLine ?? line;
+              const stepLine = result.step?.location.line ?? line;
+              const stepColumn = result.step?.location.column ?? 1;
               // Full Cucumber error (including diff) stays in err.message so Vitest renders it.
               // The feature file frame in err.stack gives a clickable link to the failing step.
-              err.stack = `${cucumberError}\n    at ${id}:${stepLine}:1`;
-
+              err.stack = `${cucumberError}\n    at ${id}:${stepLine}:${stepColumn}`;
               throw err;
             }
           });

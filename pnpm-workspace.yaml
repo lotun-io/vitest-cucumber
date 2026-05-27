@@ -1,1 +1,0 @@
-nodeOptions: "${NODE_OPTIONS:- } --conditions=source --enable-source-maps"

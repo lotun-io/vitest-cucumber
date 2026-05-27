@@ -2,7 +2,6 @@ import type { IConfiguration } from "@cucumber/cucumber";
 import { glob } from "glob";
 import type { ModuleLoader } from "./runner.ts";
 
-// @ts-expect-error global
 const { moduleLoader, config } = global.__vitestCucumber as {
   moduleLoader: ModuleLoader;
   config: Partial<IConfiguration>;

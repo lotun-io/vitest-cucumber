@@ -174,3 +174,43 @@ describe("parseFeature – uri", () => {
     ).not.toThrow();
   });
 });
+
+// ---------------------------------------------------------------------------
+// Parse errors
+// ---------------------------------------------------------------------------
+
+describe("parseFeature – parse errors", () => {
+  it("throws on parse error with all errors listed", () => {
+    const content = "not valid gherkin\n  Scenario: oops\n    Given x\n";
+    expect(() => parseFeature(content, "bad.feature")).toThrow(/Parse failure/);
+  });
+
+  it("includes the source uri and location in the error message", () => {
+    const content = "not valid gherkin\n";
+    expect(() => parseFeature(content, "my/file.feature")).toThrow(
+      'Parse error in "my/file.feature"',
+    );
+  });
+
+  it("lists all parse errors with line and column numbers", () => {
+    const content = [
+      "FeatureParse: Error",
+      "",
+      "    ScenarioParse: Error",
+      "        GivenParse Error",
+      "        WhenParse Error",
+      "        ThenParse Error",
+    ].join("\n");
+    const uri = "parse-error.feature";
+    expect(() => parseFeature(content, uri)).toThrow(
+      [
+        "Parse failure",
+        `Parse error in "${uri}" (1:1): expected: #EOF, #Language, #TagLine, #FeatureLine, #Comment, #Empty, got 'FeatureParse: Error'`,
+        `Parse error in "${uri}" (3:5): expected: #EOF, #Language, #TagLine, #FeatureLine, #Comment, #Empty, got 'ScenarioParse: Error'`,
+        `Parse error in "${uri}" (4:9): expected: #EOF, #Language, #TagLine, #FeatureLine, #Comment, #Empty, got 'GivenParse Error'`,
+        `Parse error in "${uri}" (5:9): expected: #EOF, #Language, #TagLine, #FeatureLine, #Comment, #Empty, got 'WhenParse Error'`,
+        `Parse error in "${uri}" (6:9): expected: #EOF, #Language, #TagLine, #FeatureLine, #Comment, #Empty, got 'ThenParse Error'`,
+      ].join("\n"),
+    );
+  });
+});

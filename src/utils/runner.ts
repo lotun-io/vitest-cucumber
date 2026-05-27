@@ -8,8 +8,8 @@ import { loadConfiguration, loadSupport } from "@cucumber/cucumber/api";
 import path from "path";
 import { parseFeature } from "./parser.ts";
 import { cliConfig } from "./config.ts";
-import { runCucumber, registerFeatureTests } from "./runCucumber.ts";
 import type { Results } from "./runCucumber.ts";
+import { runCucumber, registerFeatureTests } from "./runCucumber.ts";
 
 export type ModuleLoader = (specifier: string) => Promise<unknown>;
 
@@ -34,17 +34,12 @@ export function runFeatureFile({
     ...config,
     ...cliConfig(process.env.CUCUMBER_OPTIONS),
   };
-
   const results: Results = new Map();
 
-  // Vitest runs each worker in parallel, so we mimic Cucumber's parallel mode
-  // by forwarding the worker ID and enabling the parallel flag.
   process.env.CUCUMBER_WORKER_ID = process.env.VITEST_WORKER_ID;
-  process.env.CUCUMBER_PARALLEL = "true";
 
   // We handle parallelization at the Vitest level
   delete mergedConfig.parallel;
-  delete mergedConfig.shard;
 
   beforeAll(async () => {
     if (!cache) {
@@ -70,13 +65,11 @@ export function runFeatureFile({
 
       // We load support code using the Vitest module loader so that imports
       // inside step definitions go through Vitest's module resolution pipeline.
-      // @ts-expect-error global
       global.__vitestCucumber = {
         moduleLoader,
         config: mergedConfig,
       };
       const support = await loadSupport(runConfiguration);
-      // @ts-expect-error global
       delete global.__vitestCucumber;
 
       cache = { runConfiguration, support };

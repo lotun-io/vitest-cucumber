@@ -32,13 +32,11 @@ beforeAll(async () => {
     },
   }));
 
-  // @ts-expect-error
   global.__vitestCucumber = {
     moduleLoader: (specifier: string) => import(specifier),
     config,
   };
   support = await loadSupport(runConfiguration);
-  // @ts-expect-error
   delete global.__vitestCucumber;
 });
 
@@ -56,8 +54,8 @@ describe("failing scenarios", () => {
   it("step that throws records the error message", async () => {
     const results = await run("failing-step.feature");
     const result = results.get("Step throws an error");
-    expect(result?.message).toContain("intentional failure");
-    expect(result?.failingStepLine).toBeDefined();
+    expect(result?.stepResult?.message).toContain("intentional failure");
+    expect(result?.step).toBeDefined();
   });
 
   it("parse error throws with all errors listed", async () => {
@@ -80,6 +78,56 @@ describe("failing scenarios", () => {
   it("unknown step records UNDEFINED", async () => {
     const results = await run("unknown-step.feature");
     const result = results.get("Step has no matching definition");
-    expect(result?.message).toContain("UNDEFINED");
+    expect(result?.status).toContain("UNDEFINED");
+  });
+
+  it("first failure wins when subsequent steps are skipped", async () => {
+    const results = await run("first-failure-wins.feature");
+    const result = results.get("First step fails and subsequent steps are skipped");
+    expect(result?.status).toBe("FAILED");
+    expect(result?.stepResult?.exception).toBeDefined();
+    expect(result?.stepResult?.message).toContain("intentional failure");
+  });
+
+  it("Before hook failure is recorded", async () => {
+    const results = await run("hook-errors.feature");
+    const result = results.get("Before hook fails");
+    expect(result?.status).toBe("FAILED");
+    expect(result?.stepResult?.message).toContain("Before hook failed intentionally");
+  });
+
+  it("After hook failure is recorded", async () => {
+    const results = await run("hook-errors.feature");
+    const result = results.get("After hook fails");
+    expect(result?.status).toBe("FAILED");
+    expect(result?.stepResult?.message).toContain("After hook failed intentionally");
+  });
+
+  it("BeforeAll hook failure rejects with the hook error", async () => {
+    process.env.FAIL_BEFORE_ALL = "1";
+    try {
+      await run("hook-errors.feature");
+    } catch (err) {
+      expect((err as Error).cause).toBeInstanceOf(Error);
+      expect(((err as Error).cause as Error).message).toBe("BeforeAll hook failed intentionally");
+      return;
+    } finally {
+      delete process.env.FAIL_BEFORE_ALL;
+    }
+    expect.fail("Expected runCucumber to reject");
+  });
+
+  it("AfterAll hook failure rejects with the hook error", async () => {
+    process.env.FAIL_AFTER_ALL = "1";
+    try {
+      await run("hook-errors.feature");
+    } catch (err) {
+      expect((err as Error).cause).toBeInstanceOf(Error);
+      expect(((err as Error).cause as Error).message).toBe("AfterAll hook failed intentionally");
+      return;
+    } finally {
+      delete process.env.FAIL_AFTER_ALL;
+    }
+    expect.fail("Expected runCucumber to reject");
   });
 });

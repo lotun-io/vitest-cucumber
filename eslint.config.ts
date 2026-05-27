@@ -17,9 +17,6 @@ export default defineConfig(
         version: ">=24.0.0",
         customConditions: ["source"],
         typescriptExtensionMap: [[".ts", ".ts"]],
-        resolverConfig: {
-          conditionNames: ["source", "node", "import", "require", "types"],
-        },
       },
     },
     rules: {

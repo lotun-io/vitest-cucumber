@@ -32,22 +32,17 @@ import { cucumber } from "@lotun/vitest-cucumber";
 
 export default defineConfig({
   test: {
-    projects: [
-      {
-        plugins: [
-          cucumber({
-            import: [
-              "features/support/**/*.ts",
-              "features/step_definitions/**/*.ts",
-            ],
-          }),
+    plugins: [
+      cucumber({
+        import: [
+          "features/support/**/*.ts",
+          "features/step_definitions/**/*.ts",
         ],
-        test: {
-          name: "functional",
-          include: ["features/**/*.feature"],
-        },
-      },
+      }),
     ],
+    test: {
+      include: ["features/**/*.feature"],
+    },
   },
 });
 ```

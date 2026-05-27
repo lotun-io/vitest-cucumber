@@ -1,7 +1,8 @@
 import type { IConfiguration } from "@cucumber/cucumber";
+import { createRequire } from "module";
 import { parseArgsStringToArgv } from "string-argv";
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
+const require = createRequire(import.meta.url);
 const { ArgvParser } = require("@cucumber/cucumber/lib/configuration/index");
 
 export const cliConfig = (stringArgs?: string): Partial<IConfiguration> => {
