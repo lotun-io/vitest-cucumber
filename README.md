@@ -57,9 +57,9 @@ The `cucumber()` plugin accepts an optional partial [`IConfiguration`](https://g
 pnpm vitest run
 ```
 
-## Tag Filtering
+## Environment CLI Options
 
-Pass Cucumber CLI options via the `CUCUMBER_OPTIONS` environment variable:
+Use the `CUCUMBER_OPTIONS` environment variable to pass Cucumber CLI options at runtime. These options will overwrite the corresponding values in the config passed to the `cucumber()` plugin.
 
 ```bash
 CUCUMBER_OPTIONS="--tags @smoke" pnpm vitest run

@@ -36,7 +36,8 @@
     "lint": "tsc && pnpm lint:eslint",
     "lint:eslint": "eslint",
     "build": "tsdown",
-    "test": "vitest run"
+    "test": "vitest run",
+    "ci:publish": "pnpm publish --provenance --access public --no-git-checks"
   },
   "dependencies": {
     "@cucumber/gherkin": "^38.0.0",
@@ -53,6 +54,7 @@
     "vitest": "^4.x"
   },
   "devDependencies": {
+    "@changesets/cli": "^2.31.0",
     "@cucumber/cucumber": "^12.9.0",
     "@tsconfig/node24": "^24.0.4",
     "@types/node": "^24.12.4",

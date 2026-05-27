@@ -8,7 +8,9 @@ const cucumberRunner = path.join(
   `runner${path.extname(import.meta.filename)}`,
 );
 
-export const cucumber = (config?: Partial<IConfiguration>): Plugin => {
+export type VitestCucumberOptions = Partial<IConfiguration>;
+
+export const cucumber = (config?: VitestCucumberOptions): Plugin => {
   return {
     name: "vitest-cucumber",
     transform(code: string, id: string) {
