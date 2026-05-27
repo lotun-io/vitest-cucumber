@@ -3,6 +3,10 @@
   "version": "0.1.1",
   "description": "Vitest plugin for Cucumber",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lotun-io/vitest-cucumber"
+  },
   "type": "module",
   "engines": {
     "node": ">=24.0.0"
