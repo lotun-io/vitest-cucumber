@@ -70,3 +70,7 @@ CUCUMBER_OPTIONS="--tags @smoke" pnpm vitest run
 4. Support code (step definitions, hooks, world) is loaded via Vitest's module loader
 5. `@cucumber/cucumber`'s runtime executes the scenarios and collects results
 6. Results are mapped back to Vitest's `describe`/`test` blocks with pass/fail/skip status
+
+## Example
+
+A fully working example project is available in the [`example/`](./example) folder, demonstrating feature files, step definitions, hooks, and a custom world.
