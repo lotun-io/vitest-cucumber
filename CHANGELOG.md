@@ -1,5 +1,11 @@
 # @lotun/vitest-cucumber
 
+## 0.1.3
+
+### Patch Changes
+
+- f04ebba: Update package exports
+
 ## 0.1.2
 
 ### Patch Changes
