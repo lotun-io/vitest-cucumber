@@ -7,6 +7,5 @@ export interface VitestCucumberGlobal {
 }
 
 declare global {
-  // eslint-disable-next-line no-var -- only way to augment globalThis in TS
   var __vitestCucumber: VitestCucumberGlobal | undefined;
 }

@@ -37,8 +37,10 @@
     "!**/__*__/**"
   ],
   "scripts": {
-    "lint": "tsc && pnpm lint:eslint",
+    "lint": "tsc && pnpm lint:prettier && pnpm lint:eslint",
+    "lint:prettier": "prettier --check src",
     "lint:eslint": "eslint",
+    "format": "prettier --write src && eslint --fix",
     "build": "tsdown",
     "test": "vitest run --coverage --coverage.reporter=text-summary",
     "ci:publish": "pnpm build && pnpm publish --provenance --access public --no-git-checks"
@@ -66,6 +68,7 @@
     "eslint": "^10.4.0",
     "eslint-plugin-n": "^18.0.1",
     "jiti": "^2.7.0",
+    "prettier": "^3.8.3",
     "tsdown": "^0.22.0",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.60.0",

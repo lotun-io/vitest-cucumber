@@ -4,7 +4,7 @@ import tseslint from "typescript-eslint";
 
 export default defineConfig(
   {
-    ignores: ["coverage", "lotun-almost", "packages/cli", "**/generated"],
+    ignores: [],
   },
   {
     files: ["src/**/*.ts"],

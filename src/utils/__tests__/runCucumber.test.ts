@@ -8,7 +8,6 @@ import { loadConfiguration, loadSupport } from "@cucumber/cucumber/api";
 import type { Results } from "../runCucumber.ts";
 import { runCucumber } from "../runCucumber.ts";
 
-// eslint-disable-next-line
 const featuresDir = path.resolve(import.meta.dirname, "features");
 const config = {
   import: [
@@ -83,7 +82,9 @@ describe("failing scenarios", () => {
 
   it("first failure wins when subsequent steps are skipped", async () => {
     const results = await run("first-failure-wins.feature");
-    const result = results.get("First step fails and subsequent steps are skipped");
+    const result = results.get(
+      "First step fails and subsequent steps are skipped",
+    );
     expect(result?.status).toBe("FAILED");
     expect(result?.stepResult?.exception).toBeDefined();
     expect(result?.stepResult?.message).toContain("intentional failure");
@@ -93,14 +94,18 @@ describe("failing scenarios", () => {
     const results = await run("hook-errors.feature");
     const result = results.get("Before hook fails");
     expect(result?.status).toBe("FAILED");
-    expect(result?.stepResult?.message).toContain("Before hook failed intentionally");
+    expect(result?.stepResult?.message).toContain(
+      "Before hook failed intentionally",
+    );
   });
 
   it("After hook failure is recorded", async () => {
     const results = await run("hook-errors.feature");
     const result = results.get("After hook fails");
     expect(result?.status).toBe("FAILED");
-    expect(result?.stepResult?.message).toContain("After hook failed intentionally");
+    expect(result?.stepResult?.message).toContain(
+      "After hook failed intentionally",
+    );
   });
 
   it("BeforeAll hook failure rejects with the hook error", async () => {
@@ -109,7 +114,9 @@ describe("failing scenarios", () => {
       await run("hook-errors.feature");
     } catch (err) {
       expect((err as Error).cause).toBeInstanceOf(Error);
-      expect(((err as Error).cause as Error).message).toBe("BeforeAll hook failed intentionally");
+      expect(((err as Error).cause as Error).message).toBe(
+        "BeforeAll hook failed intentionally",
+      );
       return;
     } finally {
       delete process.env.FAIL_BEFORE_ALL;
@@ -123,7 +130,9 @@ describe("failing scenarios", () => {
       await run("hook-errors.feature");
     } catch (err) {
       expect((err as Error).cause).toBeInstanceOf(Error);
-      expect(((err as Error).cause as Error).message).toBe("AfterAll hook failed intentionally");
+      expect(((err as Error).cause as Error).message).toBe(
+        "AfterAll hook failed intentionally",
+      );
       return;
     } finally {
       delete process.env.FAIL_AFTER_ALL;
