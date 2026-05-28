@@ -41,7 +41,8 @@
     "lint": "tsc && pnpm lint:eslint",
     "lint:eslint": "eslint",
     "build": "tsdown",
-    "test": "vitest run --coverage --coverage.reporter=text-summary"
+    "test": "vitest run --coverage --coverage.reporter=text-summary",
+    "ci:publish": "pnpm build && pnpm publish --provenance --access public --no-git-checks"
   },
   "dependencies": {
     "@cucumber/gherkin": "^38.0.0",
