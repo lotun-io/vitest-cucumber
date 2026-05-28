@@ -1,5 +1,11 @@
 # @lotun/vitest-cucumber
 
+## 0.1.5
+
+### Patch Changes
+
+- 2542b1f: Add readme to package.json files
+
 ## 0.1.4
 
 ### Patch Changes
