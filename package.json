@@ -34,14 +34,14 @@
   "files": [
     "dist",
     "src",
+    "README.md",
     "!**/__*__/**"
   ],
   "scripts": {
     "lint": "tsc && pnpm lint:eslint",
     "lint:eslint": "eslint",
     "build": "tsdown",
-    "test": "vitest run",
-    "ci:publish": "pnpm publish --provenance --access public --no-git-checks"
+    "test": "vitest run --coverage --coverage.reporter=text-summary"
   },
   "dependencies": {
     "@cucumber/gherkin": "^38.0.0",

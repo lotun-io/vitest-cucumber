@@ -31,14 +31,13 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
       - run: pnpm test
-      - run: pnpm build
       - name: Create and publish versions
         if: inputs.type == 'stable'
         uses: changesets/action@v1
         with:
           commit: "chore: update versions"
           title: "chore: update versions"
-          publish: pnpm ci:publish
+          publish: pnpm build && pnpm publish --provenance --access public --no-git-checks
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Publish next
@@ -49,4 +48,5 @@ jobs:
             echo "Not in prerelease mode. Run 'pnpm changeset pre enter next' first."
             exit 1
           fi
+          pnpm build
           pnpm publish --access public --tag next --no-git-checks

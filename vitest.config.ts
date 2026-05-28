@@ -8,9 +8,15 @@ export default defineConfig({
     deps: { interopDefault: false },
     coverage: {
       provider: "v8",
-      reporter: ["json"],
-      reportsDirectory: "coverage/vitest",
-      include: ["src/vitest/**"],
+      reportsDirectory: "coverage",
+      include: ["src/**/*.ts"],
+      exclude: ["src/**/__tests__/**"],
+      thresholds: {
+        statements: 90,
+        branches: 80,
+        functions: 90,
+        lines: 90,
+      },
     },
     projects: [
       {
