@@ -24,18 +24,10 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        include:
-          - node-version: 20
-            pnpm-version: "9"
-          - node-version: 22
-          - node-version: 24
+        node-version: [22, 24]
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
-        if: matrix.pnpm-version == ''
-      - name: Install pnpm ${{ matrix.pnpm-version }}
-        if: matrix.pnpm-version != ''
-        run: npm install -g pnpm@${{ matrix.pnpm-version }}
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
