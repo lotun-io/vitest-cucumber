@@ -19,7 +19,7 @@ A [Vitest](https://vitest.dev/) plugin that lets you run [Cucumber](https://cucu
 ## Installation
 
 ```bash
-pnpm add -D @lotun/vitest-cucumber @cucumber/cucumber vitest
+npm install -D @lotun/vitest-cucumber @cucumber/cucumber vitest
 ```
 
 ## Setup
@@ -71,6 +71,55 @@ CUCUMBER_OPTIONS="--tags @smoke" pnpm vitest run
 5. `@cucumber/cucumber`'s runtime executes the scenarios and collects results
 6. Results are mapped back to Vitest's `describe`/`test` blocks with pass/fail/skip status
 
+> **Note:** The `CUCUMBER_WORKER_ID` environment variable is automatically set to match the `VITEST_WORKER_ID` environment variable.
+
 ## Example
+
+### Feature file
+
+```gherkin
+Feature: Arithmetic
+
+  Scenario: Double a value
+    Given a value of 3
+    When I double it
+    Then the value should be 6
+```
+
+### World (`features/support/world.ts`)
+
+```ts
+import { setWorldConstructor } from "@cucumber/cucumber";
+
+export class ArithmeticWorld {
+  value = 0;
+}
+
+setWorldConstructor(ArithmeticWorld);
+```
+
+### Step definitions (`features/step_definitions/arithmetic.ts`)
+
+```ts
+import { Given, When, Then } from "@cucumber/cucumber";
+import type { ArithmeticWorld } from "../support/world.ts";
+
+Given("a value of {int}", function (this: ArithmeticWorld, n: number) {
+  this.value = n;
+});
+
+When("I double it", function (this: ArithmeticWorld) {
+  this.value *= 2;
+});
+
+Then(
+  "the value should be {int}",
+  function (this: ArithmeticWorld, expected: number) {
+    if (this.value !== expected) {
+      throw new Error(`Expected ${expected} but got ${this.value}`);
+    }
+  },
+);
+```
 
 A fully working example project is available in the [`example/`](./example) folder, demonstrating feature files, step definitions, hooks, and a custom world.

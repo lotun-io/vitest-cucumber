@@ -8,9 +8,6 @@
     "url": "https://github.com/lotun-io/vitest-cucumber"
   },
   "type": "module",
-  "engines": {
-    "node": ">=24.0.0"
-  },
   "keywords": [
     "vitest",
     "cucumber",

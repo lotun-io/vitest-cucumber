@@ -15,7 +15,6 @@ export default defineConfig(
     settings: {
       n: {
         version: ">=24.0.0",
-        customConditions: ["source"],
         typescriptExtensionMap: [[".ts", ".ts"]],
       },
     },
@@ -25,13 +24,6 @@ export default defineConfig(
         { prefer: "type-imports", fixStyle: "separate-type-imports" },
       ],
       "n/file-extension-in-import": ["error", "always"],
-    },
-  },
-  {
-    files: ["**/src/**/__tests__/**/*.ts"],
-    rules: {
-      "n/no-unpublished-import": "off",
-      "@typescript-eslint/no-explicit-any": "off",
     },
   },
 );
