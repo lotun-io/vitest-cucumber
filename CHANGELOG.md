@@ -1,5 +1,11 @@
 # @lotun/vitest-cucumber
 
+## 0.1.6
+
+### Patch Changes
+
+- c0fa71e: Enhance README with examples
+
 ## 0.1.5
 
 ### Patch Changes
