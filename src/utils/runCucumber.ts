@@ -5,11 +5,11 @@ import type {
 } from "@cucumber/cucumber/api";
 import * as cucumberApi from "@cucumber/cucumber/api";
 import { Query } from "@cucumber/query";
-import {
-  getWorstTestStepResult,
-  type Step,
-  type TestStepResult,
-  type TestStepResultStatus,
+import { getWorstTestStepResult } from "@cucumber/messages";
+import type {
+  Step,
+  TestStepResult,
+  TestStepResultStatus,
 } from "@cucumber/messages";
 import { createError } from "./createError.ts";
 
@@ -81,7 +81,6 @@ export const runCucumber = async ({
         const worstStepResult = current?.stepResult
           ? getWorstTestStepResult([current.stepResult, stepResult])
           : stepResult;
-
         const step = pickleStep ? query.findStepBy(pickleStep) : undefined;
         const testCaseError = testCaseErrors.get(
           envelope.testStepFinished.testCaseStartedId,

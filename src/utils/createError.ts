@@ -13,9 +13,7 @@ export const createError = ({
   const err = new Error(cucumberError);
 
   Object.assign(err, {
-    message: result.error?.showDiff
-      ? result.stepResult?.exception?.message
-      : err.message,
+    message: result.error?.showDiff ? result.error.message : err.message,
     showDiff: result.error?.showDiff,
     expected: result.error?.expected,
     actual: result.error?.actual,
