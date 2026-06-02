@@ -5,32 +5,39 @@ import type {
 } from "@cucumber/cucumber/api";
 import * as cucumberApi from "@cucumber/cucumber/api";
 import { Query } from "@cucumber/query";
-import type {
-  Step,
-  TestStepResult,
-  TestStepResultStatus,
+import {
+  getWorstTestStepResult,
+  type Step,
+  type TestStepResult,
+  type TestStepResultStatus,
 } from "@cucumber/messages";
 
-export type Results = Map<
-  string,
-  {
-    status: `${TestStepResultStatus}`;
-    stepResult?: TestStepResult;
-    step?: Step;
-  }
->;
+export type ResultItem = {
+  status: `${TestStepResultStatus}`;
+  stepResult?: TestStepResult;
+  step?: Step;
+  error?: Error & {
+    showDiff?: boolean;
+    expected?: unknown;
+    actual?: unknown;
+  };
+};
 
-export async function runCucumber({
+export type Results = Map<string, ResultItem>;
+
+export const runCucumber = async ({
   id,
   runConfiguration,
   support,
+  testCaseErrors,
   results,
 }: {
   id: string;
   runConfiguration: IRunConfiguration;
   support: ISupportCodeLibrary;
+  testCaseErrors: Map<string, Error>;
   results: Results;
-}) {
+}) => {
   const query = new Query();
   const parseErrors: string[] = [];
   const runtimeNameCount = new Map<string, number>();
@@ -70,14 +77,20 @@ export async function runCucumber({
           ) ?? "";
         const current = results.get(key);
         const stepResult = envelope.testStepFinished.testStepResult;
+        const worstStepResult = current?.stepResult
+          ? getWorstTestStepResult([current.stepResult, stepResult])
+          : stepResult;
 
-        // After a step fails, Cucumber still emits testStepFinished for remaining (skipped) steps.
-        // Keep the first failure so we don't overwrite the real error with a SKIPPED result.
-        if (current?.stepResult?.exception) {
-          return;
-        }
         const step = pickleStep ? query.findStepBy(pickleStep) : undefined;
-        results.set(key, { status: stepResult.status, stepResult, step });
+        const testCaseError = testCaseErrors.get(
+          envelope.testStepFinished.testCaseStartedId,
+        );
+        results.set(key, {
+          status: worstStepResult.status,
+          stepResult: worstStepResult,
+          step: step ?? current?.step,
+          error: testCaseError ?? current?.error,
+        });
       }
     },
   );
@@ -87,9 +100,38 @@ export async function runCucumber({
   }
 
   return results;
-}
+};
 
-export function registerFeatureTests({
+export const createError = ({
+  id,
+  line,
+  result,
+}: {
+  id: string;
+  line: number;
+  result: ResultItem;
+}) => {
+  const cucumberError = result.stepResult?.message ?? result.status;
+  const err = new Error(cucumberError);
+
+  Object.assign(err, {
+    message: result.error?.showDiff
+      ? result.stepResult?.exception?.message
+      : err.message,
+    showDiff: result.error?.showDiff,
+    expected: result.error?.expected,
+    actual: result.error?.actual,
+  });
+
+  const stepLine = result.step?.location.line ?? line;
+  const stepColumn = result.step?.location.column ?? 1;
+  // Full Cucumber error message
+  // The feature file frame in err.stack gives a clickable link to the failing step.
+  err.stack = `${cucumberError}\n    at ${id}:${stepLine}:${stepColumn}`;
+  return err;
+};
+
+export const registerFeatureTests = ({
   featureName,
   scenarios,
   id,
@@ -99,7 +141,7 @@ export function registerFeatureTests({
   scenarios: Array<{ name: string; ruleName: string | null; line: number }>;
   id: string;
   results: Results;
-}): void {
+}): void => {
   describe(featureName, () => {
     const byRule = new Map<
       string | null,
@@ -116,19 +158,12 @@ export function registerFeatureTests({
         for (const { name, line } of ruleScenarios) {
           test(name, (ctx) => {
             // If no result exists, the scenario was filtered out by Cucumber (e.g. by tags) and should be skipped.
-            const result = results.get(name) ?? { status: "SKIPPED" as const };
-            if (result.status === "SKIPPED") {
+            const result = results.get(name) ?? { status: "SKIPPED" };
+            if (result.status === "SKIPPED" || result.status === "PENDING") {
               ctx.skip();
             }
             if (result.status !== "PASSED") {
-              const cucumberError = result.stepResult?.message ?? result.status;
-              const err = new Error(cucumberError);
-              const stepLine = result.step?.location.line ?? line;
-              const stepColumn = result.step?.location.column ?? 1;
-              // Full Cucumber error (including diff) stays in err.message so Vitest renders it.
-              // The feature file frame in err.stack gives a clickable link to the failing step.
-              err.stack = `${cucumberError}\n    at ${id}:${stepLine}:${stepColumn}`;
-              throw err;
+              throw createError({ id, line, result });
             }
           });
         }
@@ -141,4 +176,4 @@ export function registerFeatureTests({
       }
     }
   });
-}
+};

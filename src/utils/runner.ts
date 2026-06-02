@@ -16,6 +16,7 @@ export type ModuleLoader = (specifier: string) => Promise<unknown>;
 let cache: {
   runConfiguration: IRunConfiguration;
   support: ISupportCodeLibrary & { defaultTimeout?: number };
+  testCaseErrors: Map<string, Error>;
 } | null = null;
 
 export function runFeatureFile({
@@ -65,20 +66,23 @@ export function runFeatureFile({
 
       // We load support code using the Vitest module loader so that imports
       // inside step definitions go through Vitest's module resolution pipeline.
+      const testCaseErrors = new Map<string, Error>();
       global.__vitestCucumber = {
         moduleLoader,
         config: mergedConfig,
+        testCaseErrors,
       };
       const support = await loadSupport(runConfiguration);
       delete global.__vitestCucumber;
 
-      cache = { runConfiguration, support };
+      cache = { runConfiguration, support, testCaseErrors };
     }
 
+    cache.testCaseErrors.clear();
+
     await runCucumber({
+      ...cache,
       id,
-      runConfiguration: cache.runConfiguration,
-      support: cache.support,
       results,
     });
   }, 0);

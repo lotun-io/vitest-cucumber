@@ -1,11 +1,18 @@
-import type { IConfiguration } from "@cucumber/cucumber";
+import { AfterStep } from "@cucumber/cucumber";
 import { glob } from "glob";
-import type { ModuleLoader } from "./runner.ts";
+import type { VitestCucumberGlobal } from "../types/global.ts";
 
-const { moduleLoader, config } = global.__vitestCucumber as {
-  moduleLoader: ModuleLoader;
-  config: Partial<IConfiguration>;
-};
+const { moduleLoader, config, testCaseErrors } =
+  global.__vitestCucumber as VitestCucumberGlobal;
+
+delete global.__vitestCucumber;
+
+// Capture testCase errors
+AfterStep(function ({ testCaseStartedId, error }) {
+  if (error) {
+    testCaseErrors.set(testCaseStartedId, error);
+  }
+});
 
 const cwd = process.cwd();
 

@@ -6,18 +6,20 @@ import type {
 } from "@cucumber/cucumber/api";
 import { loadConfiguration, loadSupport } from "@cucumber/cucumber/api";
 import type { Results } from "../runCucumber.ts";
-import { runCucumber } from "../runCucumber.ts";
+import { runCucumber, createError } from "../runCucumber.ts";
+import { TestStepResultStatus } from "@cucumber/messages";
 
 const featuresDir = path.resolve(import.meta.dirname, "features");
 const config = {
   import: [
-    path.join(featuresDir, "support/*.ts"),
-    path.join(featuresDir, "step_definitions/*.ts"),
+    path.join("features", "support/**/*.ts"),
+    path.join("features", "step_definitions/**/*.ts"),
   ],
 };
 
 let runConfiguration: IRunConfiguration;
 let support: ISupportCodeLibrary;
+const testCaseErrors: Map<string, Error> = new Map();
 
 beforeAll(async () => {
   ({ runConfiguration } = await loadConfiguration({
@@ -34,6 +36,7 @@ beforeAll(async () => {
   global.__vitestCucumber = {
     moduleLoader: (specifier: string) => import(specifier),
     config,
+    testCaseErrors,
   };
   support = await loadSupport(runConfiguration);
   delete global.__vitestCucumber;
@@ -45,6 +48,7 @@ async function run(feature: string) {
     id: path.join(featuresDir, feature),
     runConfiguration,
     support,
+    testCaseErrors,
     results,
   });
 }
@@ -74,10 +78,16 @@ describe("failing scenarios", () => {
     );
   });
 
-  it("unknown step records UNDEFINED", async () => {
+  it("unknown step records UNDEFINED when first step is undefined", async () => {
     const results = await run("unknown-step.feature");
-    const result = results.get("Step has no matching definition");
-    expect(result?.status).toContain("UNDEFINED");
+    const result = results.get("First step is undefined");
+    expect(result?.status).toBe("UNDEFINED");
+  });
+
+  it("unknown step records UNDEFINED when last step is undefined", async () => {
+    const results = await run("unknown-step.feature");
+    const result = results.get("Last step is undefined");
+    expect(result?.status).toBe("UNDEFINED");
   });
 
   it("first failure wins when subsequent steps are skipped", async () => {
@@ -138,5 +148,110 @@ describe("failing scenarios", () => {
       delete process.env.FAIL_AFTER_ALL;
     }
     expect.fail("Expected runCucumber to reject");
+  });
+
+  it("assertion error captures showDiff, expected and actual", async () => {
+    const results = await run("show-diff.feature");
+    const result = results.get("Assertion error carries showDiff");
+    expect(result?.status).toBe("FAILED");
+    expect(result?.error).toBeDefined();
+    expect(result?.error?.showDiff).toBe(true);
+    expect(result?.error?.expected).toBeDefined();
+    expect(result?.error?.actual).toBeDefined();
+  });
+});
+
+describe("createError", () => {
+  it("uses stepResult message when available", () => {
+    const err = createError({
+      id: "features/test.feature",
+      line: 5,
+      result: {
+        status: "FAILED",
+        stepResult: {
+          status: TestStepResultStatus.FAILED,
+          message: "step failed",
+          duration: { seconds: 0, nanos: 0 },
+        },
+      },
+    });
+    expect(err.message).toBe("step failed");
+  });
+
+  it("falls back to status when stepResult message is absent", () => {
+    const err = createError({
+      id: "features/test.feature",
+      line: 5,
+      result: { status: "UNDEFINED" },
+    });
+    expect(err.message).toBe("UNDEFINED");
+  });
+
+  it("uses step location for stack when step is present", () => {
+    const err = createError({
+      id: "features/test.feature",
+      line: 1,
+      result: {
+        status: "FAILED",
+        stepResult: {
+          status: TestStepResultStatus.FAILED,
+          message: "oops",
+          duration: { seconds: 0, nanos: 0 },
+        },
+        step: {
+          location: { line: 10, column: 3 },
+          id: "s1",
+          keyword: "Given",
+          text: "a step",
+        },
+      },
+    });
+    expect(err.stack).toContain("features/test.feature:10:3");
+  });
+
+  it("falls back to scenario line and column 1 when step is absent", () => {
+    const err = createError({
+      id: "features/test.feature",
+      line: 7,
+      result: {
+        status: "FAILED",
+        stepResult: {
+          status: TestStepResultStatus.FAILED,
+          message: "oops",
+          duration: { seconds: 0, nanos: 0 },
+        },
+      },
+    });
+    expect(err.stack).toContain("features/test.feature:7:1");
+  });
+
+  it("uses exception message and propagates diff properties when showDiff is true", () => {
+    const err = createError({
+      id: "features/test.feature",
+      line: 5,
+      result: {
+        status: "FAILED",
+        stepResult: {
+          status: TestStepResultStatus.FAILED,
+          message: "full cucumber output",
+          duration: { seconds: 0, nanos: 0 },
+          exception: {
+            message: "Expected 1 to equal 2",
+            type: "AssertionError",
+          },
+        },
+        error: {
+          name: "AssertionError",
+          message: "Expected 1 to equal 2",
+          showDiff: true,
+          expected: 2,
+          actual: 1,
+        },
+      },
+    });
+    expect(err.message).toBe("Expected 1 to equal 2");
+    expect((err as Error & { showDiff?: boolean }).showDiff).toBe(true);
+    expect((err as Error & { expected?: unknown }).expected).toBe(2);
+    expect((err as Error & { actual?: unknown }).actual).toBe(1);
   });
 });
