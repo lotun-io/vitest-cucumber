@@ -12,6 +12,7 @@ import type {
   TestStepResultStatus,
 } from "@cucumber/messages";
 import { createError } from "./createError.ts";
+import { dedupName } from "./parser.ts";
 
 export type ResultItem = {
   status: `${TestStepResultStatus}`;
@@ -62,7 +63,7 @@ export const runCucumber = async ({
         const { id: pickleId, name } = envelope.pickle;
         const count = (runtimeNameCount.get(name) ?? 0) + 1;
         runtimeNameCount.set(name, count);
-        pickleIdToKey.set(pickleId, count === 1 ? name : `${name} (${count})`);
+        pickleIdToKey.set(pickleId, dedupName(name, count));
       }
       if (envelope.testCaseStarted) {
         const pickle = query.findPickleBy(envelope.testCaseStarted)!;

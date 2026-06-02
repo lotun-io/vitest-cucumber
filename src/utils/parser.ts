@@ -4,6 +4,9 @@ import { Query } from "@cucumber/query";
 
 export type ParsedFeature = ReturnType<typeof parseFeature>;
 
+export const dedupName = (name: string, count: number): string =>
+  count === 1 ? name : `${name} (${count})`;
+
 export const parseFeature = (content: string, uri = "") => {
   const newId = IdGenerator.uuid();
   const query = new Query();
@@ -47,7 +50,7 @@ export const parseFeature = (content: string, uri = "") => {
       1;
     const count = (nameCount.get(pickle.name) ?? 0) + 1;
     nameCount.set(pickle.name, count);
-    const name = count === 1 ? pickle.name : `${pickle.name} (${count})`;
+    const name = dedupName(pickle.name, count);
     return { name, ruleName, line };
   });
 
