@@ -4,7 +4,7 @@ import type { ModuleLoader } from "../utils/runner.ts";
 export interface VitestCucumberGlobal {
   moduleLoader: ModuleLoader;
   config: Partial<IConfiguration>;
-  testCaseErrors: Map<string, Error>;
+  testStepErrors: Map<string, Error>;
 }
 
 declare global {

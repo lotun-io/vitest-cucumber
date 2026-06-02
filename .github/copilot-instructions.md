@@ -37,21 +37,31 @@ pnpm format         # prettier write + eslint --fix
 ## Key Conventions
 
 ### Scenario name deduplication
-Both `parser.ts` and `runCucumber.ts` independently maintain the same name-counter pattern — duplicate scenario names become `"Name (2)"`, `"Name (3)"`, etc. Any change to this logic **must be mirrored in both files**.
+
+`parser.ts` exports a `dedupName(name, count)` helper that both `parser.ts` and `runCucumber.ts` use — duplicate scenario names become `"Name (2)"`, `"Name (3)"`, etc. Any change to this logic must go through the shared helper; both sides must always produce identical keys for the same feature file.
 
 ### Support code loading
+
 `loadSupport.ts` is loaded as a fake Cucumber "import" path so it runs inside the Cucumber bootstrap, but all user step files are imported via `moduleLoader` (Vitest's `import(specifier)`). This ensures coverage instrumentation and module mocking apply to step definitions.
 
+An `AfterStep` hook in `loadSupport.ts` captures the raw `Error` object per `testStepId` into the `testStepErrors` map. `AfterStep` fires inside `runStepFn()` before the `testStepFinished` envelope is emitted, so the map is always populated when the envelope handler reads it.
+
 ### Worker-level cache
-`cache` in `runner.ts` is module-scoped. When `isolate: false`, the same worker reuses cached `runConfiguration` and `ISupportCodeLibrary` across feature files. Clear `testCaseErrors` (not the whole cache) between runs.
+
+`cache` in `runner.ts` is module-scoped. When `isolate: false`, the same worker reuses cached `runConfiguration` and `ISupportCodeLibrary` across feature files. Clear `testStepErrors` (not the whole cache) between runs. The `mergedConfig` computation (including `cliConfig()`) is done once inside the `if (!cache)` block.
 
 ### Error attribution
+
 `createError.ts` builds a synthetic `.stack` pointing at the failing line in the `.feature` file — this is what makes errors clickable in VS Code. Preserve the `at <featureFileId>:<line>:<col>` format.
 
+`err.stack` starts with `cucumberError` (the full Cucumber message). When a diff should be shown, `err.message` is replaced with the bare assertion sentence so Vitest does not render the diff twice. The condition mirrors `@vitest/utils` `processError` exactly: `showDiff === true` OR (`showDiff === undefined` AND both `expected` and `actual` are present).
+
 ### Config merging
+
 `plugin config` is the base; `cliConfig(CUCUMBER_OPTIONS)` values overwrite it. `parallel` is always deleted — parallelism is Vitest's responsibility.
 
 ### `CUCUMBER_WORKER_ID`
+
 Set equal to `VITEST_WORKER_ID` before running Cucumber so step definitions can detect the worker index.
 
 ## File Conventions

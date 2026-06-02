@@ -31,13 +31,13 @@ export const runCucumber = async ({
   id,
   runConfiguration,
   support,
-  testCaseErrors,
+  testStepErrors,
   results,
 }: {
   id: string;
   runConfiguration: IRunConfiguration;
   support: ISupportCodeLibrary;
-  testCaseErrors: Map<string, Error>;
+  testStepErrors: Map<string, Error>;
   results: Results;
 }) => {
   const query = new Query();
@@ -83,14 +83,14 @@ export const runCucumber = async ({
           ? getWorstTestStepResult([current.stepResult, stepResult])
           : stepResult;
         const step = pickleStep ? query.findStepBy(pickleStep) : undefined;
-        const testCaseError = testCaseErrors.get(
-          envelope.testStepFinished.testCaseStartedId,
+        const testStepError = testStepErrors.get(
+          envelope.testStepFinished.testStepId,
         );
         results.set(key, {
           status: worstStepResult.status,
           stepResult: worstStepResult,
           step: step ?? current?.step,
-          error: testCaseError ?? current?.error,
+          error: testStepError ?? current?.error,
         });
       }
     },

@@ -16,7 +16,7 @@ export type ModuleLoader = (specifier: string) => Promise<unknown>;
 let cache: {
   runConfiguration: IRunConfiguration;
   support: ISupportCodeLibrary & { defaultTimeout?: number };
-  testCaseErrors: Map<string, Error>;
+  testStepErrors: Map<string, Error>;
 } | null = null;
 
 export function runFeatureFile({
@@ -31,19 +31,20 @@ export function runFeatureFile({
   moduleLoader: ModuleLoader;
 }): void {
   const parsed = parseFeature(code, id);
-  const mergedConfig = {
-    ...config,
-    ...cliConfig(process.env.CUCUMBER_OPTIONS),
-  };
   const results: Results = new Map();
 
   process.env.CUCUMBER_WORKER_ID = process.env.VITEST_WORKER_ID;
 
-  // We handle parallelization at the Vitest level
-  delete mergedConfig.parallel;
-
   beforeAll(async () => {
     if (!cache) {
+      const mergedConfig = {
+        ...config,
+        ...cliConfig(process.env.CUCUMBER_OPTIONS),
+      };
+
+      // We handle parallelization at the Vitest level
+      delete mergedConfig.parallel;
+
       const { runConfiguration } = await loadConfiguration({
         provided: {
           format: [
@@ -66,19 +67,20 @@ export function runFeatureFile({
 
       // We load support code using the Vitest module loader so that imports
       // inside step definitions go through Vitest's module resolution pipeline.
-      const testCaseErrors = new Map<string, Error>();
+      const testStepErrors = new Map<string, Error>();
       global.__vitestCucumber = {
         moduleLoader,
         config: mergedConfig,
-        testCaseErrors,
+        testStepErrors,
       };
-      const support = await loadSupport(runConfiguration);
-      delete global.__vitestCucumber;
+      const support = await loadSupport(runConfiguration).finally(() => {
+        delete global.__vitestCucumber;
+      });
 
-      cache = { runConfiguration, support, testCaseErrors };
+      cache = { runConfiguration, support, testStepErrors };
     }
 
-    cache.testCaseErrors.clear();
+    cache.testStepErrors.clear();
 
     await runCucumber({
       ...cache,

@@ -2,15 +2,15 @@ import { AfterStep } from "@cucumber/cucumber";
 import { glob } from "glob";
 import type { VitestCucumberGlobal } from "../types/global.ts";
 
-const { moduleLoader, config, testCaseErrors } =
+const { moduleLoader, config, testStepErrors } =
   global.__vitestCucumber as VitestCucumberGlobal;
 
 delete global.__vitestCucumber;
 
-// Capture testCase errors
-AfterStep(function ({ testCaseStartedId, error }) {
+// Capture test step error so runCucumber can attach it to the Vitest result.
+AfterStep(function ({ testStepId, error }) {
   if (error) {
-    testCaseErrors.set(testCaseStartedId, error);
+    testStepErrors.set(testStepId, error);
   }
 });
 

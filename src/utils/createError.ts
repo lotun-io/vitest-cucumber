@@ -12,8 +12,15 @@ export const createError = ({
   const cucumberError = result.stepResult?.message ?? result.status;
   const err = new Error(cucumberError);
 
+  const useDiffMessage =
+    result.error?.showDiff ||
+    (result.error?.showDiff === undefined &&
+      result.error?.actual !== undefined &&
+      result.error?.expected !== undefined);
+
   Object.assign(err, {
-    message: result.error?.showDiff ? result.error.message : err.message,
+    // Avoid double diff: cucumberError already contains a formatted diff; use the bare message so Vitest renders it once.
+    message: useDiffMessage ? result.error?.message : err.message,
     showDiff: result.error?.showDiff,
     expected: result.error?.expected,
     actual: result.error?.actual,

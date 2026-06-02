@@ -18,7 +18,7 @@ const config = {
 
 let runConfiguration: IRunConfiguration;
 let support: ISupportCodeLibrary;
-const testCaseErrors: Map<string, Error> = new Map();
+const testStepErrors: Map<string, Error> = new Map();
 
 beforeAll(async () => {
   ({ runConfiguration } = await loadConfiguration({
@@ -35,7 +35,7 @@ beforeAll(async () => {
   global.__vitestCucumber = {
     moduleLoader: (specifier: string) => import(specifier),
     config,
-    testCaseErrors,
+    testStepErrors,
   };
   support = await loadSupport(runConfiguration);
   delete global.__vitestCucumber;
@@ -43,11 +43,12 @@ beforeAll(async () => {
 
 async function run(feature: string) {
   const results: Results = new Map();
+  testStepErrors.clear();
   return runCucumber({
     id: path.join(featuresDir, feature),
     runConfiguration,
     support,
-    testCaseErrors,
+    testStepErrors,
     results,
   });
 }
