@@ -1,5 +1,11 @@
 # @lotun/vitest-cucumber
 
+## 0.1.7
+
+### Patch Changes
+
+- 8af28aa: Enhance error handling
+
 ## 0.1.6
 
 ### Patch Changes
