@@ -1,5 +1,11 @@
 # @lotun/vitest-cucumber
 
+## 0.1.8
+
+### Patch Changes
+
+- 26d8dff: Fix double diff output in createError
+
 ## 0.1.7
 
 ### Patch Changes
