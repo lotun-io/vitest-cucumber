@@ -14,6 +14,7 @@
   "keywords": [
     "vitest",
     "cucumber",
+    "gherkin",
     "testing",
     "bdd",
     "plugin"
