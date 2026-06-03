@@ -23,6 +23,5 @@ Then(
 );
 
 Given("a failing step", function failingStep() {
-  // eslint-disable-next-line config-thefork/throw-thefork-error
   throw new Error("intentional failure");
 });
