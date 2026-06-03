@@ -60,15 +60,27 @@ export const runCucumber = async ({
         parseErrors.push(`Parse error in "${source.uri}" ${msg}`);
       }
       if (envelope.testCaseFinished) {
-        const pickle = query.findPickleBy(envelope.testCaseFinished)!;
+        const pickle = query.findPickleBy(envelope.testCaseFinished);
+        if (!pickle) {
+          throw new Error("Pickle not found");
+        }
         const key = getScenarioKey({ query, pickle });
-        const current = results.get(key)!;
+        const current = results.get(key);
+        if (!current) {
+          throw new Error("Result not found");
+        }
         current.resolvers.resolve(null);
       }
       if (envelope.testStepFinished) {
-        const pickle = query.findPickleBy(envelope.testStepFinished)!;
+        const pickle = query.findPickleBy(envelope.testStepFinished);
+        if (!pickle) {
+          throw new Error("Pickle not found");
+        }
         const key = getScenarioKey({ query, pickle });
-        const current = results.get(key)!;
+        const current = results.get(key);
+        if (!current) {
+          throw new Error("Result not found");
+        }
         const testStep = query.findTestStepBy(envelope.testStepFinished);
         const pickleStep = testStep && query.findPickleStepBy(testStep);
         const stepResult = envelope.testStepFinished.testStepResult;
@@ -128,8 +140,10 @@ export const registerFeatureTests = ({
           test.concurrent(
             dedupName,
             async (ctx) => {
-              // If no result exists, the scenario was filtered out by Cucumber (e.g. by tags) and should be skipped.
-              const result = results.get(key)!;
+              const result = results.get(key);
+              if (!result) {
+                throw new Error("Result not found");
+              }
               await result.resolvers.promise;
               const status = result.status ?? "SKIPPED";
               if (status === "SKIPPED") {

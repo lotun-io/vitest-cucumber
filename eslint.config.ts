@@ -9,7 +9,7 @@ export default defineConfig(
   {
     files: ["src/**/*.ts"],
     extends: [
-      ...tseslint.configs.recommended,
+      ...tseslint.configs.strict,
       pluginN.configs["flat/recommended-module"],
     ],
     settings: {
