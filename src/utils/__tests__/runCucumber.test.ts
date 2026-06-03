@@ -1,6 +1,6 @@
 import { beforeAll, describe, it, expect } from "vitest";
-import * as path from "path";
-import fs from "fs";
+import path from "node:path";
+import fs from "node:fs";
 import type {
   IRunConfiguration,
   ISupportCodeLibrary,

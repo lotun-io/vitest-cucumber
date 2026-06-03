@@ -5,7 +5,7 @@ import type {
   ISupportCodeLibrary,
 } from "@cucumber/cucumber/api";
 import { loadConfiguration, loadSupport } from "@cucumber/cucumber/api";
-import path from "path";
+import path from "node:path";
 import { parseFeature } from "./parser.ts";
 import { cliConfig } from "./config.ts";
 import type { ResultItem } from "./runCucumber.ts";

@@ -24,6 +24,7 @@ export default defineConfig(
         { prefer: "type-imports", fixStyle: "separate-type-imports" },
       ],
       "n/file-extension-in-import": ["error", "always"],
+      "n/prefer-node-protocol": "error",
     },
   },
 );

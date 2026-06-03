@@ -1,5 +1,5 @@
 import type { IConfiguration } from "@cucumber/cucumber";
-import { createRequire } from "module";
+import { createRequire } from "node:module";
 import { parseArgsStringToArgv } from "string-argv";
 
 const require = createRequire(import.meta.url);
