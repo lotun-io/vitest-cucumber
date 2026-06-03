@@ -31,15 +31,15 @@ const rule = (name: string, body: string) => `  Rule: ${name}\n${body}`;
 // ---------------------------------------------------------------------------
 
 describe("parseFeature – feature name", () => {
-  it("extracts the feature name", () => {
-    const { featureName } = parseFeature(
+  it("extracts the feature name", async () => {
+    const { featureName } = await parseFeature(
       "Feature: My Awesome Feature\n  Scenario: s\n    Given x\n",
     );
     expect(featureName).toBe("My Awesome Feature");
   });
 
-  it('falls back to "Feature" when name is empty', () => {
-    const { featureName } = parseFeature(
+  it('falls back to "Feature" when name is empty', async () => {
+    const { featureName } = await parseFeature(
       "Feature:\n  Scenario: s\n    Given x\n",
     );
     expect(featureName).toBe("Feature");
@@ -51,23 +51,23 @@ describe("parseFeature – feature name", () => {
 // ---------------------------------------------------------------------------
 
 describe("parseFeature – regular scenarios", () => {
-  it("returns one entry per scenario with correct name", () => {
-    const { scenarios } = parseFeature(
+  it("returns one entry per scenario with correct name", async () => {
+    const { pickles } = await parseFeature(
       feature(scenario("login") + scenario("logout")),
     );
-    expect(scenarios.map((s) => s.name)).toEqual(["login", "logout"]);
+    expect(pickles.map((s) => s.name)).toEqual(["login", "logout"]);
   });
 
-  it("sets ruleName to null for top-level scenarios", () => {
-    const { scenarios } = parseFeature(feature(scenario("s")));
-    expect(scenarios[0].ruleName).toBeNull();
+  it("sets ruleName to null for top-level scenarios", async () => {
+    const { pickles } = await parseFeature(feature(scenario("s")));
+    expect(pickles[0].lineage?.rule?.location.line).toBeUndefined();
   });
 
-  it("captures the scenario line number", () => {
+  it("captures the scenario line number", async () => {
     const content = "Feature: F\n  Scenario: s\n    Given x\n";
-    const { scenarios } = parseFeature(content);
+    const { pickles } = await parseFeature(content);
     // "  Scenario: s" is on line 2
-    expect(scenarios[0].line).toBe(2);
+    expect(pickles[0].lineage?.scenario?.location.line).toBe(2);
   });
 });
 
@@ -76,19 +76,25 @@ describe("parseFeature – regular scenarios", () => {
 // ---------------------------------------------------------------------------
 
 describe("parseFeature – rules", () => {
-  it("sets ruleName for scenarios inside a Rule", () => {
+  it("sets ruleName for scenarios inside a Rule", async () => {
     const content = feature(rule("My Rule", scenario("inside rule")));
-    const { scenarios } = parseFeature(content);
-    expect(scenarios[0].ruleName).toBe("My Rule");
+    const { pickles } = await parseFeature(content);
+    expect(pickles[0].lineage?.rule?.name).toBe("My Rule");
   });
 
-  it("handles mixed top-level and rule scenarios", () => {
+  it("handles mixed top-level and rule scenarios", async () => {
     const content = feature(
       scenario("top") + rule("R", scenario("under rule")),
     );
-    const { scenarios } = parseFeature(content);
-    expect(scenarios[0]).toMatchObject({ name: "top", ruleName: null });
-    expect(scenarios[1]).toMatchObject({ name: "under rule", ruleName: "R" });
+    const { pickles } = await parseFeature(content);
+    expect(pickles[0]).toMatchObject({
+      name: "top",
+    });
+    expect(pickles[0].lineage?.rule?.name).toBeUndefined();
+    expect(pickles[1]).toMatchObject({
+      name: "under rule",
+      lineage: { rule: { name: "R" } },
+    });
   });
 });
 
@@ -97,18 +103,18 @@ describe("parseFeature – rules", () => {
 // ---------------------------------------------------------------------------
 
 describe("parseFeature – scenario outlines", () => {
-  it("expands outline rows into individual scenarios", () => {
+  it("expands outline rows into individual scenarios", async () => {
     const content = feature(
       outline("login with <role>", "role", ["admin", "user"]),
     );
-    const { scenarios } = parseFeature(content);
-    expect(scenarios.map((s) => s.name)).toEqual([
+    const { pickles } = await parseFeature(content);
+    expect(pickles.map((s) => s.name)).toEqual([
       "login with admin",
       "login with user",
     ]);
   });
 
-  it("uses the example row line, not the outline heading line", () => {
+  it("uses the example row line, not the outline heading line", async () => {
     const content = [
       "Feature: F",
       "  Scenario Outline: do <x>", // line 2 – outline heading
@@ -118,48 +124,15 @@ describe("parseFeature – scenario outlines", () => {
       "      | foo |", // line 6 – first example row
       "      | bar |", // line 7 – second example row
     ].join("\n");
-    const { scenarios } = parseFeature(content);
-    expect(scenarios[0].line).toBe(6);
-    expect(scenarios[1].line).toBe(7);
+    const { pickles } = await parseFeature(content);
+    expect(pickles[0].lineage?.example?.location.line).toBe(6);
+    expect(pickles[1].lineage?.example?.location.line).toBe(7);
   });
 
-  it("sets ruleName correctly for outlines inside a rule", () => {
+  it("sets ruleName correctly for outlines inside a rule", async () => {
     const content = feature(rule("R", outline("o <v>", "v", ["x"])));
-    const { scenarios } = parseFeature(content);
-    expect(scenarios[0].ruleName).toBe("R");
-  });
-});
-
-// ---------------------------------------------------------------------------
-// Duplicate name deduplication
-// ---------------------------------------------------------------------------
-
-describe("parseFeature – duplicate name deduplication", () => {
-  it("appends (2), (3) for duplicate scenario names", () => {
-    const content = feature(
-      scenario("same") + scenario("same") + scenario("same"),
-    );
-    const { scenarios } = parseFeature(content);
-    expect(scenarios.map((s) => s.name)).toEqual([
-      "same",
-      "same (2)",
-      "same (3)",
-    ]);
-  });
-
-  it("does not alter unique names", () => {
-    const content = feature(scenario("a") + scenario("b") + scenario("c"));
-    const { scenarios } = parseFeature(content);
-    expect(scenarios.map((s) => s.name)).toEqual(["a", "b", "c"]);
-  });
-
-  it("deduplicates across outline rows with the same expanded name", () => {
-    // Two outlines both produce a pickle named "test foo"
-    const content = feature(
-      outline("test <x>", "x", ["foo"]) + outline("test <x>", "x", ["foo"]),
-    );
-    const { scenarios } = parseFeature(content);
-    expect(scenarios.map((s) => s.name)).toEqual(["test foo", "test foo (2)"]);
+    const { pickles } = await parseFeature(content);
+    expect(pickles[0].lineage?.rule?.name).toBe("R");
   });
 });
 
@@ -167,11 +140,11 @@ describe("parseFeature – duplicate name deduplication", () => {
 // uri is forwarded (smoke)
 // ---------------------------------------------------------------------------
 
-describe("parseFeature – uri", () => {
-  it("does not throw when uri is provided", () => {
-    expect(() =>
+describe("parseFeature – uri", async () => {
+  it("does not throw when uri is provided", async () => {
+    await expect(
       parseFeature(feature(scenario("s")), "/path/to/my.feature"),
-    ).not.toThrow();
+    ).resolves.not.toThrow();
   });
 });
 
@@ -180,19 +153,21 @@ describe("parseFeature – uri", () => {
 // ---------------------------------------------------------------------------
 
 describe("parseFeature – parse errors", () => {
-  it("throws on parse error with all errors listed", () => {
+  it("throws on parse error with all errors listed", async () => {
     const content = "not valid gherkin\n  Scenario: oops\n    Given x\n";
-    expect(() => parseFeature(content, "bad.feature")).toThrow(/Parse failure/);
+    await expect(parseFeature(content, "bad.feature")).rejects.toThrow(
+      /Parse failure/,
+    );
   });
 
-  it("includes the source uri and location in the error message", () => {
+  it("includes the source uri and location in the error message", async () => {
     const content = "not valid gherkin\n";
-    expect(() => parseFeature(content, "my/file.feature")).toThrow(
+    await expect(parseFeature(content, "my/file.feature")).rejects.toThrow(
       'Parse error in "my/file.feature"',
     );
   });
 
-  it("lists all parse errors with line and column numbers", () => {
+  it("lists all parse errors with line and column numbers", async () => {
     const content = [
       "FeatureParse: Error",
       "",
@@ -202,7 +177,7 @@ describe("parseFeature – parse errors", () => {
       "        ThenParse Error",
     ].join("\n");
     const uri = "parse-error.feature";
-    expect(() => parseFeature(content, uri)).toThrow(
+    await expect(parseFeature(content, uri)).rejects.toThrow(
       [
         "Parse failure",
         `Parse error in "${uri}" (1:1): expected: #EOF, #Language, #TagLine, #FeatureLine, #Comment, #Empty, got 'FeatureParse: Error'`,

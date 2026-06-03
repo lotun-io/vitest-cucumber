@@ -6,8 +6,8 @@ describe("createError", () => {
   it("uses stepResult message when available", () => {
     const err = createError({
       id: "features/test.feature",
-      line: 5,
       result: {
+        resolvers: Promise.withResolvers(),
         status: "FAILED",
         stepResult: {
           status: TestStepResultStatus.FAILED,
@@ -22,8 +22,7 @@ describe("createError", () => {
   it("falls back to status when stepResult message is absent", () => {
     const err = createError({
       id: "features/test.feature",
-      line: 5,
-      result: { status: "UNDEFINED" },
+      result: { status: "UNDEFINED", resolvers: Promise.withResolvers() },
     });
     expect(err.message).toBe("UNDEFINED");
   });
@@ -31,8 +30,8 @@ describe("createError", () => {
   it("uses step location for stack when step is present", () => {
     const err = createError({
       id: "features/test.feature",
-      line: 1,
       result: {
+        resolvers: Promise.withResolvers(),
         status: "FAILED",
         stepResult: {
           status: TestStepResultStatus.FAILED,
@@ -53,8 +52,14 @@ describe("createError", () => {
   it("falls back to scenario line and column 1 when step is absent", () => {
     const err = createError({
       id: "features/test.feature",
-      line: 7,
+      lineage: {
+        // @ts-expect-error -- Partial Lineage for testing
+        scenario: {
+          location: { line: 7 },
+        },
+      },
       result: {
+        resolvers: Promise.withResolvers(),
         status: "FAILED",
         stepResult: {
           status: TestStepResultStatus.FAILED,
@@ -69,8 +74,8 @@ describe("createError", () => {
   it("uses exception message and propagates diff properties when showDiff is true", () => {
     const err = createError({
       id: "features/test.feature",
-      line: 5,
       result: {
+        resolvers: Promise.withResolvers(),
         status: "FAILED",
         stepResult: {
           status: TestStepResultStatus.FAILED,

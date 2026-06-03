@@ -1,4 +1,4 @@
-import { beforeAll } from "vitest";
+import { beforeAll, afterAll } from "vitest";
 import type {
   IConfiguration,
   IRunConfiguration,
@@ -8,7 +8,7 @@ import { loadConfiguration, loadSupport } from "@cucumber/cucumber/api";
 import path from "path";
 import { parseFeature } from "./parser.ts";
 import { cliConfig } from "./config.ts";
-import type { Results } from "./runCucumber.ts";
+import type { ResultItem } from "./runCucumber.ts";
 import { runCucumber, registerFeatureTests } from "./runCucumber.ts";
 
 export type ModuleLoader = (specifier: string) => Promise<unknown>;
@@ -19,7 +19,7 @@ let cache: {
   testStepErrors: Map<string, Error>;
 } | null = null;
 
-export function runFeatureFile({
+export const runFeatureFile = async ({
   id,
   code,
   config,
@@ -29,9 +29,16 @@ export function runFeatureFile({
   code: string;
   config: Partial<IConfiguration>;
   moduleLoader: ModuleLoader;
-}): void {
-  const parsed = parseFeature(code, id);
-  const results: Results = new Map();
+}): Promise<void> => {
+  const parsed = await parseFeature(code, id);
+  const results = new Map<string, ResultItem>(
+    parsed.pickles.map((pickle) => [
+      pickle.key,
+      { resolvers: Promise.withResolvers() },
+    ]),
+  );
+
+  let runCucumberPromise: Promise<unknown> | null = null;
 
   process.env.CUCUMBER_WORKER_ID = process.env.VITEST_WORKER_ID;
 
@@ -82,17 +89,27 @@ export function runFeatureFile({
 
     cache.testStepErrors.clear();
 
-    await runCucumber({
+    runCucumberPromise = runCucumber({
       ...cache,
       id,
       results,
     });
+
+    runCucumberPromise.finally(() => {
+      results.forEach((result) => {
+        result.resolvers.resolve(null);
+      });
+    });
   }, 0);
+
+  afterAll(async () => {
+    await runCucumberPromise;
+  });
 
   registerFeatureTests({
     featureName: parsed.featureName,
-    scenarios: parsed.scenarios,
+    pickles: parsed.pickles,
     id,
     results,
   });
-}
+};

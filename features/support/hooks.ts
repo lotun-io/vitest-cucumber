@@ -1,7 +1,7 @@
 import { Before, After, BeforeAll, AfterAll } from "@cucumber/cucumber";
 
 Before({ tags: "@skip" }, function before() {
-  return "pending";
+  return "skipped";
 });
 
 Before({ tags: "@failBefore" }, function failBefore() {

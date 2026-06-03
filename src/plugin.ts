@@ -21,7 +21,7 @@ export const cucumber = (config?: VitestCucumberOptions): Plugin => {
       return {
         code: `
         import { runFeatureFile } from ${JSON.stringify(cucumberRunner)}
-        runFeatureFile({
+        await runFeatureFile({
           id: ${JSON.stringify(id)},
           code: ${JSON.stringify(code)},
           config: ${JSON.stringify(config ?? {})},

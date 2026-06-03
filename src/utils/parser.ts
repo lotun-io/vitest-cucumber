@@ -1,13 +1,25 @@
 import { generateMessages } from "@cucumber/gherkin";
+import type { Pickle } from "@cucumber/messages";
 import { IdGenerator, SourceMediaType } from "@cucumber/messages";
 import { Query } from "@cucumber/query";
 
 export type ParsedFeature = ReturnType<typeof parseFeature>;
 
-export const dedupName = (name: string, count: number): string =>
-  count === 1 ? name : `${name} (${count})`;
+export const getScenarioKey = ({
+  query,
+  pickle,
+}: {
+  query: Query;
+  pickle: Pickle;
+}): string => {
+  const lineage = query.findLineageBy(pickle);
+  const scenarioLine = lineage?.scenario?.location.line;
+  const exampleLine = lineage?.example?.location.line;
 
-export const parseFeature = (content: string, uri = "") => {
+  return `${scenarioLine}:${exampleLine}`;
+};
+
+export const parseFeature = async (content: string, uri = "") => {
   const newId = IdGenerator.uuid();
   const query = new Query();
   let featureName = "Feature";
@@ -39,20 +51,13 @@ export const parseFeature = (content: string, uri = "") => {
 
   // Deduplicate names: when two pickles share the same name, append " (2)", " (3)", …
   // The runner mirrors this counter so both sides assign the same unique key.
-  const nameCount = new Map<string, number>();
-  const scenarios = query.findAllPickles().map((pickle) => {
+
+  const pickles = query.findAllPickles().map((pickle) => {
+    const key = getScenarioKey({ query, pickle });
+    const name = pickle.name;
     const lineage = query.findLineageBy(pickle);
-    const ruleName = lineage?.rule?.name ?? null;
-    // example.location.line is the specific example row; falls back to the scenario line.
-    const line =
-      lineage?.example?.location?.line ??
-      lineage?.scenario?.location?.line ??
-      1;
-    const count = (nameCount.get(pickle.name) ?? 0) + 1;
-    nameCount.set(pickle.name, count);
-    const name = dedupName(pickle.name, count);
-    return { name, ruleName, line };
+    return { key, name, lineage };
   });
 
-  return { featureName, scenarios };
+  return { featureName, pickles };
 };

@@ -1,12 +1,14 @@
 import { beforeAll, describe, it, expect } from "vitest";
 import * as path from "path";
+import fs from "fs";
 import type {
   IRunConfiguration,
   ISupportCodeLibrary,
 } from "@cucumber/cucumber/api";
 import { loadConfiguration, loadSupport } from "@cucumber/cucumber/api";
-import type { Results } from "../runCucumber.ts";
+import type { ResultItem } from "../runCucumber.ts";
 import { runCucumber } from "../runCucumber.ts";
+import { parseFeature } from "../parser.ts";
 
 const featuresDir = path.resolve(import.meta.dirname, "features");
 const config = {
@@ -38,19 +40,27 @@ beforeAll(async () => {
     testStepErrors,
   };
   support = await loadSupport(runConfiguration);
-  delete global.__vitestCucumber;
 });
 
 async function run(feature: string) {
-  const results: Results = new Map();
+  const id = path.join(featuresDir, feature);
+  const code = await fs.promises.readFile(id, "utf-8");
+  const parsed = await parseFeature(code, id).catch(() => null);
+  const results = new Map<string, ResultItem>(
+    (parsed?.pickles ?? []).map((pickle) => [
+      pickle.key,
+      { resolvers: Promise.withResolvers() },
+    ]),
+  );
   testStepErrors.clear();
-  return runCucumber({
-    id: path.join(featuresDir, feature),
+  await runCucumber({
+    id,
     runConfiguration,
     support,
     testStepErrors,
     results,
   });
+  return new Map(results.values().map((value) => [value.name, value]));
 }
 
 describe("failing scenarios", () => {

@@ -12,10 +12,13 @@ import type {
   TestStepResultStatus,
 } from "@cucumber/messages";
 import { createError } from "./createError.ts";
-import { dedupName } from "./parser.ts";
+import { getScenarioKey } from "./parser.ts";
+import type { Lineage } from "@cucumber/query";
 
 export type ResultItem = {
-  status: `${TestStepResultStatus}`;
+  resolvers: PromiseWithResolvers<unknown>;
+  name?: string;
+  status?: `${TestStepResultStatus}`;
   stepResult?: TestStepResult;
   step?: Step;
   error?: Error & {
@@ -42,9 +45,6 @@ export const runCucumber = async ({
 }) => {
   const query = new Query();
   const parseErrors: string[] = [];
-  const runtimeNameCount = new Map<string, number>();
-  const pickleIdToKey = new Map<string, string>(); // pickle.id          → dedup key
-  const testCaseStartedToKey = new Map<string, string>(); // testCaseStarted.id  → dedup key
 
   await cucumberApi.runCucumber(
     {
@@ -59,25 +59,18 @@ export const runCucumber = async ({
         const { source, message: msg } = envelope.parseError;
         parseErrors.push(`Parse error in "${source.uri}" ${msg}`);
       }
-      if (envelope.pickle) {
-        const { id: pickleId, name } = envelope.pickle;
-        const count = (runtimeNameCount.get(name) ?? 0) + 1;
-        runtimeNameCount.set(name, count);
-        pickleIdToKey.set(pickleId, dedupName(name, count));
-      }
-      if (envelope.testCaseStarted) {
-        const pickle = query.findPickleBy(envelope.testCaseStarted)!;
-        const key = pickleIdToKey.get(pickle.id)!;
-        testCaseStartedToKey.set(envelope.testCaseStarted.id, key);
+      if (envelope.testCaseFinished) {
+        const pickle = query.findPickleBy(envelope.testCaseFinished)!;
+        const key = getScenarioKey({ query, pickle });
+        const current = results.get(key)!;
+        current.resolvers.resolve(null);
       }
       if (envelope.testStepFinished) {
+        const pickle = query.findPickleBy(envelope.testStepFinished)!;
+        const key = getScenarioKey({ query, pickle });
+        const current = results.get(key)!;
         const testStep = query.findTestStepBy(envelope.testStepFinished);
         const pickleStep = testStep && query.findPickleStepBy(testStep);
-        const key =
-          testCaseStartedToKey.get(
-            envelope.testStepFinished.testCaseStartedId,
-          ) ?? "";
-        const current = results.get(key);
         const stepResult = envelope.testStepFinished.testStepResult;
         const worstStepResult = current?.stepResult
           ? getWorstTestStepResult([current.stepResult, stepResult])
@@ -86,12 +79,11 @@ export const runCucumber = async ({
         const testStepError = testStepErrors.get(
           envelope.testStepFinished.testStepId,
         );
-        results.set(key, {
-          status: worstStepResult.status,
-          stepResult: worstStepResult,
-          step: step ?? current?.step,
-          error: testStepError ?? current?.error,
-        });
+        current.name = pickle.name;
+        current.status = worstStepResult.status;
+        current.stepResult = worstStepResult;
+        current.step = step ?? current.step;
+        current.error = testStepError ?? current.error;
       }
     },
   );
@@ -104,40 +96,51 @@ export const runCucumber = async ({
 };
 
 export const registerFeatureTests = ({
-  featureName,
-  scenarios,
   id,
+  featureName,
+  pickles,
   results,
 }: {
-  featureName: string;
-  scenarios: Array<{ name: string; ruleName: string | null; line: number }>;
   id: string;
+  featureName: string;
+  pickles: Array<{ key: string; name: string; lineage?: Lineage }>;
   results: Results;
 }): void => {
   describe(featureName, () => {
     const byRule = new Map<
       string | null,
-      Array<{ name: string; line: number }>
+      Array<{ key: string; name: string; lineage?: Lineage }>
     >();
-    for (const { name, ruleName, line } of scenarios) {
+    for (const { key, name, lineage } of pickles) {
+      const ruleName = lineage?.rule?.name ?? null;
       const group = byRule.get(ruleName) ?? [];
-      group.push({ name, line });
+      group.push({ key, name, lineage });
       byRule.set(ruleName, group);
     }
 
     for (const [ruleName, ruleScenarios] of byRule) {
       const defineTests = () => {
-        for (const { name, line } of ruleScenarios) {
-          test(name, (ctx) => {
-            // If no result exists, the scenario was filtered out by Cucumber (e.g. by tags) and should be skipped.
-            const result = results.get(name) ?? { status: "SKIPPED" };
-            if (result.status === "SKIPPED" || result.status === "PENDING") {
-              ctx.skip();
-            }
-            if (result.status !== "PASSED") {
-              throw createError({ id, line, result });
-            }
-          });
+        const nameCount = new Map<string, number>();
+        for (const { key, name, lineage } of ruleScenarios) {
+          const count = (nameCount.get(name) ?? 0) + 1;
+          nameCount.set(name, count);
+          const dedupName = count === 1 ? name : `${name} (${count})`;
+          test.concurrent(
+            dedupName,
+            async (ctx) => {
+              // If no result exists, the scenario was filtered out by Cucumber (e.g. by tags) and should be skipped.
+              const result = results.get(key)!;
+              await result.resolvers.promise;
+              const status = result.status ?? "SKIPPED";
+              if (status === "SKIPPED") {
+                ctx.skip();
+              }
+              if (status !== "PASSED") {
+                throw createError({ id, lineage, result });
+              }
+            },
+            0,
+          );
         }
       };
 

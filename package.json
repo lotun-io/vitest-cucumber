@@ -65,15 +65,15 @@
     "@cucumber/cucumber": "^12.9.0",
     "@tsconfig/node24": "^24.0.4",
     "@types/node": "^24.12.4",
-    "@vitest/coverage-v8": "^4.1.7",
-    "eslint": "^10.4.0",
+    "@vitest/coverage-v8": "^4.1.8",
+    "eslint": "^10.4.1",
     "eslint-plugin-n": "^18.0.1",
     "jiti": "^2.7.0",
     "prettier": "^3.8.3",
-    "tsdown": "^0.22.0",
+    "tsdown": "^0.22.1",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.60.0",
-    "vitest": "^4.1.7"
+    "typescript-eslint": "^8.60.1",
+    "vitest": "^4.1.8"
   },
   "packageManager": "pnpm@11.3.0+sha512.2c403d6594527287672b1f7056343a1f7c3634036a67ffabfcc2b3d7595d843768f8787148d1b57cf7956c90606bbd192857c363af19e96d2d0ec9ec5741d215"
 }
