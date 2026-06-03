@@ -95,9 +95,7 @@ export const runFeatureFile = async ({
       ...cache,
       id,
       results,
-    });
-
-    runCucumberPromise.finally(() => {
+    }).finally(() => {
       results.forEach((result) => {
         result.resolvers.resolve(null);
       });
