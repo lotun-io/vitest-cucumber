@@ -49,9 +49,6 @@ export const parseFeature = async (content: string, uri = "") => {
     throw new Error(`Parse failure\n${parseErrors.join("\n")}`);
   }
 
-  // Deduplicate names: when two pickles share the same name, append " (2)", " (3)", …
-  // The runner mirrors this counter so both sides assign the same unique key.
-
   const pickles = query.findAllPickles().map((pickle) => {
     const key = getScenarioKey({ query, pickle });
     const name = pickle.name;
