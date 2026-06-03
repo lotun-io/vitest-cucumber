@@ -1,5 +1,11 @@
 # @lotun/vitest-cucumber
 
+## 0.1.9
+
+### Patch Changes
+
+- 06409bd: Scenarios now run as concurrent Vitest tests, streaming results in real-time as each scenario completes.
+
 ## 0.1.8
 
 ### Patch Changes
