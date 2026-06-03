@@ -40,7 +40,9 @@ export const runFeatureFile = async ({
 
   let runCucumberPromise: Promise<unknown> | null = null;
 
-  process.env.CUCUMBER_WORKER_ID = process.env.VITEST_WORKER_ID;
+  if (process.env.VITEST_WORKER_ID !== undefined) {
+    process.env.CUCUMBER_WORKER_ID = process.env.VITEST_WORKER_ID;
+  }
 
   beforeAll(async () => {
     if (!cache) {
