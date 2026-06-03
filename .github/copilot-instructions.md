@@ -36,9 +36,21 @@ pnpm format         # prettier write + eslint --fix
 
 ## Key Conventions
 
+### Real-time streaming with concurrent tests
+
+Each scenario is registered as a `test.concurrent` with timeout `0`. All tests start simultaneously when `beforeAll` fires. Each test awaits a `Promise<unknown>` stored inside its `ResultItem.resolvers` — a `PromiseWithResolvers` created upfront in `runner.ts` before `beforeAll`. The `testCaseFinished` envelope handler in `runCucumber.ts` resolves the promise for that scenario. A `.finally()` on `runCucumberPromise` resolves any remaining promises (tag-filtered scenarios that never fire `testCaseFinished`) so tests don't hang.
+
+### Scenario key
+
+`getScenarioKey` in `parser.ts` returns `"${scenarioLine}:${exampleLine}"` for outline rows and `"${scenarioLine}:undefined"` for plain scenarios. This format is stable — line numbers come from the `.feature` source — and is used as the key for both the `Results` map and the `resolvers` map. Both `parseFeature` and the Cucumber envelope handlers call the same function, so keys always match.
+
 ### Scenario name deduplication
 
-`parser.ts` exports a `dedupName(name, count)` helper that both `parser.ts` and `runCucumber.ts` use — duplicate scenario names become `"Name (2)"`, `"Name (3)"`, etc. Any change to this logic must go through the shared helper; both sides must always produce identical keys for the same feature file.
+Duplicate scenario names within the same rule group get `" (2)"`, `" (3)"` suffixes appended by `registerFeatureTests` using a per-rule `nameCount` map. `parser.ts` does not deduplicate — it returns raw `pickle.name`. Deduplication is purely a display concern in `registerFeatureTests`.
+
+### ResultItem shape
+
+`ResultItem` embeds `resolvers: PromiseWithResolvers<unknown>` alongside status/step/error fields. Results are pre-allocated in `runner.ts` (one entry per pickle key) before `beforeAll`. The `testStepFinished` handler mutates the entry in-place; `testCaseFinished` resolves the promise.
 
 ### Support code loading
 
@@ -49,6 +61,10 @@ An `AfterStep` hook in `loadSupport.ts` captures the raw `Error` object per `tes
 ### Worker-level cache
 
 `cache` in `runner.ts` is module-scoped. When `isolate: false`, the same worker reuses cached `runConfiguration` and `ISupportCodeLibrary` across feature files. Clear `testStepErrors` (not the whole cache) between runs. The `mergedConfig` computation (including `cliConfig()`) is done once inside the `if (!cache)` block.
+
+### parseFeature
+
+`parseFeature` is `async` and returns `{ featureName, pickles }` where each pickle is `{ key, name, lineage }`. The `lineage` object comes from `@cucumber/query` and gives access to `lineage.scenario`, `lineage.example`, `lineage.rule`, etc. — use these instead of `pickle.name` for location/rule info.
 
 ### Error attribution
 
