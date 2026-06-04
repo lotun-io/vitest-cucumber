@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@cucumber/gherkin':
-        specifier: ^38.0.0
-        version: 38.0.0
+        specifier: ^39.1.0
+        version: 39.1.0
       '@cucumber/messages':
         specifier: ^32.3.1
         version: 32.3.1
@@ -200,6 +200,9 @@ packages:
 
   '@cucumber/gherkin@38.0.0':
     resolution: {integrity: sha512-duEXK+KDfQUzu3vsSzXjkxQ2tirF5PRsc1Xrts6THKHJO6mjw4RjM8RV+vliuDasmhhrmdLcOcM7d9nurNTJKw==}
+
+  '@cucumber/gherkin@39.1.0':
+    resolution: {integrity: sha512-pqmSO2bUWxJm3TbNrKXlDaHjL6c77+ez9kWmfCd9oRPeTRPEVH3spZvpAqdXYWOZYSNYwWFCAAeZ4RGpkauNoQ==}
 
   '@cucumber/html-formatter@23.1.0':
     resolution: {integrity: sha512-DcCSFoGs6jbwzXPgX1CwgJKEE+ZMcIEzq/0Memg0o24maNn9NJizBFHmoFWG4iv/OxHza+mvc+56cTHetfHndw==}
@@ -2203,6 +2206,10 @@ snapshots:
       source-map-support: 0.5.21
 
   '@cucumber/gherkin@38.0.0':
+    dependencies:
+      '@cucumber/messages': 32.3.1
+
+  '@cucumber/gherkin@39.1.0':
     dependencies:
       '@cucumber/messages': 32.3.1
 

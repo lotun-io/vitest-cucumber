@@ -47,7 +47,7 @@
     "ci:publish": "pnpm build && pnpm publish --provenance --access public --no-git-checks"
   },
   "dependencies": {
-    "@cucumber/gherkin": "^38.0.0",
+    "@cucumber/gherkin": "^39.1.0",
     "@cucumber/messages": "^32.3.1",
     "@cucumber/query": "^15.0.1",
     "glob": "^13.0.6",
