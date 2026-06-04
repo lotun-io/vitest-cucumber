@@ -12,8 +12,8 @@ importers:
         specifier: ^12.9.0
         version: 12.9.0
       '@lotun/vitest-cucumber':
-        specifier: ^0.2.0
-        version: 0.2.0(@cucumber/cucumber@12.9.0)(@cucumber/gherkin@38.0.0)(@cucumber/messages@32.3.1)(@cucumber/query@15.0.1(@cucumber/messages@32.3.1))(vitest@4.1.8(vite@8.0.14(yaml@2.9.0)))
+        specifier: ^0.2.1
+        version: 0.2.1(@cucumber/cucumber@12.9.0)(@cucumber/gherkin@38.0.0)(@cucumber/messages@32.3.1)(@cucumber/query@15.0.1(@cucumber/messages@32.3.1))(vitest@4.1.8(vite@8.0.14(yaml@2.9.0)))
       vitest:
         specifier: ^4.1.8
         version: 4.1.8(vite@8.0.14(yaml@2.9.0))
@@ -102,8 +102,8 @@ packages:
   '@jridgewell/sourcemap-codec@1.5.5':
     resolution: {integrity: sha512-cYQ9310grqxueWbl+WuIUIaiUaDcj7WOq5fVhEljNVgRfOUhY9fy2zTvfoqWsnebh8Sl70VScFbICvJnLKB0Og==}
 
-  '@lotun/vitest-cucumber@0.2.0':
-    resolution: {integrity: sha512-HupTa8WPoTbr+tI2cjphlqgGFfy9SihC9BxgwZ7gZHpicOI+lqtqESQeV22cKi0GYCSBMZwKpD0+wtlJXkw1kA==}
+  '@lotun/vitest-cucumber@0.2.1':
+    resolution: {integrity: sha512-7rIoePD/OPADSfCy/Hd/NlLLbz7EWGDESql9tVrAS/nPQ6cl3CPKzKTPLCzoU6tv9TjCCjs9CMBxGWV5cJWWcA==}
     engines: {node: '>=22.0.0'}
     peerDependencies:
       '@cucumber/cucumber': ^12.x
@@ -1030,7 +1030,7 @@ snapshots:
 
   '@jridgewell/sourcemap-codec@1.5.5': {}
 
-  '@lotun/vitest-cucumber@0.2.0(@cucumber/cucumber@12.9.0)(@cucumber/gherkin@38.0.0)(@cucumber/messages@32.3.1)(@cucumber/query@15.0.1(@cucumber/messages@32.3.1))(vitest@4.1.8(vite@8.0.14(yaml@2.9.0)))':
+  '@lotun/vitest-cucumber@0.2.1(@cucumber/cucumber@12.9.0)(@cucumber/gherkin@38.0.0)(@cucumber/messages@32.3.1)(@cucumber/query@15.0.1(@cucumber/messages@32.3.1))(vitest@4.1.8(vite@8.0.14(yaml@2.9.0)))':
     dependencies:
       '@cucumber/cucumber': 12.9.0
       '@cucumber/gherkin': 38.0.0
