@@ -1,5 +1,11 @@
 # @lotun/vitest-cucumber
 
+## 0.1.10
+
+### Patch Changes
+
+- a6f1ee7: Retry support - scenarios retried via Cucumber's retry option now correctly report the final attempt's result.
+
 ## 0.1.9
 
 ### Patch Changes
