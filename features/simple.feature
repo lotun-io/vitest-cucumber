@@ -1,5 +1,7 @@
 Feature: Simple scenarios
 
+    Scenario: Without steps
+
     Scenario: A single passing step
         Given a value of 42
         Then the value should be 42

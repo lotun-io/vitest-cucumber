@@ -55,98 +55,110 @@ export const runCucumber = async ({
     notifyReady = undefined;
   };
 
-  await cucumberApi.runCucumber(
-    {
-      ...runConfiguration,
-      sources: { ...runConfiguration.sources, paths: [id] },
-      support,
-    },
-    {},
-    (envelope) => {
-      query.update(envelope);
-      if (envelope.parseError) {
-        const { source, message: msg } = envelope.parseError;
-        parseErrors.push(`Parse error in "${source.uri}" ${msg}`);
+  await cucumberApi
+    .runCucumber(
+      {
+        ...runConfiguration,
+        sources: { ...runConfiguration.sources, paths: [id] },
+        support,
+      },
+      {},
+      (envelope) => {
+        query.update(envelope);
+        if (envelope.parseError) {
+          const { source, message: msg } = envelope.parseError;
+          parseErrors.push(`Parse error in "${source.uri}" ${msg}`);
+        }
+        if (envelope.gherkinDocument) {
+          featureName = envelope.gherkinDocument.feature?.name || "Feature";
+        }
+        if (envelope.pickle) {
+          pickleById.set(envelope.pickle.id, envelope.pickle);
+        }
+        if (envelope.testCase) {
+          const pickle = pickleById.get(envelope.testCase.pickleId);
+          if (!pickle) {
+            throw new Error("Pickle not found");
+          }
+          const lineage = query.findLineageBy(pickle);
+          results.set(envelope.testCase.pickleId, {
+            name: pickle.name,
+            lineage,
+            resolvers: Promise.withResolvers(),
+          });
+        }
+        if (envelope.testCaseStarted) {
+          const pickle = query.findPickleBy(envelope.testCaseStarted);
+          if (!pickle) {
+            throw new Error("Pickle not found");
+          }
+          const current = results.get(pickle.id);
+          if (!current) {
+            throw new Error("Result not found");
+          }
+          // reset for retry
+          current.status = undefined;
+          current.stepResult = undefined;
+          current.step = undefined;
+          current.error = undefined;
+          notifyReady?.();
+        }
+        if (envelope.testCaseFinished) {
+          const pickle = query.findPickleBy(envelope.testCaseFinished);
+          if (!pickle) {
+            throw new Error("Pickle not found");
+          }
+          const current = results.get(pickle.id);
+          if (!current) {
+            throw new Error("Result not found");
+          }
+          const testSteps = query.findTestStepsFinishedBy(
+            envelope.testCaseFinished,
+          );
+          if (!envelope.testCaseFinished.willBeRetried) {
+            if (testSteps.length === 0) {
+              current.status = "SKIPPED";
+            }
+            current.resolvers.resolve(null);
+          }
+        }
+
+        if (envelope.testStepFinished) {
+          const pickle = query.findPickleBy(envelope.testStepFinished);
+          if (!pickle) {
+            throw new Error("Pickle not found");
+          }
+          const current = results.get(pickle.id);
+          if (!current) {
+            throw new Error("Result not found");
+          }
+          const testStep = query.findTestStepBy(envelope.testStepFinished);
+          const pickleStep = testStep && query.findPickleStepBy(testStep);
+          const stepResult = envelope.testStepFinished.testStepResult;
+          const worstStepResult = current.stepResult
+            ? getWorstTestStepResult([current.stepResult, stepResult])
+            : stepResult;
+          const step = pickleStep ? query.findStepBy(pickleStep) : undefined;
+          const testStepError = testStepErrors.get(
+            envelope.testStepFinished.testStepId,
+          );
+          current.status = worstStepResult.status;
+          current.stepResult = worstStepResult;
+          current.step = step ?? current.step;
+          current.error = testStepError ?? current.error;
+        }
+      },
+    )
+    .finally(() => {
+      for (const result of results.values()) {
+        result.resolvers.resolve(null);
       }
-      if (envelope.gherkinDocument) {
-        featureName = envelope.gherkinDocument.feature?.name || "Feature";
-      }
-      if (envelope.pickle) {
-        pickleById.set(envelope.pickle.id, envelope.pickle);
-      }
-      if (envelope.testCase) {
-        const pickle = pickleById.get(envelope.testCase.pickleId);
-        if (!pickle) {
-          throw new Error("Pickle not found");
-        }
-        const lineage = query.findLineageBy(pickle);
-        results.set(envelope.testCase.pickleId, {
-          name: pickle.name,
-          lineage,
-          resolvers: Promise.withResolvers(),
-        });
-      }
-      if (envelope.testCaseStarted) {
-        const pickle = query.findPickleBy(envelope.testCaseStarted);
-        if (!pickle) {
-          throw new Error("Pickle not found");
-        }
-        const current = results.get(pickle.id);
-        if (!current) {
-          throw new Error("Result not found");
-        }
-        // reset for retry
-        current.status = undefined;
-        current.stepResult = undefined;
-        current.step = undefined;
-        current.error = undefined;
-        notifyReady?.();
-      }
-      if (envelope.testCaseFinished) {
-        const pickle = query.findPickleBy(envelope.testCaseFinished);
-        if (!pickle) {
-          throw new Error("Pickle not found");
-        }
-        const current = results.get(pickle.id);
-        if (!current) {
-          throw new Error("Result not found");
-        }
-        if (!envelope.testCaseFinished.willBeRetried) {
-          current.resolvers.resolve(null);
-        }
-      }
-      if (envelope.testStepFinished) {
-        const pickle = query.findPickleBy(envelope.testStepFinished);
-        if (!pickle) {
-          throw new Error("Pickle not found");
-        }
-        const current = results.get(pickle.id);
-        if (!current) {
-          throw new Error("Result not found");
-        }
-        const testStep = query.findTestStepBy(envelope.testStepFinished);
-        const pickleStep = testStep && query.findPickleStepBy(testStep);
-        const stepResult = envelope.testStepFinished.testStepResult;
-        const worstStepResult = current.stepResult
-          ? getWorstTestStepResult([current.stepResult, stepResult])
-          : stepResult;
-        const step = pickleStep ? query.findStepBy(pickleStep) : undefined;
-        const testStepError = testStepErrors.get(
-          envelope.testStepFinished.testStepId,
-        );
-        current.status = worstStepResult.status;
-        current.stepResult = worstStepResult;
-        current.step = step ?? current.step;
-        current.error = testStepError ?? current.error;
-      }
-    },
-  );
+      notifyReady?.();
+    });
 
   if (parseErrors.length > 0) {
     throw new Error(`Parse failure\n${parseErrors.join("\n")}`);
   }
-
-  notifyReady?.();
 
   return results;
 };
@@ -186,7 +198,7 @@ export const registerFeatureTests = ({
             dedupName,
             async (ctx) => {
               await result.resolvers.promise;
-              const status = result.status ?? "SKIPPED";
+              const status = result.status ?? "FAILED";
               if (status === "SKIPPED") {
                 ctx.skip();
               }
