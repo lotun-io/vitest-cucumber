@@ -198,11 +198,13 @@ export const registerFeatureTests = ({
             dedupName,
             async (ctx) => {
               await result.resolvers.promise;
-              const status = result.status ?? "FAILED";
-              if (status === "SKIPPED") {
+              if (!result.status) {
+                result.status = "FAILED";
+              }
+              if (result.status === "SKIPPED") {
                 ctx.skip();
               }
-              if (status !== "PASSED") {
+              if (result.status !== "PASSED") {
                 throw createError({ id, result });
               }
             },
