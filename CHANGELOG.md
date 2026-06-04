@@ -1,5 +1,11 @@
 # @lotun/vitest-cucumber
 
+## 0.2.3
+
+### Patch Changes
+
+- d97d372: Add support for running specific feature files and scenarios
+
 ## 0.2.2
 
 ### Patch Changes
