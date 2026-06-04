@@ -8,7 +8,7 @@
   },
   "devDependencies": {
     "@cucumber/cucumber": "^12.9.0",
-    "@lotun/vitest-cucumber": "^0.2.1",
+    "@lotun/vitest-cucumber": "^0.2.3",
     "vitest": "^4.1.8"
   }
 }
