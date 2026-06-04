@@ -1,6 +1,6 @@
 {
   "name": "@lotun/vitest-cucumber",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Vitest plugin for Cucumber",
   "license": "MIT",
   "repository": {
