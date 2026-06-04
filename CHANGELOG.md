@@ -1,5 +1,11 @@
 # @lotun/vitest-cucumber
 
+## 0.2.0
+
+### Minor Changes
+
+- 59f2ca1: Vitest test order now matches Cucumber's execution order
+
 ## 0.1.10
 
 ### Patch Changes
