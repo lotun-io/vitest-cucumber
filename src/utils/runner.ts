@@ -55,10 +55,6 @@ export const runFeatureFile = async ({
       if (mergedConfig.parallel !== undefined) {
         throw new Error("Parallel execution is not supported");
       }
-      // Test ordering is not supported
-      if (mergedConfig.order !== undefined) {
-        throw new Error("Test ordering is not supported");
-      }
 
       const { runConfiguration } = await loadConfiguration({
         provided: {

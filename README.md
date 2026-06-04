@@ -73,6 +73,18 @@ CUCUMBER_OPTIONS="--tags @smoke" pnpm vitest run
 
 > **Note:** The `CUCUMBER_WORKER_ID` environment variable is automatically set to match the `VITEST_WORKER_ID` environment variable.
 
+## Unsupported Cucumber Options
+
+Some Cucumber options conflict with how Vitest manages test execution and are not supported:
+
+| Option     | Reason                                                               |
+| ---------- | -------------------------------------------------------------------- |
+| `parallel` | Vitest handles parallelism via workers — use Vitest's config instead |
+
+Passing `parallel` (via plugin config or `CUCUMBER_OPTIONS`) will throw an error at runtime.
+
+> **Note:** The `order` option (e.g. `random`) is supported but may affect reported test durations. Vitest registers tests in the order scenarios appear in the feature file; if Cucumber runs them in a different order, earlier tests stall waiting for a later scenario, making durations less accurate.
+
 ## Example
 
 ### Feature file
