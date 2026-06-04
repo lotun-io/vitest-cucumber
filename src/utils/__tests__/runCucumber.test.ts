@@ -6,6 +6,7 @@ import type {
 } from "@cucumber/cucumber/api";
 import { loadConfiguration, loadSupport } from "@cucumber/cucumber/api";
 import { runCucumber } from "../runCucumber.ts";
+import os from "node:os";
 
 const featuresDir = path.resolve(import.meta.dirname, "features");
 const config = {
@@ -13,6 +14,7 @@ const config = {
     path.join("features", "support/**/*.ts"),
     path.join("features", "step_definitions/**/*.ts"),
   ],
+  require: [os.devNull],
 };
 
 let runConfiguration: IRunConfiguration;

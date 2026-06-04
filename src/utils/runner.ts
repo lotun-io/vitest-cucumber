@@ -7,7 +7,8 @@ import type {
 import { loadConfiguration, loadSupport } from "@cucumber/cucumber/api";
 import path from "node:path";
 import { cliConfig } from "./config.ts";
-import { runCucumber, registerFeatureTests } from "./runCucumber.ts";
+import { runCucumber } from "./runCucumber.ts";
+import { registerFeatureTests } from "./registerFeatureTests.ts";
 
 export type ModuleLoader = (specifier: string) => Promise<unknown>;
 
@@ -26,6 +27,13 @@ export const runFeatureFile = async ({
   config: Partial<IConfiguration>;
   moduleLoader: ModuleLoader;
 }): Promise<void> => {
+  // @ts-expect-error - vitest private api
+  const vitestFiles = globalThis.__vitest_worker__?.ctx?.files as
+    | { filepath?: string; testLocations?: number[] | undefined }[]
+    | undefined;
+  const currentVitestFile = vitestFiles?.find((file) => file?.filepath === id);
+  const testLocations = currentVitestFile?.testLocations;
+
   const testCasesReady = Promise.withResolvers();
   let runCucumberError: Error | null = null;
 
@@ -84,6 +92,7 @@ export const runFeatureFile = async ({
   runCucumber({
     ...cache,
     id,
+    testLocations,
     onTestCasesReady: (params) => {
       registerFeatureTests(params);
       testCasesReady.resolve(null);

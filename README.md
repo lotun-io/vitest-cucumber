@@ -54,6 +54,30 @@ The `cucumber()` plugin accepts an optional partial [`IConfiguration`](https://g
 pnpm vitest run
 ```
 
+### Run a single feature file
+
+```bash
+pnpm vitest run features/simple.feature
+```
+
+### Run by line number
+
+You can target a specific scenario or scenario outline by passing a line number:
+
+```bash
+# Run a specific scenario (line where "Scenario:" appears)
+# features/simple.feature line 5 → "A single passing step"
+pnpm vitest run features/simple.feature:5
+
+# Run a specific Scenario Outline (line where "Scenario Outline:" appears — runs all its examples)
+# features/outline.feature line 3 → "Doubling <input>" (3 examples)
+pnpm vitest run features/outline.feature:3
+
+# Run a single example row of an outline
+# features/outline.feature line 10 → "Doubling 3" only
+pnpm vitest run features/outline.feature:10
+```
+
 ## Environment CLI Options
 
 Use the `CUCUMBER_OPTIONS` environment variable to pass Cucumber CLI options at runtime. These options will overwrite the corresponding values in the config passed to the `cucumber()` plugin.

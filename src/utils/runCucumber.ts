@@ -1,4 +1,3 @@
-import { describe, test } from "vitest";
 import type {
   IRunConfiguration,
   ISupportCodeLibrary,
@@ -13,7 +12,7 @@ import type {
   TestStepResult,
   TestStepResultStatus,
 } from "@cucumber/messages";
-import { createError } from "./createError.ts";
+import type { RegisterFeatureTestsParams } from "./registerFeatureTests.ts";
 
 export type ResultItem = {
   resolvers: PromiseWithResolvers<unknown>;
@@ -33,6 +32,7 @@ export type Results = Map<string, ResultItem>;
 
 export const runCucumber = async ({
   id,
+  testLocations,
   runConfiguration,
   support,
   testStepErrors,
@@ -41,6 +41,7 @@ export const runCucumber = async ({
   id: string;
   runConfiguration: IRunConfiguration;
   support: ISupportCodeLibrary;
+  testLocations?: number[];
   testStepErrors: Map<string, Error>;
   onTestCasesReady?: (params: RegisterFeatureTestsParams) => void;
 }) => {
@@ -48,7 +49,7 @@ export const runCucumber = async ({
   const query = new Query();
   const pickleById = new Map<string, Pickle>();
   const parseErrors: string[] = [];
-  let featureName = "Feature";
+  let featureName = "";
 
   let notifyReady: (() => void) | undefined = () => {
     onTestCasesReady?.({ id, featureName, results });
@@ -59,7 +60,12 @@ export const runCucumber = async ({
     .runCucumber(
       {
         ...runConfiguration,
-        sources: { ...runConfiguration.sources, paths: [id] },
+        sources: {
+          ...runConfiguration.sources,
+          paths: [
+            testLocations?.length ? `${id}:${testLocations.join(":")}` : id,
+          ],
+        },
         support,
       },
       {},
@@ -70,7 +76,7 @@ export const runCucumber = async ({
           parseErrors.push(`Parse error in "${source.uri}" ${msg}`);
         }
         if (envelope.gherkinDocument) {
-          featureName = envelope.gherkinDocument.feature?.name || "Feature";
+          featureName = envelope.gherkinDocument.feature?.name ?? "";
         }
         if (envelope.pickle) {
           pickleById.set(envelope.pickle.id, envelope.pickle);
@@ -161,63 +167,4 @@ export const runCucumber = async ({
   }
 
   return results;
-};
-
-export type RegisterFeatureTestsParams = {
-  id: string;
-  featureName: string;
-  results: Results;
-};
-
-export const registerFeatureTests = ({
-  id,
-  featureName,
-  results,
-}: RegisterFeatureTestsParams): void => {
-  describe(featureName, () => {
-    const groups: { ruleName: string | null; items: ResultItem[] }[] = [];
-    for (const result of results.values()) {
-      const ruleName = result.lineage?.rule?.name ?? null;
-      const last = groups.at(-1);
-      if (last && last.ruleName === ruleName) {
-        last.items.push(result);
-      } else {
-        groups.push({ ruleName, items: [result] });
-      }
-    }
-
-    for (const { ruleName, items } of groups) {
-      const defineTests = () => {
-        const nameCount = new Map<string, number>();
-        for (const result of items) {
-          const count = (nameCount.get(result.name) ?? 0) + 1;
-          nameCount.set(result.name, count);
-          const dedupName =
-            count === 1 ? result.name : `${result.name} (${count})`;
-          test(
-            dedupName,
-            async (ctx) => {
-              await result.resolvers.promise;
-              if (!result.status) {
-                result.status = "FAILED";
-              }
-              if (result.status === "SKIPPED") {
-                ctx.skip();
-              }
-              if (result.status !== "PASSED") {
-                throw createError({ id, result });
-              }
-            },
-            0,
-          );
-        }
-      };
-
-      if (ruleName === null) {
-        defineTests();
-      } else {
-        describe(ruleName, defineTests);
-      }
-    }
-  });
 };

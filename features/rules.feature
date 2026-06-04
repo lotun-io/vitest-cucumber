@@ -19,3 +19,16 @@ Feature: Rules
             When I double it
             And I add 2
             Then the value should be 14
+
+    Rule: Scenario outlines
+
+        Scenario Outline: Doubling <input>
+            Given a value of <input>
+            When I double it
+            Then the value should be <output>
+
+            Examples:
+                | input | output |
+                | 3     | 6      |
+                | 5     | 10     |
+                | 7     | 14     |
