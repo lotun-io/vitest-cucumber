@@ -38,7 +38,7 @@ export const runFeatureFile = async ({
     ]),
   );
 
-  let runCucumberPromise: Promise<unknown> | null = null;
+  let runCucumberError: Error | null = null;
 
   if (process.env.VITEST_WORKER_ID !== undefined) {
     process.env.CUCUMBER_WORKER_ID = process.env.VITEST_WORKER_ID;
@@ -52,7 +52,13 @@ export const runFeatureFile = async ({
       };
 
       // We handle parallelization at the Vitest level
-      delete mergedConfig.parallel;
+      if (mergedConfig.parallel !== undefined) {
+        throw new Error("Parallel execution is not supported");
+      }
+      // Test ordering is not supported
+      if (mergedConfig.order !== undefined) {
+        throw new Error("Test ordering is not supported");
+      }
 
       const { runConfiguration } = await loadConfiguration({
         provided: {
@@ -91,19 +97,25 @@ export const runFeatureFile = async ({
 
     cache.testStepErrors.clear();
 
-    runCucumberPromise = runCucumber({
+    runCucumber({
       ...cache,
       id,
       results,
-    }).finally(() => {
-      results.forEach((result) => {
-        result.resolvers.resolve(null);
+    })
+      .catch((err) => {
+        runCucumberError = err;
+      })
+      .finally(() => {
+        results.forEach((result) => {
+          result.resolvers.resolve(null);
+        });
       });
-    });
   }, 0);
 
   afterAll(async () => {
-    await runCucumberPromise;
+    if (runCucumberError) {
+      throw runCucumberError;
+    }
   });
 
   registerFeatureTests({

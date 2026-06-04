@@ -59,6 +59,22 @@ export const runCucumber = async ({
         const { source, message: msg } = envelope.parseError;
         parseErrors.push(`Parse error in "${source.uri}" ${msg}`);
       }
+      if (envelope.testCaseStarted) {
+        const pickle = query.findPickleBy(envelope.testCaseStarted);
+        if (!pickle) {
+          throw new Error("Pickle not found");
+        }
+        const key = getScenarioKey({ query, pickle });
+        const current = results.get(key);
+        if (!current) {
+          throw new Error("Result not found");
+        }
+        current.name = undefined;
+        current.status = undefined;
+        current.stepResult = undefined;
+        current.step = undefined;
+        current.error = undefined;
+      }
       if (envelope.testCaseFinished) {
         const pickle = query.findPickleBy(envelope.testCaseFinished);
         if (!pickle) {
@@ -69,7 +85,9 @@ export const runCucumber = async ({
         if (!current) {
           throw new Error("Result not found");
         }
-        current.resolvers.resolve(null);
+        if (!envelope.testCaseFinished.willBeRetried) {
+          current.resolvers.resolve(null);
+        }
       }
       if (envelope.testStepFinished) {
         const pickle = query.findPickleBy(envelope.testStepFinished);
@@ -84,7 +102,7 @@ export const runCucumber = async ({
         const testStep = query.findTestStepBy(envelope.testStepFinished);
         const pickleStep = testStep && query.findPickleStepBy(testStep);
         const stepResult = envelope.testStepFinished.testStepResult;
-        const worstStepResult = current?.stepResult
+        const worstStepResult = current.stepResult
           ? getWorstTestStepResult([current.stepResult, stepResult])
           : stepResult;
         const step = pickleStep ? query.findStepBy(pickleStep) : undefined;
@@ -137,13 +155,13 @@ export const registerFeatureTests = ({
           const count = (nameCount.get(name) ?? 0) + 1;
           nameCount.set(name, count);
           const dedupName = count === 1 ? name : `${name} (${count})`;
-          test.concurrent(
+          const result = results.get(key);
+          if (!result) {
+            throw new Error("Result not found");
+          }
+          test(
             dedupName,
             async (ctx) => {
-              const result = results.get(key);
-              if (!result) {
-                throw new Error("Result not found");
-              }
               await result.resolvers.promise;
               const status = result.status ?? "SKIPPED";
               if (status === "SKIPPED") {
@@ -161,7 +179,7 @@ export const registerFeatureTests = ({
       if (ruleName === null) {
         defineTests();
       } else {
-        describe(ruleName, defineTests);
+        describe.concurrent(ruleName, defineTests);
       }
     }
   });

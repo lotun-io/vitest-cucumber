@@ -21,7 +21,3 @@ Then(
     }
   },
 );
-
-Given("a failing step", function failingStep() {
-  throw new Error("intentional failure");
-});

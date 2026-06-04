@@ -42,20 +42,29 @@ beforeAll(async () => {
   support = await loadSupport(runConfiguration);
 });
 
-async function run(feature: string) {
+async function run(
+  feature: string,
+  { runtime }: { runtime?: Partial<IRunConfiguration["runtime"]> } = {},
+) {
   const id = path.join(featuresDir, feature);
   const code = await fs.promises.readFile(id, "utf-8");
   const parsed = await parseFeature(code, id).catch(() => null);
   const results = new Map<string, ResultItem>(
     (parsed?.pickles ?? []).map((pickle) => [
       pickle.key,
-      { resolvers: Promise.withResolvers() },
+      {
+        resolvers: Promise.withResolvers(),
+      },
     ]),
   );
   testStepErrors.clear();
+
   await runCucumber({
     id,
-    runConfiguration,
+    runConfiguration: {
+      ...runConfiguration,
+      runtime: { ...runConfiguration.runtime, ...runtime },
+    },
     support,
     testStepErrors,
     results,
@@ -168,5 +177,21 @@ describe("failing scenarios", () => {
     expect(result?.error?.showDiff).toBe(true);
     expect(result?.error?.expected).toBeDefined();
     expect(result?.error?.actual).toBeDefined();
+  });
+
+  it("retry: scenario result reflects final attempt after all retries exhausted", async () => {
+    const results = await run("failing-step.feature", {
+      runtime: { retry: 1 },
+    });
+    const result = results.get("Step throws an error");
+    expect(result?.status).toBe("FAILED");
+    expect(result?.stepResult?.message).toContain("intentional failure");
+  });
+
+  it("retry: scenario passes when second attempt succeeds", async () => {
+    delete process.env.RETRY_STEP_ATTEMPTED;
+    const results = await run("retry.feature", { runtime: { retry: 1 } });
+    const result = results.get("Step passes on retry");
+    expect(result?.status).toBe("PASSED");
   });
 });
