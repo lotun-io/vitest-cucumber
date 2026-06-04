@@ -46,14 +46,6 @@ describe("cucumber plugin", () => {
       expect(result.code).toContain("runFeatureFile");
     });
 
-    it("passes the raw feature content to runFeatureFile", () => {
-      const featureContent =
-        "Feature: My Feature\n  Scenario: First\n    Given a step\n";
-      const result = call(featureContent, "my.feature") as { code: string };
-      expect(result.code).toContain("My Feature");
-      expect(result.code).toContain("First");
-    });
-
     it("passes the file id to runFeatureFile", () => {
       const featureContent = "Feature: F\n  Scenario: s\n    Given a step\n";
       const result = call(featureContent, "/path/to/my.feature") as {

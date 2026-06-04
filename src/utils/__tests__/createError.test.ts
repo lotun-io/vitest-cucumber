@@ -7,6 +7,7 @@ describe("createError", () => {
     const err = createError({
       id: "features/test.feature",
       result: {
+        name: "",
         resolvers: Promise.withResolvers(),
         status: "FAILED",
         stepResult: {
@@ -22,7 +23,11 @@ describe("createError", () => {
   it("falls back to status when stepResult message is absent", () => {
     const err = createError({
       id: "features/test.feature",
-      result: { status: "UNDEFINED", resolvers: Promise.withResolvers() },
+      result: {
+        name: "",
+        status: "UNDEFINED",
+        resolvers: Promise.withResolvers(),
+      },
     });
     expect(err.message).toBe("UNDEFINED");
   });
@@ -31,6 +36,7 @@ describe("createError", () => {
     const err = createError({
       id: "features/test.feature",
       result: {
+        name: "",
         resolvers: Promise.withResolvers(),
         status: "FAILED",
         stepResult: {
@@ -52,14 +58,15 @@ describe("createError", () => {
   it("falls back to scenario line and column 1 when step is absent", () => {
     const err = createError({
       id: "features/test.feature",
-      lineage: {
-        // @ts-expect-error -- Partial Lineage for testing
-        scenario: {
-          location: { line: 7 },
-        },
-      },
       result: {
+        name: "",
         resolvers: Promise.withResolvers(),
+        lineage: {
+          // @ts-expect-error -- Partial Lineage for testing
+          scenario: {
+            location: { line: 7 },
+          },
+        },
         status: "FAILED",
         stepResult: {
           status: TestStepResultStatus.FAILED,
@@ -75,6 +82,7 @@ describe("createError", () => {
     const err = createError({
       id: "features/test.feature",
       result: {
+        name: "",
         resolvers: Promise.withResolvers(),
         status: "FAILED",
         stepResult: {

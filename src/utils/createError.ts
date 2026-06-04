@@ -1,13 +1,10 @@
 import type { ResultItem } from "./runCucumber.ts";
-import type { Lineage } from "@cucumber/query";
 
 export const createError = ({
   id,
-  lineage,
   result,
 }: {
   id: string;
-  lineage?: Lineage;
   result: ResultItem;
 }) => {
   const cucumberError = result.stepResult?.message ?? result.status;
@@ -28,7 +25,7 @@ export const createError = ({
   });
 
   const stepLine =
-    result.step?.location.line ?? lineage?.scenario?.location.line ?? 1;
+    result.step?.location.line ?? result.lineage?.scenario?.location.line ?? 1;
   const stepColumn = result.step?.location.column ?? 1;
   // Full Cucumber error message
   // The feature file frame in err.stack gives a clickable link to the failing step.

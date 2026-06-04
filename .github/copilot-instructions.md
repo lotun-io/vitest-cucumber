@@ -14,7 +14,6 @@ src/
 └── utils/
     ├── runner.ts         — runFeatureFile(): per-feature orchestrator, module-scoped support cache
     ├── runCucumber.ts    — Cucumber runtime invocation + Vitest describe/test registration
-    ├── parser.ts         — Gherkin parse (feature name, scenario names, line numbers)
     ├── loadSupport.ts    — globs & imports step definitions/hooks via Vitest's moduleLoader
     ├── config.ts         — parses CUCUMBER_OPTIONS env var using Cucumber's ArgvParser
     ├── createError.ts    — maps Cucumber failures to Vitest-friendly Error with clickable .stack
@@ -36,21 +35,55 @@ pnpm format         # prettier write + eslint --fix
 
 ## Key Conventions
 
-### Real-time streaming with concurrent tests
+### Collection-phase test registration
 
-Each scenario is registered as a `test.concurrent` with timeout `0`. All tests start simultaneously when `beforeAll` fires. Each test awaits a `Promise<unknown>` stored inside its `ResultItem.resolvers` — a `PromiseWithResolvers` created upfront in `runner.ts` before `beforeAll`. The `testCaseFinished` envelope handler in `runCucumber.ts` resolves the promise for that scenario. A `.finally()` on `runCucumberPromise` resolves any remaining promises (tag-filtered scenarios that never fire `testCaseFinished`) so tests don't hang.
+`plugin.ts` transforms each `.feature` file into JS with a top-level `await runFeatureFile(...)`. This runs during Vitest's **collection phase** (module evaluation), before any tests execute. Inside `runFeatureFile`, `runCucumber` is fired **fire-and-forget** (no `await`). `runCucumber` emits an `onTestCasesReady` callback when the first `testCaseStarted` envelope arrives. That callback calls `registerFeatureTests`, which calls `describe`/`test` — valid because we're still in the collection phase. `runFeatureFile` then `await`s a `testCasesReady` promise that is resolved inside `onTestCasesReady`, unblocking the top-level await and completing collection. An `afterAll` registered after the await propagates any Cucumber runtime error.
 
-### Scenario key
+```
+plugin.ts transform → top-level await runFeatureFile()
+  runFeatureFile()
+    → runCucumber() fire-and-forget
+        → testCase envelopes: build results map (shuffled/filtered order)
+        → first testCaseStarted: onTestCasesReady → registerFeatureTests() → describe/test
+                                                   → testCasesReady.resolve()
+    → await testCasesReady.promise  ← unblocks here, collection complete
+    → afterAll(propagate error)
+  Cucumber continues running scenarios, resolving resolvers as testCaseFinished arrives
+  Each test() awaits result.resolvers.promise
+```
 
-`getScenarioKey` in `parser.ts` returns `"${scenarioLine}:${exampleLine}"` for outline rows and `"${scenarioLine}:undefined"` for plain scenarios. This format is stable — line numbers come from the `.feature` source — and is used as the key for both the `Results` map and the `resolvers` map. Both `parseFeature` and the Cucumber envelope handlers call the same function, so keys always match.
+### Real-time streaming
 
-### Scenario name deduplication
+Each scenario is registered as a `test` with timeout `0`. Tests run sequentially in registration order. Each test `await`s `result.resolvers.promise` — a `PromiseWithResolvers` created in the `testCase` handler inside `runCucumber`. The `testCaseFinished` envelope handler resolves the promise for that scenario. Tag-filtered scenarios (which never fire `testCaseFinished`) are resolved by the `notifyReady?.()` fallback call after `cucumberApi.runCucumber` completes, so tests don't hang.
 
-Duplicate scenario names within the same rule group get `" (2)"`, `" (3)"` suffixes appended by `registerFeatureTests` using a per-rule `nameCount` map. `parser.ts` does not deduplicate — it returns raw `pickle.name`. Deduplication is purely a display concern in `registerFeatureTests`.
+### Execution order
+
+`testCase` envelopes arrive in Cucumber's actual execution order — this includes `order: random` with a seed. `results` is a `Map` whose insertion order matches Cucumber's execution order. `registerFeatureTests` iterates `results.values()` directly, preserving that order. Scenarios belonging to the same `Rule` are grouped into consecutive `describe` blocks: consecutive entries with the same rule name share one `describe`; if the same rule appears non-consecutively (possible with `order: random`), it gets separate `describe` blocks.
+
+### `notifyReady` pattern
+
+`notifyReady` is a self-nulling closure defined at the top of `runCucumber`:
+
+```ts
+let notifyReady: (() => void) | undefined = () => {
+  onTestCasesReady?.({ id, featureName, results });
+  notifyReady = undefined;
+};
+```
+
+Called at `testCaseStarted` (normal path) and with `?.` after the full run as a fallback for parse errors or empty features. Setting itself to `undefined` after the first call makes it safe to call multiple times with `notifyReady?.()`.
+
+### `pickleById` local map
+
+`envelope.pickle` arrives before `envelope.testCase`. A local `Map<string, Pickle>` is populated in the `pickle` handler for O(1) lookup in the `testCase` handler — avoids `query.findAllPickles().find()`.
 
 ### ResultItem shape
 
-`ResultItem` embeds `resolvers: PromiseWithResolvers<unknown>` alongside status/step/error fields. Results are pre-allocated in `runner.ts` (one entry per pickle key) before `beforeAll`. The `testStepFinished` handler mutates the entry in-place; `testCaseFinished` resolves the promise.
+`ResultItem` embeds `resolvers: PromiseWithResolvers<unknown>` alongside `name`, `lineage`, and status/step/error fields. Entries are allocated in `runCucumber`'s `testCase` handler — one per `testCase` envelope, keyed by `pickle.id` (UUID). `name` and `lineage` are stored directly on `ResultItem` at allocation time. The `testStepFinished` handler mutates status/step/error in-place. `testCaseFinished` resolves the promise. Fields are reset to `undefined` on `testCaseStarted` to handle retries.
+
+### Scenario name deduplication
+
+Duplicate scenario names within the same consecutive rule group get `" (2)"`, `" (3)"` suffixes appended by `registerFeatureTests` using a per-group `nameCount` map. Deduplication is purely a display concern.
 
 ### Support code loading
 
@@ -62,10 +95,6 @@ An `AfterStep` hook in `loadSupport.ts` captures the raw `Error` object per `tes
 
 `cache` in `runner.ts` is module-scoped. When `isolate: false`, the same worker reuses cached `runConfiguration` and `ISupportCodeLibrary` across feature files. Clear `testStepErrors` (not the whole cache) between runs. The `mergedConfig` computation (including `cliConfig()`) is done once inside the `if (!cache)` block.
 
-### parseFeature
-
-`parseFeature` is `async` and returns `{ featureName, pickles }` where each pickle is `{ key, name, lineage }`. The `lineage` object comes from `@cucumber/query` and gives access to `lineage.scenario`, `lineage.example`, `lineage.rule`, etc. — use these instead of `pickle.name` for location/rule info.
-
 ### Error attribution
 
 `createError.ts` builds a synthetic `.stack` pointing at the failing line in the `.feature` file — this is what makes errors clickable in VS Code. Preserve the `at <featureFileId>:<line>:<col>` format.
@@ -74,7 +103,7 @@ An `AfterStep` hook in `loadSupport.ts` captures the raw `Error` object per `tes
 
 ### Config merging
 
-`plugin config` is the base; `cliConfig(CUCUMBER_OPTIONS)` values overwrite it. `parallel` is always deleted — parallelism is Vitest's responsibility.
+`plugin config` is the base; `cliConfig(CUCUMBER_OPTIONS)` values overwrite it. `parallel` is always forbidden — parallelism is Vitest's responsibility.
 
 ### `CUCUMBER_WORKER_ID`
 
@@ -90,7 +119,6 @@ Set equal to `VITEST_WORKER_ID` before running Cucumber so step definitions can 
 ## Dependencies
 
 - `@cucumber/cucumber` — runtime, API, ArgvParser (internal)
-- `@cucumber/gherkin` — Gherkin parser
 - `@cucumber/messages` — envelope types, `getWorstTestStepResult`
 - `@cucumber/query` — `Query` helper for envelope lookups
 - `glob` — support file globbing in `loadSupport.ts`

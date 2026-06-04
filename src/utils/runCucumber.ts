@@ -5,19 +5,20 @@ import type {
 } from "@cucumber/cucumber/api";
 import * as cucumberApi from "@cucumber/cucumber/api";
 import { Query } from "@cucumber/query";
+import type { Lineage } from "@cucumber/query";
 import { getWorstTestStepResult } from "@cucumber/messages";
 import type {
+  Pickle,
   Step,
   TestStepResult,
   TestStepResultStatus,
 } from "@cucumber/messages";
 import { createError } from "./createError.ts";
-import { getScenarioKey } from "./parser.ts";
-import type { Lineage } from "@cucumber/query";
 
 export type ResultItem = {
   resolvers: PromiseWithResolvers<unknown>;
-  name?: string;
+  name: string;
+  lineage?: Lineage;
   status?: `${TestStepResultStatus}`;
   stepResult?: TestStepResult;
   step?: Step;
@@ -35,16 +36,24 @@ export const runCucumber = async ({
   runConfiguration,
   support,
   testStepErrors,
-  results,
+  onTestCasesReady,
 }: {
   id: string;
   runConfiguration: IRunConfiguration;
   support: ISupportCodeLibrary;
   testStepErrors: Map<string, Error>;
-  results: Results;
+  onTestCasesReady?: (params: RegisterFeatureTestsParams) => void;
 }) => {
+  const results: Results = new Map();
   const query = new Query();
+  const pickleById = new Map<string, Pickle>();
   const parseErrors: string[] = [];
+  let featureName = "Feature";
+
+  let notifyReady: (() => void) | undefined = () => {
+    onTestCasesReady?.({ id, featureName, results });
+    notifyReady = undefined;
+  };
 
   await cucumberApi.runCucumber(
     {
@@ -59,29 +68,46 @@ export const runCucumber = async ({
         const { source, message: msg } = envelope.parseError;
         parseErrors.push(`Parse error in "${source.uri}" ${msg}`);
       }
+      if (envelope.gherkinDocument) {
+        featureName = envelope.gherkinDocument.feature?.name || "Feature";
+      }
+      if (envelope.pickle) {
+        pickleById.set(envelope.pickle.id, envelope.pickle);
+      }
+      if (envelope.testCase) {
+        const pickle = pickleById.get(envelope.testCase.pickleId);
+        if (!pickle) {
+          throw new Error("Pickle not found");
+        }
+        const lineage = query.findLineageBy(pickle);
+        results.set(envelope.testCase.pickleId, {
+          name: pickle.name,
+          lineage,
+          resolvers: Promise.withResolvers(),
+        });
+      }
       if (envelope.testCaseStarted) {
         const pickle = query.findPickleBy(envelope.testCaseStarted);
         if (!pickle) {
           throw new Error("Pickle not found");
         }
-        const key = getScenarioKey({ query, pickle });
-        const current = results.get(key);
+        const current = results.get(pickle.id);
         if (!current) {
           throw new Error("Result not found");
         }
-        current.name = undefined;
+        // reset for retry
         current.status = undefined;
         current.stepResult = undefined;
         current.step = undefined;
         current.error = undefined;
+        notifyReady?.();
       }
       if (envelope.testCaseFinished) {
         const pickle = query.findPickleBy(envelope.testCaseFinished);
         if (!pickle) {
           throw new Error("Pickle not found");
         }
-        const key = getScenarioKey({ query, pickle });
-        const current = results.get(key);
+        const current = results.get(pickle.id);
         if (!current) {
           throw new Error("Result not found");
         }
@@ -94,8 +120,7 @@ export const runCucumber = async ({
         if (!pickle) {
           throw new Error("Pickle not found");
         }
-        const key = getScenarioKey({ query, pickle });
-        const current = results.get(key);
+        const current = results.get(pickle.id);
         if (!current) {
           throw new Error("Result not found");
         }
@@ -109,7 +134,6 @@ export const runCucumber = async ({
         const testStepError = testStepErrors.get(
           envelope.testStepFinished.testStepId,
         );
-        current.name = pickle.name;
         current.status = worstStepResult.status;
         current.stepResult = worstStepResult;
         current.step = step ?? current.step;
@@ -122,43 +146,42 @@ export const runCucumber = async ({
     throw new Error(`Parse failure\n${parseErrors.join("\n")}`);
   }
 
+  notifyReady?.();
+
   return results;
+};
+
+export type RegisterFeatureTestsParams = {
+  id: string;
+  featureName: string;
+  results: Results;
 };
 
 export const registerFeatureTests = ({
   id,
   featureName,
-  pickles,
   results,
-}: {
-  id: string;
-  featureName: string;
-  pickles: Array<{ key: string; name: string; lineage?: Lineage }>;
-  results: Results;
-}): void => {
+}: RegisterFeatureTestsParams): void => {
   describe(featureName, () => {
-    const byRule = new Map<
-      string | null,
-      Array<{ key: string; name: string; lineage?: Lineage }>
-    >();
-    for (const { key, name, lineage } of pickles) {
-      const ruleName = lineage?.rule?.name ?? null;
-      const group = byRule.get(ruleName) ?? [];
-      group.push({ key, name, lineage });
-      byRule.set(ruleName, group);
+    const groups: { ruleName: string | null; items: ResultItem[] }[] = [];
+    for (const result of results.values()) {
+      const ruleName = result.lineage?.rule?.name ?? null;
+      const last = groups.at(-1);
+      if (last && last.ruleName === ruleName) {
+        last.items.push(result);
+      } else {
+        groups.push({ ruleName, items: [result] });
+      }
     }
 
-    for (const [ruleName, ruleScenarios] of byRule) {
+    for (const { ruleName, items } of groups) {
       const defineTests = () => {
         const nameCount = new Map<string, number>();
-        for (const { key, name, lineage } of ruleScenarios) {
-          const count = (nameCount.get(name) ?? 0) + 1;
-          nameCount.set(name, count);
-          const dedupName = count === 1 ? name : `${name} (${count})`;
-          const result = results.get(key);
-          if (!result) {
-            throw new Error("Result not found");
-          }
+        for (const result of items) {
+          const count = (nameCount.get(result.name) ?? 0) + 1;
+          nameCount.set(result.name, count);
+          const dedupName =
+            count === 1 ? result.name : `${result.name} (${count})`;
           test(
             dedupName,
             async (ctx) => {
@@ -168,7 +191,7 @@ export const registerFeatureTests = ({
                 ctx.skip();
               }
               if (status !== "PASSED") {
-                throw createError({ id, lineage, result });
+                throw createError({ id, result });
               }
             },
             0,
@@ -179,7 +202,7 @@ export const registerFeatureTests = ({
       if (ruleName === null) {
         defineTests();
       } else {
-        describe.concurrent(ruleName, defineTests);
+        describe(ruleName, defineTests);
       }
     }
   });

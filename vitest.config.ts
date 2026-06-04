@@ -1,4 +1,3 @@
-import { createRequire } from "node:module";
 import { defineConfig } from "vitest/config";
 import { cucumber } from "./src/index.ts";
 

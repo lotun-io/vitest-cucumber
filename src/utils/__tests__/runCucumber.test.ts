@@ -1,14 +1,11 @@
 import { beforeAll, describe, it, expect } from "vitest";
 import path from "node:path";
-import fs from "node:fs";
 import type {
   IRunConfiguration,
   ISupportCodeLibrary,
 } from "@cucumber/cucumber/api";
 import { loadConfiguration, loadSupport } from "@cucumber/cucumber/api";
-import type { ResultItem } from "../runCucumber.ts";
 import { runCucumber } from "../runCucumber.ts";
-import { parseFeature } from "../parser.ts";
 
 const featuresDir = path.resolve(import.meta.dirname, "features");
 const config = {
@@ -47,19 +44,10 @@ async function run(
   { runtime }: { runtime?: Partial<IRunConfiguration["runtime"]> } = {},
 ) {
   const id = path.join(featuresDir, feature);
-  const code = await fs.promises.readFile(id, "utf-8");
-  const parsed = await parseFeature(code, id).catch(() => null);
-  const results = new Map<string, ResultItem>(
-    (parsed?.pickles ?? []).map((pickle) => [
-      pickle.key,
-      {
-        resolvers: Promise.withResolvers(),
-      },
-    ]),
-  );
+
   testStepErrors.clear();
 
-  await runCucumber({
+  const results = await runCucumber({
     id,
     runConfiguration: {
       ...runConfiguration,
@@ -67,7 +55,6 @@ async function run(
     },
     support,
     testStepErrors,
-    results,
   });
   return new Map(results.values().map((value) => [value.name, value]));
 }

@@ -13,7 +13,7 @@ export type VitestCucumberOptions = Partial<IConfiguration>;
 export const cucumber = (config?: VitestCucumberOptions): Plugin => {
   return {
     name: "vitest-cucumber",
-    transform(code: string, id: string) {
+    transform(_: string, id: string) {
       if (!id.endsWith(".feature")) {
         return null;
       }
@@ -23,7 +23,6 @@ export const cucumber = (config?: VitestCucumberOptions): Plugin => {
         import { runFeatureFile } from ${JSON.stringify(cucumberRunner)}
         await runFeatureFile({
           id: ${JSON.stringify(id)},
-          code: ${JSON.stringify(code)},
           config: ${JSON.stringify(config ?? {})},
           moduleLoader: (specifier) => import(specifier)
         });
