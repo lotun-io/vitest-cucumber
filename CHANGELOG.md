@@ -1,5 +1,11 @@
 # @lotun/vitest-cucumber
 
+## 0.2.1
+
+### Patch Changes
+
+- 4683257: Scenarios with no steps are now skipped instead of hanging the test suite.
+
 ## 0.2.0
 
 ### Minor Changes
