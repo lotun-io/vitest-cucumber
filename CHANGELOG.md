@@ -1,5 +1,11 @@
 # @lotun/vitest-cucumber
 
+## 0.2.4
+
+### Patch Changes
+
+- 74bc9e2: remove @cucumber/gherkin from deps
+
 ## 0.2.3
 
 ### Patch Changes
