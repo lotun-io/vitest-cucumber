@@ -1,12 +1,12 @@
-import { beforeAll, describe, it, expect } from "vitest";
-import path from "node:path";
 import type {
   IRunConfiguration,
   ISupportCodeLibrary,
 } from "@cucumber/cucumber/api";
 import { loadConfiguration, loadSupport } from "@cucumber/cucumber/api";
-import { runCucumber } from "../runCucumber.ts";
 import os from "node:os";
+import path from "node:path";
+import { beforeAll, describe, expect, it } from "vitest";
+import { runCucumber } from "../runCucumber.ts";
 
 const featuresDir = path.resolve(import.meta.dirname, "features");
 const config = {

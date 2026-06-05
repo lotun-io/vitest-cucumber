@@ -9,6 +9,7 @@ A [Vitest](https://vitest.dev/) plugin that lets you run [Cucumber](https://cucu
 - **Parallel execution** — leverages Vitest's worker-based parallelism
 - **Clickable errors** — failures point to the exact line in the `.feature` file
 - **Tag filtering** — use `CUCUMBER_OPTIONS` env var to pass any Cucumber CLI flags (e.g. `--tags`)
+- **Line number targeting** — run a specific scenario or outline by appending `:line` to the feature file path (e.g. `vitest run features/simple.feature:5`)
 
 ## Requirements
 
@@ -51,13 +52,13 @@ The `cucumber()` plugin accepts an optional partial [`IConfiguration`](https://g
 ### Run tests
 
 ```bash
-pnpm vitest run
+npx vitest run
 ```
 
 ### Run a single feature file
 
 ```bash
-pnpm vitest run features/simple.feature
+npx vitest run features/simple.feature
 ```
 
 ### Run by line number
@@ -67,15 +68,13 @@ You can target a specific scenario or scenario outline by passing a line number:
 ```bash
 # Run a specific scenario (line where "Scenario:" appears)
 # features/simple.feature line 5 → "A single passing step"
-pnpm vitest run features/simple.feature:5
-
+npx vitest run features/simple.feature:5
 # Run a specific Scenario Outline (line where "Scenario Outline:" appears — runs all its examples)
 # features/outline.feature line 3 → "Doubling <input>" (3 examples)
-pnpm vitest run features/outline.feature:3
-
+npx vitest run features/outline.feature:3
 # Run a single example row of an outline
 # features/outline.feature line 10 → "Doubling 3" only
-pnpm vitest run features/outline.feature:10
+npx vitest run features/outline.feature:10
 ```
 
 ## Environment CLI Options
@@ -83,7 +82,7 @@ pnpm vitest run features/outline.feature:10
 Use the `CUCUMBER_OPTIONS` environment variable to pass Cucumber CLI options at runtime. These options will overwrite the corresponding values in the config passed to the `cucumber()` plugin.
 
 ```bash
-CUCUMBER_OPTIONS="--tags @smoke" pnpm vitest run
+CUCUMBER_OPTIONS="--tags @smoke" npx vitest run
 ```
 
 ## How It Works

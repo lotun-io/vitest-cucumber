@@ -47,7 +47,6 @@
     "ci:publish": "pnpm build && pnpm publish --provenance --access public --no-git-checks"
   },
   "dependencies": {
-    "@cucumber/gherkin": "^38.0.0",
     "@cucumber/messages": "^32.3.1",
     "@cucumber/query": "^15.0.1",
     "glob": "^13.0.6",
@@ -55,7 +54,6 @@
   },
   "peerDependencies": {
     "@cucumber/cucumber": "^12.x",
-    "@cucumber/gherkin": "^38.x",
     "@cucumber/messages": "^32.x",
     "@cucumber/query": "^15.x",
     "vitest": "^4.x"
@@ -70,6 +68,7 @@
     "eslint-plugin-n": "^18.0.1",
     "jiti": "^2.7.0",
     "prettier": "^3.8.3",
+    "prettier-plugin-organize-imports": "^4.3.0",
     "tsdown": "^0.22.1",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.60.1",

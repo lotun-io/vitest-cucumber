@@ -1,6 +1,6 @@
-import type { Plugin } from "vitest/config";
 import type { IConfiguration } from "@cucumber/cucumber/api";
 import path from "node:path";
+import type { Plugin } from "vitest/config";
 
 const cucumberRunner = path.join(
   import.meta.dirname,

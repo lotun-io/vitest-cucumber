@@ -1,6 +1,6 @@
-import { describe, it, expect } from "vitest";
-import { createError } from "../createError.ts";
 import { TestStepResultStatus } from "@cucumber/messages";
+import { describe, expect, it } from "vitest";
+import { createError } from "../createError.ts";
 
 describe("createError", () => {
   it("uses stepResult message when available", () => {

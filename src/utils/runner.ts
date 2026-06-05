@@ -1,4 +1,3 @@
-import { afterAll } from "vitest";
 import type {
   IConfiguration,
   IRunConfiguration,
@@ -6,9 +5,10 @@ import type {
 } from "@cucumber/cucumber/api";
 import { loadConfiguration, loadSupport } from "@cucumber/cucumber/api";
 import path from "node:path";
+import { afterAll } from "vitest";
 import { cliConfig } from "./config.ts";
-import { runCucumber } from "./runCucumber.ts";
 import { registerFeatureTests } from "./registerFeatureTests.ts";
+import { runCucumber } from "./runCucumber.ts";
 
 export type ModuleLoader = (specifier: string) => Promise<unknown>;
 

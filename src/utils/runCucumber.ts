@@ -3,15 +3,15 @@ import type {
   ISupportCodeLibrary,
 } from "@cucumber/cucumber/api";
 import * as cucumberApi from "@cucumber/cucumber/api";
-import { Query } from "@cucumber/query";
-import type { Lineage } from "@cucumber/query";
-import { getWorstTestStepResult } from "@cucumber/messages";
 import type {
   Pickle,
   Step,
   TestStepResult,
   TestStepResultStatus,
 } from "@cucumber/messages";
+import { getWorstTestStepResult } from "@cucumber/messages";
+import type { Lineage } from "@cucumber/query";
+import { Query } from "@cucumber/query";
 import type { RegisterFeatureTestsParams } from "./registerFeatureTests.ts";
 
 export type ResultItem = {
