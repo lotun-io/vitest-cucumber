@@ -27,11 +27,27 @@ export const createError = ({
     actual: result.error?.actual,
   });
 
-  const stepLine =
-    result.step?.location.line ?? result.lineage?.scenario?.location.line ?? 1;
-  const stepColumn = result.step?.location.column ?? 1;
-  // Full Cucumber error message
-  // The feature file frame in err.stack gives a clickable link to the failing step.
-  err.stack = `${cucumberError}\n    at ${id}:${stepLine}:${stepColumn}`;
+  const scenarioLocation = result.lineage?.scenario?.location;
+  const exampleLocation = result.lineage?.example?.location;
+  const stepLocation = result.step?.location;
+
+  const frames: string[] = [`    at Feature (${id})`];
+  if (scenarioLocation) {
+    frames.push(
+      `    at Scenario (${id}:${scenarioLocation.line}:${scenarioLocation.column ?? 1})`,
+    );
+  }
+  if (exampleLocation) {
+    frames.push(
+      `    at Example (${id}:${exampleLocation.line}:${exampleLocation.column ?? 1})`,
+    );
+  }
+  if (stepLocation) {
+    frames.push(
+      `    at Step (${id}:${stepLocation.line}:${stepLocation.column ?? 1})`,
+    );
+  }
+
+  err.stack = `${cucumberError}\n${frames.join("\n")}`;
   return err;
 };

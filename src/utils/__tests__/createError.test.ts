@@ -75,6 +75,40 @@ describe("createError", () => {
     expect(err.stack).toContain("features/test.feature:7:1");
   });
 
+  it("includes feature, scenario, example, and step frames when all present", () => {
+    const err = createError({
+      id: "features/test.feature",
+      result: {
+        name: "",
+        resolvers: Promise.withResolvers(),
+        lineage: {
+          // @ts-expect-error -- Partial Lineage for testing
+          feature: { name: "My Feature" },
+          // @ts-expect-error -- Partial Lineage for testing
+          scenario: { name: "My Scenario", location: { line: 5, column: 3 } },
+          // @ts-expect-error -- Partial Lineage for testing
+          example: { location: { line: 12, column: 5 } },
+        },
+        status: "FAILED",
+        stepResult: {
+          status: TestStepResultStatus.FAILED,
+          message: "oops",
+          duration: { seconds: 0, nanos: 0 },
+        },
+        step: {
+          location: { line: 15, column: 7 },
+          id: "s1",
+          keyword: "Given",
+          text: "a step",
+        },
+      },
+    });
+    expect(err.stack).toContain("at Feature (features/test.feature)");
+    expect(err.stack).toContain("at Scenario (features/test.feature:5:3)");
+    expect(err.stack).toContain("at Example (features/test.feature:12:5)");
+    expect(err.stack).toContain("at Step (features/test.feature:15:7)");
+  });
+
   it("uses exception message and propagates diff properties when showDiff is true", () => {
     const err = createError({
       id: "features/test.feature",
