@@ -132,9 +132,10 @@ describe("failing scenarios", () => {
       await run("hook-errors.feature");
     } catch (err) {
       expect(err as Error).toBeInstanceOf(Error);
-      expect((err as Error).message).toContain(
-        "BeforeAll hook failed intentionally",
-      );
+      const message =
+        (err as Error & { cause?: Error }).cause?.message ??
+        (err as Error).message;
+      expect(message).toContain("BeforeAll hook failed intentionally");
       return;
     } finally {
       delete process.env.FAIL_BEFORE_ALL;
@@ -148,9 +149,10 @@ describe("failing scenarios", () => {
       await run("hook-errors.feature");
     } catch (err) {
       expect(err as Error).toBeInstanceOf(Error);
-      expect((err as Error).message).toContain(
-        "AfterAll hook failed intentionally",
-      );
+      const message =
+        (err as Error & { cause?: Error }).cause?.message ??
+        (err as Error).message;
+      expect(message).toContain("AfterAll hook failed intentionally");
       return;
     } finally {
       delete process.env.FAIL_AFTER_ALL;
