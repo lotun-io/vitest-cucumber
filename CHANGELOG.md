@@ -1,5 +1,11 @@
 # @lotun/vitest-cucumber
 
+## 0.2.7
+
+### Patch Changes
+
+- 237dac0: Enhance status fallback
+
 ## 0.2.6
 
 ### Patch Changes
