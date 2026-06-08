@@ -1,5 +1,11 @@
 # @lotun/vitest-cucumber
 
+## 0.2.5
+
+### Patch Changes
+
+- dee7ff3: Add support for @cucumber/cucumber v13.x
+
 ## 0.2.4
 
 ### Patch Changes
