@@ -5,7 +5,10 @@ export const createError = ({
   result,
 }: {
   id: string;
-  result: ResultItem;
+  result: Pick<
+    ResultItem,
+    "stepResult" | "error" | "status" | "lineage" | "step"
+  > & { name: string };
 }) => {
   const cucumberError = result.stepResult?.message ?? result.status;
   const err = new Error(cucumberError);

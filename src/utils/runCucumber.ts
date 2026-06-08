@@ -12,6 +12,7 @@ import type {
 import { getWorstTestStepResult } from "@cucumber/messages";
 import type { Lineage } from "@cucumber/query";
 import { Query } from "@cucumber/query";
+import { createError } from "./createError.ts";
 import type { RegisterFeatureTestsParams } from "./registerFeatureTests.ts";
 
 export type ResultItem = {
@@ -49,6 +50,7 @@ export const runCucumber = async ({
   const query = new Query();
   const pickleById = new Map<string, Pickle>();
   const parseErrors: string[] = [];
+  const hookErrors: Error[] = [];
   let featureName = "";
 
   let notifyReady: (() => void) | undefined = () => {
@@ -92,6 +94,20 @@ export const runCucumber = async ({
             lineage,
             resolvers: Promise.withResolvers(),
           });
+        }
+        if (envelope.testRunHookFinished) {
+          const { result } = envelope.testRunHookFinished;
+          if (result.status === "FAILED") {
+            const error = createError({
+              id,
+              result: {
+                name: "Hook error",
+                stepResult: result,
+                status: result.status,
+              },
+            });
+            hookErrors.push(error);
+          }
         }
         if (envelope.testCaseStarted) {
           const pickle = query.findPickleBy(envelope.testCaseStarted);
@@ -164,6 +180,9 @@ export const runCucumber = async ({
 
   if (parseErrors.length > 0) {
     throw new Error(`Parse failure\n${parseErrors.join("\n")}`);
+  }
+  if (hookErrors.length > 0) {
+    throw hookErrors[0];
   }
 
   return results;

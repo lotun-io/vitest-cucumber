@@ -1,4 +1,4 @@
-import { Before, After, BeforeAll, AfterAll } from "@cucumber/cucumber";
+import { After, AfterAll, Before, BeforeAll } from "@cucumber/cucumber";
 
 Before({ tags: "@skip" }, function before() {
   return "skipped";

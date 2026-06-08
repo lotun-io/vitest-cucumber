@@ -53,26 +53,26 @@
     "string-argv": "^0.3.2"
   },
   "peerDependencies": {
-    "@cucumber/cucumber": "^12.x",
+    "@cucumber/cucumber": "^12.x || ^13.x",
     "@cucumber/messages": "^32.x",
     "@cucumber/query": "^15.x",
     "vitest": "^4.x"
   },
   "devDependencies": {
     "@changesets/cli": "^2.31.0",
-    "@cucumber/cucumber": "^12.9.0",
+    "@cucumber/cucumber": "^13.0.0",
     "@tsconfig/node24": "^24.0.4",
-    "@types/node": "^24.12.4",
+    "@types/node": "^24.13.1",
     "@vitest/coverage-v8": "^4.1.8",
     "eslint": "^10.4.1",
     "eslint-plugin-n": "^18.0.1",
     "jiti": "^2.7.0",
     "prettier": "^3.8.3",
     "prettier-plugin-organize-imports": "^4.3.0",
-    "tsdown": "^0.22.1",
+    "tsdown": "^0.22.2",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.60.1",
     "vitest": "^4.1.8"
   },
-  "packageManager": "pnpm@11.3.0+sha512.2c403d6594527287672b1f7056343a1f7c3634036a67ffabfcc2b3d7595d843768f8787148d1b57cf7956c90606bbd192857c363af19e96d2d0ec9ec5741d215"
+  "packageManager": "pnpm@11.5.2+sha512.71c631e382066efc25625d5cf029075de07b61b37f6e27350fbd84b1bda5864c8c1967adc280776b45c30a715c0359a3be08fef42d5bb09e2b99029979692916"
 }

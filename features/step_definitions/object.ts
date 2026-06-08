@@ -1,5 +1,5 @@
-import { expect } from "vitest";
 import { Given, Then } from "@cucumber/cucumber";
+import { expect } from "vitest";
 import { ArithmeticWorld } from "../support/world.ts";
 
 Given(/^object is:$/, function responseContain(this: ArithmeticWorld, value) {

@@ -1,4 +1,4 @@
-import { Given, When, Then } from "@cucumber/cucumber";
+import { Given, Then, When } from "@cucumber/cucumber";
 import type { ArithmeticWorld } from "../support/world.ts";
 
 Given("a value of {int}", function valueOf(this: ArithmeticWorld, n: number) {

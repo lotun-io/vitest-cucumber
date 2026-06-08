@@ -131,8 +131,8 @@ describe("failing scenarios", () => {
     try {
       await run("hook-errors.feature");
     } catch (err) {
-      expect((err as Error).cause).toBeInstanceOf(Error);
-      expect(((err as Error).cause as Error).message).toBe(
+      expect(err as Error).toBeInstanceOf(Error);
+      expect((err as Error).message).toContain(
         "BeforeAll hook failed intentionally",
       );
       return;
@@ -147,8 +147,8 @@ describe("failing scenarios", () => {
     try {
       await run("hook-errors.feature");
     } catch (err) {
-      expect((err as Error).cause).toBeInstanceOf(Error);
-      expect(((err as Error).cause as Error).message).toBe(
+      expect(err as Error).toBeInstanceOf(Error);
+      expect((err as Error).message).toContain(
         "AfterAll hook failed intentionally",
       );
       return;
