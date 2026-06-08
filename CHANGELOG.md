@@ -1,5 +1,11 @@
 # @lotun/vitest-cucumber
 
+## 0.2.6
+
+### Patch Changes
+
+- d598613: Enhance error stack frames
+
 ## 0.2.5
 
 ### Patch Changes
