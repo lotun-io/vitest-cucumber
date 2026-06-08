@@ -5,6 +5,7 @@ import type {
 } from "@cucumber/cucumber/api";
 import { loadConfiguration, loadSupport } from "@cucumber/cucumber/api";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import { afterAll } from "vitest";
 import { cliConfig } from "./config.ts";
 import { registerFeatureTests } from "./registerFeatureTests.ts";
@@ -55,10 +56,12 @@ export const runFeatureFile = async ({
     const { runConfiguration } = await loadConfiguration({
       provided: {
         format: [
-          `"${path.join(
-            import.meta.dirname,
-            `silentFormatter${path.extname(import.meta.filename)}`,
-          )}"`,
+          `"${pathToFileURL(
+            path.join(
+              import.meta.dirname,
+              `silentFormatter${path.extname(import.meta.filename)}`,
+            ),
+          ).toString()}"`,
         ],
         ...mergedConfig,
         paths: [],

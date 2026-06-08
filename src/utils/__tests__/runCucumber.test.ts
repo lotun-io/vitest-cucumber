@@ -5,6 +5,7 @@ import type {
 import { loadConfiguration, loadSupport } from "@cucumber/cucumber/api";
 import os from "node:os";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import { beforeAll, describe, expect, it } from "vitest";
 import { runCucumber } from "../runCucumber.ts";
 
@@ -25,7 +26,7 @@ beforeAll(async () => {
   ({ runConfiguration } = await loadConfiguration({
     provided: {
       format: [
-        `"${path.resolve(import.meta.dirname, "../silentFormatter.ts")}"`,
+        `"${pathToFileURL(path.resolve(import.meta.dirname, "../silentFormatter.ts")).toString()}"`,
       ],
       ...config,
       paths: [],
