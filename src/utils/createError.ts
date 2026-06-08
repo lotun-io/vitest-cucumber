@@ -31,7 +31,7 @@ export const createError = ({
   const exampleLocation = result.lineage?.example?.location;
   const stepLocation = result.step?.location;
 
-  const frames: string[] = [`    at Feature (${id})`];
+  const frames: string[] = [];
   if (scenarioLocation) {
     frames.push(
       `    at Scenario (${id}:${scenarioLocation.line}:${scenarioLocation.column ?? 1})`,

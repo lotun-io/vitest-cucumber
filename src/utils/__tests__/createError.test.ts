@@ -103,7 +103,6 @@ describe("createError", () => {
         },
       },
     });
-    expect(err.stack).toContain("at Feature (features/test.feature)");
     expect(err.stack).toContain("at Scenario (features/test.feature:5:3)");
     expect(err.stack).toContain("at Example (features/test.feature:12:5)");
     expect(err.stack).toContain("at Step (features/test.feature:15:7)");
