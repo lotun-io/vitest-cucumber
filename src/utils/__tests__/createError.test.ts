@@ -8,7 +8,6 @@ describe("createError", () => {
       id: "features/test.feature",
       result: {
         name: "",
-        resolvers: Promise.withResolvers(),
         status: "FAILED",
         stepResult: {
           status: TestStepResultStatus.FAILED,
@@ -26,7 +25,6 @@ describe("createError", () => {
       result: {
         name: "",
         status: "UNDEFINED",
-        resolvers: Promise.withResolvers(),
       },
     });
     expect(err.message).toBe("UNDEFINED");
@@ -37,7 +35,6 @@ describe("createError", () => {
       id: "features/test.feature",
       result: {
         name: "",
-        resolvers: Promise.withResolvers(),
         status: "FAILED",
         stepResult: {
           status: TestStepResultStatus.FAILED,
@@ -83,7 +80,6 @@ describe("createError", () => {
       id: "features/test.feature",
       result: {
         name: "",
-        resolvers: Promise.withResolvers(),
         status: "FAILED",
         stepResult: {
           status: TestStepResultStatus.FAILED,
