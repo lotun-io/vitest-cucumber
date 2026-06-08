@@ -7,6 +7,10 @@
     "type": "git",
     "url": "https://github.com/lotun-io/vitest-cucumber"
   },
+  "homepage": "https://github.com/lotun-io/vitest-cucumber#readme",
+  "bugs": {
+    "url": "https://github.com/lotun-io/vitest-cucumber/issues"
+  },
   "type": "module",
   "engines": {
     "node": ">=22.0.0"
