@@ -7,7 +7,6 @@ describe("createError", () => {
     const err = createError({
       id: "features/test.feature",
       result: {
-        name: "",
         status: "FAILED",
         stepResult: {
           status: TestStepResultStatus.FAILED,
@@ -23,7 +22,6 @@ describe("createError", () => {
     const err = createError({
       id: "features/test.feature",
       result: {
-        name: "",
         status: "UNDEFINED",
       },
     });
@@ -34,7 +32,6 @@ describe("createError", () => {
     const err = createError({
       id: "features/test.feature",
       result: {
-        name: "",
         status: "FAILED",
         stepResult: {
           status: TestStepResultStatus.FAILED,
@@ -56,8 +53,6 @@ describe("createError", () => {
     const err = createError({
       id: "features/test.feature",
       result: {
-        name: "",
-        resolvers: Promise.withResolvers(),
         lineage: {
           // @ts-expect-error -- Partial Lineage for testing
           scenario: {
@@ -79,8 +74,6 @@ describe("createError", () => {
     const err = createError({
       id: "features/test.feature",
       result: {
-        name: "",
-        resolvers: Promise.withResolvers(),
         lineage: {
           // @ts-expect-error -- Partial Lineage for testing
           feature: { name: "My Feature" },
@@ -112,7 +105,6 @@ describe("createError", () => {
     const err = createError({
       id: "features/test.feature",
       result: {
-        name: "",
         status: "FAILED",
         stepResult: {
           status: TestStepResultStatus.FAILED,

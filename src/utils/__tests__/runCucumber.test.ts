@@ -61,7 +61,7 @@ async function run(
     support,
     testStepErrors,
   });
-  return new Map(results.values().map((value) => [value.name, value]));
+  return new Map(results.values().map((value) => [value.name ?? "", value]));
 }
 
 describe("failing scenarios", () => {

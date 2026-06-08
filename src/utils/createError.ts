@@ -5,15 +5,12 @@ export const createError = ({
   result,
 }: {
   id: string;
-  result: Pick<
-    ResultItem,
-    "stepResult" | "error" | "status" | "lineage" | "step"
-  > & { name: string };
+  result: ResultItem;
 }) => {
-  const cucumberError = result.stepResult?.message ?? result.status;
+  const cucumberError = result.stepResult?.message ?? result.status ?? "FAILED";
   const err = new Error(cucumberError);
 
-  const useDiffMessage =
+  const isDiffError =
     result.error?.showDiff ||
     (result.error?.showDiff === undefined &&
       result.error?.actual !== undefined &&
@@ -21,10 +18,12 @@ export const createError = ({
 
   Object.assign(err, {
     // Avoid double diff: cucumberError already contains a formatted diff; use the bare message so Vitest renders it once.
-    message: useDiffMessage ? result.error?.message : err.message,
-    showDiff: result.error?.showDiff,
-    expected: result.error?.expected,
-    actual: result.error?.actual,
+    ...(isDiffError && {
+      message: result.error?.message,
+      showDiff: result.error?.showDiff,
+      expected: result.error?.expected,
+      actual: result.error?.actual,
+    }),
   });
 
   const scenarioLocation = result.lineage?.scenario?.location;
@@ -48,6 +47,6 @@ export const createError = ({
     );
   }
 
-  err.stack = `${cucumberError}\n${frames.join("\n")}`;
+  err.stack = [cucumberError, ...frames].join("\n");
   return err;
 };

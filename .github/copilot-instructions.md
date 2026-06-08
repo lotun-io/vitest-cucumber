@@ -13,7 +13,8 @@ src/
 ├── types/global.ts       — global augmentation for __vitestCucumber bridge object
 └── utils/
     ├── runner.ts         — runFeatureFile(): per-feature orchestrator, module-scoped support cache
-    ├── runCucumber.ts    — Cucumber runtime invocation + Vitest describe/test registration
+    ├── runCucumber.ts    — Cucumber runtime invocation; emits results map
+    ├── registerFeatureTests.ts — registers results as Vitest describe/test blocks
     ├── loadSupport.ts    — globs & imports step definitions/hooks via Vitest's moduleLoader
     ├── config.ts         — parses CUCUMBER_OPTIONS env var using Cucumber's ArgvParser
     ├── createError.ts    — maps Cucumber failures to Vitest-friendly Error with clickable .stack
@@ -81,10 +82,6 @@ Called at `testCaseStarted` (normal path) and with `?.` after the full run as a 
 
 `ResultItem` embeds `resolvers: PromiseWithResolvers<unknown>` alongside `name`, `lineage`, and status/step/error fields. Entries are allocated in `runCucumber`'s `testCase` handler — one per `testCase` envelope, keyed by `pickle.id` (UUID). `name` and `lineage` are stored directly on `ResultItem` at allocation time. The `testStepFinished` handler mutates status/step/error in-place. `testCaseFinished` resolves the promise. Fields are reset to `undefined` on `testCaseStarted` to handle retries.
 
-### Scenario name deduplication
-
-Duplicate scenario names within the same consecutive rule group get `" (2)"`, `" (3)"` suffixes appended by `registerFeatureTests` using a per-group `nameCount` map. Deduplication is purely a display concern.
-
 ### Support code loading
 
 `loadSupport.ts` is loaded as a fake Cucumber "import" path so it runs inside the Cucumber bootstrap, but all user step files are imported via `moduleLoader` (Vitest's `import(specifier)`). This ensures coverage instrumentation and module mocking apply to step definitions.
@@ -97,9 +94,17 @@ An `AfterStep` hook in `loadSupport.ts` captures the raw `Error` object per `tes
 
 ### Error attribution
 
-`createError.ts` builds a synthetic `.stack` pointing at the failing line in the `.feature` file — this is what makes errors clickable in VS Code. Preserve the `at <featureFileId>:<line>:<col>` format.
+`createError.ts` builds a synthetic `.stack` pointing at the failing line in the `.feature` file — this is what makes errors clickable in VS Code.
 
-`err.stack` starts with `cucumberError` (the full Cucumber message). When a diff should be shown, `err.message` is replaced with the bare assertion sentence so Vitest does not render the diff twice. The condition mirrors `@vitest/utils` `processError` exactly: `showDiff === true` OR (`showDiff === undefined` AND both `expected` and `actual` are present).
+`err.stack` is built as `[cucumberError, ...frames].join("\n")` — no trailing newline when `frames` is empty (e.g. hook errors with no scenario location). `cucumberError` falls back to `result.status ?? "FAILED"` when `stepResult.message` is absent.
+
+Frames emitted (each only when the relevant location is present):
+
+- `    at Scenario (${id}:${line}:${col})`
+- `    at Example (${id}:${line}:${col})` — outline examples only
+- `    at Step (${id}:${line}:${col})`
+
+When a diff should be shown, `err.message` is replaced with the bare assertion sentence so Vitest does not render the diff twice. The condition mirrors `@vitest/utils` `processError` exactly: `showDiff === true` OR (`showDiff === undefined` AND both `expected` and `actual` are present).
 
 ### Config merging
 
@@ -115,6 +120,13 @@ Set equal to `VITEST_WORKER_ID` before running Cucumber so step definitions can 
 - `path.extname(import.meta.filename)` is used to resolve sibling util paths so the same code works in both `src/` (dev) and `dist/` (published)
 - No barrel files other than `src/index.ts`
 - Tests live in `__tests__/` folders co-located with source; excluded from the build via `!**/__*__/**`
+
+## Cucumber version compatibility
+
+`@cucumber/cucumber` v12 and v13 are both supported as peer dependencies.
+
+- **v13 breaking change**: `BeforeAll`/`AfterAll` hook failures no longer reject `runCucumber()`. Instead they are emitted as `testRunHookFinished` envelopes with `status: "FAILED"`. `runCucumber.ts` collects these into a `hookErrors: Error[]` array and throws `hookErrors[0]` after `cucumberApi.runCucumber()` resolves.
+- **Formatter path**: The silent formatter path is passed as `"${pathToFileURL(path).href}"` — a `file://` URL wrapped in double quotes. The file URL satisfies Node ESM's loader (which rejects bare Windows paths), and the double quotes prevent Cucumber 13's `splitFormatDescriptor` from mis-splitting on the `:` in `D:\...` paths.
 
 ## Dependencies
 

@@ -16,8 +16,8 @@ import { createError } from "./createError.ts";
 import type { RegisterFeatureTestsParams } from "./registerFeatureTests.ts";
 
 export type ResultItem = {
-  resolvers: PromiseWithResolvers<unknown>;
-  name: string;
+  resolvers?: PromiseWithResolvers<unknown>;
+  name?: string;
   lineage?: Lineage;
   status?: `${TestStepResultStatus}`;
   stepResult?: TestStepResult;
@@ -141,7 +141,7 @@ export const runCucumber = async ({
             if (testSteps.length === 0) {
               current.status = "SKIPPED";
             }
-            current.resolvers.resolve(null);
+            current.resolvers?.resolve(null);
           }
         }
 
@@ -173,7 +173,7 @@ export const runCucumber = async ({
     )
     .finally(() => {
       for (const result of results.values()) {
-        result.resolvers.resolve(null);
+        result.resolvers?.resolve(null);
       }
       notifyReady?.();
     });

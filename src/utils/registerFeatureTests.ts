@@ -22,14 +22,12 @@ const setLocation = (obj: object, line: number | undefined) => {
 const registerTests = ({ id, group }: { id: string; group: ScenarioGroup }) => {
   for (const result of group.items) {
     test(
-      result.name,
+      result.name ?? "Unknown",
       async (ctx) => {
-        await result.resolvers.promise;
-        if (!result.status) {
-          result.status = "FAILED";
-        }
+        await result.resolvers?.promise;
         if (result.status === "SKIPPED") {
           ctx.skip();
+          return;
         }
         if (result.status !== "PASSED") {
           throw createError({ id, result });
