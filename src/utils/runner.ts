@@ -55,10 +55,10 @@ export const runFeatureFile = async ({
     const { runConfiguration } = await loadConfiguration({
       provided: {
         format: [
-          path.join(
+          `"${path.join(
             import.meta.dirname,
             `silentFormatter${path.extname(import.meta.filename)}`,
-          ),
+          )}"`,
         ],
         ...mergedConfig,
         paths: [],

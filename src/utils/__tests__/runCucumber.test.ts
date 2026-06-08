@@ -24,7 +24,9 @@ const testStepErrors: Map<string, Error> = new Map();
 beforeAll(async () => {
   ({ runConfiguration } = await loadConfiguration({
     provided: {
-      format: [path.resolve(import.meta.dirname, "../silentFormatter.ts")],
+      format: [
+        `"${path.resolve(import.meta.dirname, "../silentFormatter.ts")}"`,
+      ],
       ...config,
       paths: [],
       import: [path.join(import.meta.dirname, "../loadSupport.ts")],
