@@ -21,6 +21,7 @@ jobs:
       - run: pnpm lint
 
   test:
+    name: "test / ${{ matrix.os }} / node ${{ matrix.node-version }} / cucumber ${{ matrix.cucumber-version }}"
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
