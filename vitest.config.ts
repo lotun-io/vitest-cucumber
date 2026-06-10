@@ -32,6 +32,7 @@ export default defineConfig({
               "features/support/**/*.ts",
               "features/step_definitions/**/*.ts",
             ],
+            tags: "not @skipFeature",
           }),
         ],
         test: {
