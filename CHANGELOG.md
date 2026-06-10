@@ -1,5 +1,11 @@
 # @lotun/vitest-cucumber
 
+## 0.2.8
+
+### Patch Changes
+
+- 21d03f3: Skip test when all scenarios are filtered out
+
 ## 0.2.7
 
 ### Patch Changes
