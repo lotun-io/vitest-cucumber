@@ -54,6 +54,10 @@ export const registerFeatureTests = ({
   featureName,
   results,
 }: RegisterFeatureTestsParams): void => {
+  if (results.size === 0) {
+    test.skip(featureName);
+    return;
+  }
   describe(featureName, () => {
     const ruleGroups: { ruleName: string | null; items: ResultItem[] }[] = [];
     for (const result of results.values()) {

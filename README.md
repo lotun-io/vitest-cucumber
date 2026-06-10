@@ -103,6 +103,7 @@ Some Cucumber options conflict with how Vitest manages test execution and are no
 | Option     | Reason                                                               |
 | ---------- | -------------------------------------------------------------------- |
 | `parallel` | Vitest handles parallelism via workers — use Vitest's config instead |
+| `publish` | Cucumber is invoked once per feature file, so each file uploads a separate partial report to `reports.cucumber.io` instead of one unified report |
 
 Passing `parallel` (via plugin config or `CUCUMBER_OPTIONS`) will throw an error at runtime.
 
