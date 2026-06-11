@@ -47,27 +47,25 @@
     "ci:publish": "pnpm build && pnpm publish --provenance --access public --no-git-checks"
   },
   "dependencies": {
-    "@cucumber/messages": "^32.3.1",
-    "@cucumber/query": "^15.0.1",
     "glob": "^13.0.6",
     "string-argv": "^0.3.2"
   },
   "peerDependencies": {
     "@cucumber/cucumber": "^12.x || ^13.x",
-    "@cucumber/messages": "^32.x",
-    "@cucumber/query": "^15.x",
     "vitest": "^4.x"
   },
   "devDependencies": {
     "@changesets/cli": "^2.31.0",
     "@cucumber/cucumber": "^13.0.0",
+    "@cucumber/messages": "^32.3.1",
+    "@cucumber/query": "^15.0.1",
     "@tsconfig/node24": "^24.0.4",
     "@types/node": "^24.13.1",
     "@vitest/coverage-v8": "^4.1.8",
     "eslint": "^10.4.1",
     "eslint-plugin-n": "^18.1.0",
     "jiti": "^2.7.0",
-    "prettier": "^3.8.3",
+    "prettier": "^3.8.4",
     "prettier-plugin-organize-imports": "^4.3.0",
     "tsdown": "^0.22.2",
     "typescript": "^6.0.3",
