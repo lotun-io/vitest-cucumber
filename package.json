@@ -51,8 +51,10 @@
     "string-argv": "^0.3.2"
   },
   "peerDependencies": {
-    "@cucumber/cucumber": "^12.x || ^13.x",
-    "vitest": "^4.x"
+    "@cucumber/cucumber": "12.x || 13.x",
+    "@cucumber/messages": "32.x",
+    "@cucumber/query": "15.x",
+    "vitest": "4.x"
   },
   "devDependencies": {
     "@changesets/cli": "^2.31.0",
