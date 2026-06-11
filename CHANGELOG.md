@@ -1,5 +1,11 @@
 # @lotun/vitest-cucumber
 
+## 0.2.9
+
+### Patch Changes
+
+- c29e383: Update cucumber dependencies
+
 ## 0.2.8
 
 ### Patch Changes
