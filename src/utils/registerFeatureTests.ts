@@ -55,7 +55,9 @@ export const registerFeatureTests = ({
   results,
 }: RegisterFeatureTestsParams): void => {
   if (results.size === 0) {
-    test.skip(featureName);
+    test(featureName, (ctx) => {
+      ctx.skip();
+    });
     return;
   }
   describe(featureName, () => {

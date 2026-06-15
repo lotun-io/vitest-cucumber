@@ -36,7 +36,6 @@ export const runFeatureFile = async ({
   const testLocations = currentVitestFile?.testLocations;
 
   const testCasesReady = Promise.withResolvers();
-  let runCucumberError: Error | null = null;
 
   if (process.env.VITEST_WORKER_ID !== undefined) {
     process.env.CUCUMBER_WORKER_ID = process.env.VITEST_WORKER_ID;
@@ -92,7 +91,7 @@ export const runFeatureFile = async ({
 
   cache.testStepErrors.clear();
 
-  runCucumber({
+  const runCucumberPromise = runCucumber({
     ...cache,
     id,
     testLocations,
@@ -100,15 +99,13 @@ export const runFeatureFile = async ({
       registerFeatureTests(params);
       testCasesReady.resolve(null);
     },
-  }).catch((err) => {
-    runCucumberError = err;
+  });
+
+  void runCucumberPromise.catch(() => null);
+
+  afterAll(async () => {
+    await runCucumberPromise;
   });
 
   await testCasesReady.promise;
-
-  afterAll(async () => {
-    if (runCucumberError) {
-      throw runCucumberError;
-    }
-  });
 };
