@@ -25,7 +25,7 @@ const [resolvedRequirePaths, resolvedImportPaths] = await Promise.all([
   Promise.all(
     (config.import?.length
       ? config.import
-      : ["features/**/*.{ts,js,cjs,cts,mjs,mts}"]
+      : ["features/**/*.{js,ts,cjs,cts,mjs,mts}"]
     ).map((pattern) => glob(pattern, globOpts)),
   ).then((r) => r.flat()),
 ]);
