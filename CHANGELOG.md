@@ -1,5 +1,11 @@
 # @lotun/vitest-cucumber
 
+## 0.2.10
+
+### Patch Changes
+
+- a9c10ea: Prevent silent skip when a feature file errors with no runnable tests
+
 ## 0.2.9
 
 ### Patch Changes
