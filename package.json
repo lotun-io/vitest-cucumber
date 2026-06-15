@@ -62,7 +62,7 @@
     "@cucumber/messages": "^32.3.1",
     "@cucumber/query": "^15.0.1",
     "@tsconfig/node24": "^24.0.4",
-    "@types/node": "^24.13.2",
+    "@types/node": "^25.9.3",
     "@vitest/coverage-v8": "^4.1.8",
     "eslint": "^10.5.0",
     "eslint-plugin-n": "^18.1.0",
