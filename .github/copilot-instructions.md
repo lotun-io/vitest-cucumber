@@ -38,17 +38,18 @@ pnpm format         # prettier write + eslint --fix
 
 ### Collection-phase test registration
 
-`plugin.ts` transforms each `.feature` file into JS with a top-level `await runFeatureFile(...)`. This runs during Vitest's **collection phase** (module evaluation), before any tests execute. Inside `runFeatureFile`, `runCucumber` is fired **fire-and-forget** (no `await`). `runCucumber` emits an `onTestCasesReady` callback when the first `testCaseStarted` envelope arrives. That callback calls `registerFeatureTests`, which calls `describe`/`test` — valid because we're still in the collection phase. `runFeatureFile` then `await`s a `testCasesReady` promise that is resolved inside `onTestCasesReady`, unblocking the top-level await and completing collection. An `afterAll` registered after the await propagates any Cucumber runtime error.
+`plugin.ts` transforms each `.feature` file into JS with a top-level `await runFeatureFile(...)`. This runs during Vitest's **collection phase** (module evaluation), before any tests execute. Inside `runFeatureFile`, `runCucumber` is called and its promise stored as `runCucumberPromise` — not awaited. `void runCucumberPromise.catch(() => null)` is attached **immediately** to suppress the unhandled-rejection warning that would otherwise fire before `afterAll` runs. `runCucumber` emits an `onTestCasesReady` callback when the first `testCaseStarted` envelope arrives. That callback calls `registerFeatureTests`, which calls `describe`/`test` — valid because we're still in the collection phase. `runFeatureFile` then `await`s a `testCasesReady` promise that is resolved inside `onTestCasesReady`, unblocking the top-level await and completing collection. An `afterAll` registered after the await awaits `runCucumberPromise` to propagate any Cucumber runtime error.
 
 ```
 plugin.ts transform → top-level await runFeatureFile()
   runFeatureFile()
-    → runCucumber() fire-and-forget
+    → runCucumberPromise = runCucumber()  (not awaited)
+    → void runCucumberPromise.catch(() => null)  (suppress unhandled-rejection)
         → testCase envelopes: build results map (shuffled/filtered order)
         → first testCaseStarted: onTestCasesReady → registerFeatureTests() → describe/test
                                                    → testCasesReady.resolve()
     → await testCasesReady.promise  ← unblocks here, collection complete
-    → afterAll(propagate error)
+    → afterAll(await runCucumberPromise)
   Cucumber continues running scenarios, resolving resolvers as testCaseFinished arrives
   Each test() awaits result.resolvers.promise
 ```
@@ -73,6 +74,18 @@ let notifyReady: (() => void) | undefined = () => {
 ```
 
 Called at `testCaseStarted` (normal path) and with `?.` after the full run as a fallback for parse errors or empty features. Setting itself to `undefined` after the first call makes it safe to call multiple times with `notifyReady?.()`.
+
+### Empty-results / parse-error path
+
+When `results.size === 0` (parse error, all scenarios tag-filtered, or empty feature), `registerFeatureTests` registers a **runtime-skip** test instead of a static `test.skip`:
+
+```ts
+test(featureName, (ctx) => {
+  ctx.skip();
+});
+```
+
+A static `test.skip` would cause Vitest to skip the entire suite — including `afterAll` — swallowing the parse error silently. A runtime `ctx.skip()` means Vitest executes the test body (completing the suite), so `afterAll` still fires and `await runCucumberPromise` throws the parse/hook error.
 
 ### `pickleById` local map
 
