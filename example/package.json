@@ -9,6 +9,6 @@
   "devDependencies": {
     "@cucumber/cucumber": "^13.0.0",
     "@lotun/vitest-cucumber": "^0.2.10",
-    "vitest": "^4.1.8"
+    "vitest": "^4.1.9"
   }
 }
