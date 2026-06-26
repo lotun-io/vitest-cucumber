@@ -1,5 +1,11 @@
 # @lotun/vitest-cucumber
 
+## 0.3.0
+
+### Minor Changes
+
+- 282c3ed: BeforeAll / AfterAll hooks now run once per worker instead of once per feature file
+
 ## 0.2.10
 
 ### Patch Changes
