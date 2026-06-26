@@ -10,16 +10,20 @@ A Vitest plugin that runs Gherkin `.feature` files as native Vitest tests using 
 src/
 ├── index.ts              — re-exports plugin.ts (public API)
 ├── plugin.ts             — Vite/Vitest Plugin; transforms .feature → JS
+├── features/
+│   └── lifecycle.feature — empty feature (no scenarios) used to drive AfterAll hooks
 ├── types/global.ts       — global augmentation for __vitestCucumber bridge object
 └── utils/
-    ├── runner.ts         — runFeatureFile(): per-feature orchestrator, module-scoped support cache
-    ├── runCucumber.ts    — Cucumber runtime invocation; emits results map
+    ├── runner.ts         — runFeatureFile(): per-feature orchestrator, module-scoped support cache, BeforeAll/AfterAll lifecycle
+    ├── runCucumber.ts    — Cucumber runtime invocation; emits results map; supportWithHook() strips test-run hooks
     ├── registerFeatureTests.ts — registers results as Vitest describe/test blocks
     ├── loadSupport.ts    — globs & imports step definitions/hooks via Vitest's moduleLoader
     ├── config.ts         — parses CUCUMBER_OPTIONS env var using Cucumber's ArgvParser
     ├── createError.ts    — maps Cucumber failures to Vitest-friendly Error with clickable .stack
     └── silentFormatter.ts — no-op Cucumber formatter (suppresses CLI output)
 ```
+
+`src/features/lifecycle.feature` is copied to `dist/features/lifecycle.feature` at build time via tsdown's `copy: [{ from: "src/features/lifecycle.feature", to: "dist/features" }]`. `runner.ts` resolves it with `path.join(import.meta.dirname, "..", "features", "lifecycle.feature")`, which lands on `src/features/` in dev and `dist/features/` when published.
 
 ## Build & Test
 
@@ -104,6 +108,22 @@ An `AfterStep` hook in `loadSupport.ts` captures the raw `Error` object per `tes
 ### Worker-level cache
 
 `cache` in `runner.ts` is module-scoped. When `isolate: false`, the same worker reuses cached `runConfiguration` and `ISupportCodeLibrary` across feature files. Clear `testStepErrors` (not the whole cache) between runs. The `mergedConfig` computation (including `cliConfig()`) is done once inside the `if (!cache)` block.
+
+### BeforeAll / AfterAll lifecycle hooks
+
+Cucumber runs its full lifecycle (`BeforeAll → scenarios → AfterAll`) on **every** `runCucumber` call. Left unchecked, that fires `BeforeAll`/`AfterAll` once per `.feature` file instead of once per run. The plugin controls this with the required `withHook: "before" | "after" | "none"` param (type `WithHook`) on `runCucumber`, which calls `supportWithHook({ support, withHook })` to shallow-clone the support library with `beforeTestRunHookDefinitions` / `afterTestRunHookDefinitions` selectively emptied. (Those arrays are on the concrete library but not the public `ISupportCodeLibrary` type, so the helper narrows via a local `TestRunHookDefinitions` cast.)
+
+- **BeforeAll** runs inline with the worker's first feature: `isCacheReused = Boolean(cache)` is captured at entry, so the first feature (fresh cache) uses `withHook: "before"` and every later feature uses `"none"`.
+- **AfterAll** runs once when the worker is torn down. Inside the `if (!cache)` block, `onWorkerCleanup` registers a callback via `globalThis.__vitest_worker__?.onCleanup` (a private Vitest API, optional-chained — silently no-ops, skipping AfterAll, if unavailable). The callback runs `runCucumber` against the empty `lifecycle.feature` with `withHook: "after"`.
+
+`onCleanup` fires once per worker on the `"stop"` message — Vitest's `cleanupListeners` Set is never cleared, so registering inside `if (!cache)` (once per realm) avoids duplicate AfterAll runs.
+
+Frequency is **self-adjusting** with the user's `isolate` setting (the plugin never forces it):
+
+- `isolate: false` — worker realm and cache persist across files → BeforeAll once on the first feature, AfterAll once at worker stop.
+- `isolate: true` — realm recreated per file → BeforeAll and AfterAll fire per feature (the only coherent behaviour when each feature is a sealed realm).
+
+A failing `BeforeAll` rejects the first feature's `runCucumberPromise` and surfaces via its `afterAll`. A failing `AfterAll` throws inside the `onCleanup` callback and surfaces as a Vitest **Teardown Error** (non-zero exit), not a test failure.
 
 ### Error attribution
 

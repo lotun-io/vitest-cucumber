@@ -15,9 +15,20 @@ export type ModuleLoader = (specifier: string) => Promise<unknown>;
 
 let cache: {
   runConfiguration: IRunConfiguration;
-  support: ISupportCodeLibrary & { defaultTimeout?: number };
+  support: ISupportCodeLibrary;
   testStepErrors: Map<string, Error>;
 } | null = null;
+
+// Vitest's per-worker teardown hook.
+// We use this to run the AfterAll hook once per worker.
+const onWorkerCleanup = (cleanup: () => unknown): void => {
+  const worker = (
+    globalThis as unknown as {
+      __vitest_worker__?: { onCleanup?: (cb: () => unknown) => void };
+    }
+  ).__vitest_worker__;
+  worker?.onCleanup?.(cleanup);
+};
 
 export const runFeatureFile = async ({
   id,
@@ -36,6 +47,9 @@ export const runFeatureFile = async ({
   const testLocations = currentVitestFile?.testLocations;
 
   const testCasesReady = Promise.withResolvers();
+
+  // Subsequent features reuse the cache and strip BeforeAll so it fires once.
+  const isCacheReused = Boolean(cache);
 
   if (process.env.VITEST_WORKER_ID !== undefined) {
     process.env.CUCUMBER_WORKER_ID = process.env.VITEST_WORKER_ID;
@@ -87,12 +101,31 @@ export const runFeatureFile = async ({
     });
 
     cache = { runConfiguration, support, testStepErrors };
+
+    // Register AfterAll to run once when this worker is torn down
+    onWorkerCleanup(async () => {
+      await runCucumber({
+        id: path.join(
+          import.meta.dirname,
+          "..",
+          "features",
+          "lifecycle.feature",
+        ),
+        runConfiguration,
+        support,
+        withHook: "after",
+        testStepErrors,
+      });
+    });
   }
 
   cache.testStepErrors.clear();
 
   const runCucumberPromise = runCucumber({
-    ...cache,
+    runConfiguration: cache.runConfiguration,
+    support: cache.support,
+    withHook: isCacheReused ? "none" : "before",
+    testStepErrors: cache.testStepErrors,
     id,
     testLocations,
     onTestCasesReady: (params) => {

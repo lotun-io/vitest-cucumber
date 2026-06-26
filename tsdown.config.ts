@@ -9,5 +9,6 @@ export default defineConfig([
     dts: true,
     sourcemap: true,
     unbundle: true,
+    copy: [{ from: "src/features/lifecycle.feature", to: "dist/features" }],
   },
 ]);

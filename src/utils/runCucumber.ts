@@ -31,17 +31,45 @@ export type ResultItem = {
 
 export type Results = Map<string, ResultItem>;
 
+export type WithHook = "before" | "after" | "none";
+
+type TestRunHookDefinitions = {
+  beforeTestRunHookDefinitions: readonly unknown[];
+  afterTestRunHookDefinitions: readonly unknown[];
+};
+
+// Clones the support library keeping only the requested test-run hooks, so
+// BeforeAll/AfterAll don't fire on every per-feature `runCucumber` call.
+const supportWithHook = ({
+  support,
+  withHook,
+}: {
+  support: ISupportCodeLibrary;
+  withHook: WithHook;
+}): ISupportCodeLibrary => {
+  const lib = support as ISupportCodeLibrary & TestRunHookDefinitions;
+  return {
+    ...lib,
+    beforeTestRunHookDefinitions:
+      withHook === "before" ? lib.beforeTestRunHookDefinitions : [],
+    afterTestRunHookDefinitions:
+      withHook === "after" ? lib.afterTestRunHookDefinitions : [],
+  } as ISupportCodeLibrary;
+};
+
 export const runCucumber = async ({
   id,
   testLocations,
   runConfiguration,
   support,
+  withHook,
   testStepErrors,
   onTestCasesReady,
 }: {
   id: string;
   runConfiguration: IRunConfiguration;
   support: ISupportCodeLibrary;
+  withHook: WithHook;
   testLocations?: number[];
   testStepErrors: Map<string, Error>;
   onTestCasesReady?: (params: RegisterFeatureTestsParams) => void;
@@ -68,7 +96,7 @@ export const runCucumber = async ({
             testLocations?.length ? `${id}:${testLocations.join(":")}` : id,
           ],
         },
-        support,
+        support: supportWithHook({ support, withHook }),
       },
       {},
       (envelope) => {

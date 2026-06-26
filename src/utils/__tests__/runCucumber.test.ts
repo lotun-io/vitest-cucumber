@@ -7,6 +7,7 @@ import os from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { beforeAll, describe, expect, it } from "vitest";
+import type { WithHook } from "../runCucumber.ts";
 import { runCucumber } from "../runCucumber.ts";
 
 const featuresDir = path.resolve(import.meta.dirname, "features");
@@ -46,7 +47,13 @@ beforeAll(async () => {
 
 async function run(
   feature: string,
-  { runtime }: { runtime?: Partial<IRunConfiguration["runtime"]> } = {},
+  {
+    runtime,
+    withHook,
+  }: {
+    runtime?: Partial<IRunConfiguration["runtime"]>;
+    withHook?: WithHook;
+  } = {},
 ) {
   const id = path.join(featuresDir, feature);
 
@@ -59,6 +66,7 @@ async function run(
       runtime: { ...runConfiguration.runtime, ...runtime },
     },
     support,
+    withHook: withHook ?? "none",
     testStepErrors,
   });
   return new Map(results.values().map((value) => [value.name ?? "", value]));
@@ -132,7 +140,7 @@ describe("failing scenarios", () => {
   it("BeforeAll hook failure rejects with the hook error", async () => {
     process.env.FAIL_BEFORE_ALL = "1";
     try {
-      await run("hook-errors.feature");
+      await run("hook-errors.feature", { withHook: "before" });
     } catch (err) {
       expect(err as Error).toBeInstanceOf(Error);
       const message =
@@ -149,7 +157,7 @@ describe("failing scenarios", () => {
   it("AfterAll hook failure rejects with the hook error", async () => {
     process.env.FAIL_AFTER_ALL = "1";
     try {
-      await run("hook-errors.feature");
+      await run("hook-errors.feature", { withHook: "after" });
     } catch (err) {
       expect(err as Error).toBeInstanceOf(Error);
       const message =
