@@ -1,22 +1,41 @@
 import { describe, expect, it } from "vitest";
+import type { Plugin } from "vitest/config";
 import { cucumber } from "../plugin.ts";
 
+const nodePlugin = () =>
+  cucumber().find((p) => p.name === "vitest-cucumber:node") as Plugin;
+
 describe("cucumber plugin", () => {
-  it("returns a plugin named vitest-cucumber", () => {
-    const plugin = cucumber();
-    expect(plugin.name).toBe("vitest-cucumber");
+  it("returns node and browser mode plugins", () => {
+    const plugins = cucumber();
+    expect(plugins.map((p) => p.name)).toEqual([
+      "vitest-cucumber:node",
+      "vitest-cucumber:browser",
+    ]);
   });
 
-  it("returns a plugin with a transform hook", () => {
-    const plugin = cucumber();
-    expect(typeof plugin.transform).toBe("function");
+  it("each plugin self-selects via apply", () => {
+    const [node, browser] = cucumber();
+    const browserConfig = { test: { browser: { enabled: true } } };
+    const nodeConfig = { test: {} };
+    const applies = (p: Plugin, c: unknown) =>
+      (p.apply as (config: unknown) => boolean).call(undefined, c);
+    expect(applies(node, nodeConfig)).toBe(true);
+    expect(applies(node, browserConfig)).toBe(false);
+    expect(applies(browser, browserConfig)).toBe(true);
+    expect(applies(browser, nodeConfig)).toBe(false);
+  });
+
+  it("the node plugin has a transform hook", () => {
+    expect(typeof nodePlugin().transform).toBe("function");
   });
 
   describe("transform", () => {
     const call = (code: string, id: string) => {
-      const plugin = cucumber();
+      const plugin = nodePlugin();
       // Vite transform can be a function or an object with a handler; here it is a plain function
-      return (plugin.transform as (code: string, id: string) => unknown)(
+      return (plugin.transform as (code: string, id: string) => unknown).call(
+        undefined,
         code,
         id,
       );

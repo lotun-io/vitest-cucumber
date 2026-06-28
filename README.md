@@ -6,6 +6,7 @@ A [Vitest](https://vitest.dev/) plugin that lets you run [Cucumber](https://cucu
 
 - **Runs on the official Cucumber API** — uses `@cucumber/cucumber` runtime under the hood, so everything Cucumber supports is supported (Scenarios, Outlines, Backgrounds, Rules, Tags, Hooks, Custom Worlds, etc.)
 - **Native Vitest integration** — `.feature` files appear as regular test files in Vitest's output
+- **Node.js _and_ Browser mode** — run scenarios in Node (default), or run step/hook bodies and the World **in a real browser** via Vitest Browser Mode — same plugin, same step files (see [Browser mode](#browser-mode))
 - **Parallel execution** — leverages Vitest's worker-based parallelism
 - **Clickable errors** — failures point to the exact line in the `.feature` file
 - **Tag filtering** — use `CUCUMBER_OPTIONS` env var to pass any Cucumber CLI flags (e.g. `--tags`)
@@ -23,7 +24,9 @@ A [Vitest](https://vitest.dev/) plugin that lets you run [Cucumber](https://cucu
 npm install -D @lotun/vitest-cucumber @cucumber/cucumber vitest
 ```
 
-## Setup
+## Node.js mode
+
+Node mode is the default — Cucumber and your step/hook bodies both run in Node.js
 
 ### `vitest.config.ts`
 
@@ -34,7 +37,7 @@ import { cucumber } from "@lotun/vitest-cucumber";
 export default defineConfig({
   plugins: [
     cucumber({
-      import: ["features/support/**/*.ts", "features/step_definitions/**/*.ts"],
+      import: ["features/support/**/*.ts", "features/steps/**/*.ts"],
     }),
   ],
   test: {
@@ -46,6 +49,141 @@ export default defineConfig({
 The `cucumber()` plugin accepts an optional partial [`IConfiguration`](https://github.com/cucumber/cucumber-js/blob/main/docs/configuration.md) object — the same options you would pass to Cucumber CLI.
 
 > **Tip:** Setting [`isolate: false`](https://vitest.dev/config/isolate) in Vitest config allows workers to reuse cached support files (step definitions, hooks, world) across feature files, which can significantly speed up test runs with many feature files.
+
+## Browser mode
+
+The **same** `cucumber()` plugin can also run your scenarios in a real browser using
+[Vitest Browser Mode](https://vitest.dev/guide/browser/). Cucumber's orchestration
+(parsing, step matching, scheduling, hooks, retries) runs in Node, while your
+**step/hook bodies and the World run in the browser realm** — so steps can touch
+the DOM, `window`, and any browser-only imports directly. The bridge uses Vitest's
+Commands API only, so it is provider-agnostic (Playwright, WebdriverIO, preview).
+
+Install a browser provider:
+
+```bash
+npm install -D @vitest/browser-playwright playwright
+```
+
+Enable `test.browser` — no plugin change is needed:
+
+```ts
+import { playwright } from "@vitest/browser-playwright";
+import { defineConfig } from "vitest/config";
+import { cucumber } from "@lotun/vitest-cucumber";
+
+export default defineConfig({
+  plugins: [
+    cucumber({
+      import: ["features/support/**/*.ts", "features/steps/**/*.ts"],
+    }),
+  ],
+  test: {
+    include: ["features/**/*.feature"],
+    browser: {
+      enabled: true,
+      provider: playwright(),
+      instances: [{ browser: "chromium" }],
+    },
+  },
+});
+```
+
+`cucumber()` returns **two** Vite plugins — `vitest-cucumber:node` and
+`vitest-cucumber:browser` — and each activates automatically based on whether
+`test.browser.enabled` is set for the (project) config. You can therefore also run
+Node and Browser mode side by side using
+[Vitest projects](https://vitest.dev/guide/projects).
+
+### Architecture
+
+There is **one Node process** (the Vitest server) running the Cucumber runtime for
+**all** browser sessions. Each `.feature` file is a session with its own task
+channel; step/hook bodies are dispatched to the page and executed there, then the
+result is reported back. No Node worker threads are used — the Node side is
+orchestration only. Browser-level parallelism is handled by the provider; all
+browser projects in a run share one Cucumber config / step set.
+
+### Cucumber API support
+
+Node mode runs the native `@cucumber/cucumber` runtime, so the **entire** API is
+supported. Browser mode supports nearly all of it via the bridge:
+
+| Cucumber API                                                          | Node.js | Browser |
+| --------------------------------------------------------------------- | :-----: | :-----: |
+| `Given` / `When` / `Then` / `defineStep`                              |   ✅    |   ✅    |
+| `Before` / `After` / `BeforeStep` / `AfterStep` (tags, options, arg)  |   ✅    |   ✅    |
+| `BeforeAll` / `AfterAll`                                              |   ✅    |   ✅    |
+| `setWorldConstructor` / `World` / `IWorldOptions` / `worldParameters` |   ✅    |   ✅    |
+| `world` (v10.8+) / `context` (v11+)                                   |   ✅    |   ✅    |
+| `defineParameterType` (incl. async transformer, string/array regexp)  |   ✅    |   ✅    |
+| `DataTable` / DocString step arguments                                |   ✅    |   ✅    |
+| Callback-interface steps                                              |   ✅    |   ✅    |
+| `setDefaultTimeout` / per-step `{ timeout }`                          |   ✅    |   ✅    |
+| `wrapPromiseWithTimeout` / `Status`                                   |   ✅    |   ✅    |
+| `attach` / `log` / `link`                                             |   ✅    |   ✅    |
+| `setDefinitionFunctionWrapper`                                        |   ✅    |   ❌    |
+| `setParallelCanAssign`                                                |   ⚠️    |   ❌    |
+
+Browser-mode notes:
+
+- **`setDefinitionFunctionWrapper`** and **`setParallelCanAssign`** are
+  intentionally not bridged — parallelism is delegated to Vitest, and the function
+  wrapper is discouraged upstream.
+
+## Writing features & steps
+
+### Feature file
+
+```gherkin
+Feature: Arithmetic
+
+  Scenario: Double a value
+    Given a value of 3
+    When I double it
+    Then the value should be 6
+```
+
+### World (`features/support/world.ts`)
+
+```ts
+import { setWorldConstructor } from "@cucumber/cucumber";
+
+export class ArithmeticWorld {
+  value = 0;
+}
+
+setWorldConstructor(ArithmeticWorld);
+```
+
+### Step definitions (`features/steps/arithmetic.ts`)
+
+```ts
+import { Given, Then, When } from "@cucumber/cucumber";
+import { expect } from "vitest";
+import type { ArithmeticWorld } from "../support/world.ts";
+
+Given("a value of {int}", function valueOf(this: ArithmeticWorld, n: number) {
+  this.value = n;
+});
+
+When("I double it", function double(this: ArithmeticWorld) {
+  this.value *= 2;
+});
+
+When("I add {int}", function add(this: ArithmeticWorld, n: number) {
+  this.value += n;
+});
+
+Then(
+  "the value should be {int}",
+  function shouldBe(this: ArithmeticWorld, expected: number) {
+    expect(this.value).toBe(expected);
+  },
+);
+```
+
+A fully working example project is available in the [`example`](https://github.com/lotun-io/vitest-cucumber/tree/main/example) folder, demonstrating feature files, step definitions, hooks, and a custom world.
 
 ## Usage
 
@@ -106,57 +244,3 @@ Some Cucumber options conflict with how Vitest manages test execution and are no
 | `publish`  | Cucumber is invoked once per feature file, so each file uploads a separate partial report to `reports.cucumber.io` instead of one unified report |
 
 Passing `parallel` (via plugin config or `CUCUMBER_OPTIONS`) will throw an error at runtime.
-
-## Example
-
-### Feature file
-
-```gherkin
-Feature: Arithmetic
-
-  Scenario: Double a value
-    Given a value of 3
-    When I double it
-    Then the value should be 6
-```
-
-### World (`features/support/world.ts`)
-
-```ts
-import { setWorldConstructor } from "@cucumber/cucumber";
-
-export class ArithmeticWorld {
-  value = 0;
-}
-
-setWorldConstructor(ArithmeticWorld);
-```
-
-### Step definitions (`features/step_definitions/arithmetic.ts`)
-
-```ts
-import { Given, Then, When } from "@cucumber/cucumber";
-import { expect } from "vitest";
-import type { ArithmeticWorld } from "../support/world.ts";
-
-Given("a value of {int}", function valueOf(this: ArithmeticWorld, n: number) {
-  this.value = n;
-});
-
-When("I double it", function double(this: ArithmeticWorld) {
-  this.value *= 2;
-});
-
-When("I add {int}", function add(this: ArithmeticWorld, n: number) {
-  this.value += n;
-});
-
-Then(
-  "the value should be {int}",
-  function shouldBe(this: ArithmeticWorld, expected: number) {
-    expect(this.value).toBe(expected);
-  },
-);
-```
-
-A fully working example project is available in the [`example`](https://github.com/lotun-io/vitest-cucumber/tree/main/example) folder, demonstrating feature files, step definitions, hooks, and a custom world.

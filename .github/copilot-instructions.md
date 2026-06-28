@@ -2,146 +2,131 @@
 
 ## Overview
 
-A Vitest plugin that runs Gherkin `.feature` files as native Vitest tests using the official `@cucumber/cucumber` runtime. The plugin intercepts `.feature` files during Vite's `transform` phase and replaces them with JS that calls `runFeatureFile()`.
+A Vitest plugin that runs Gherkin `.feature` files as native Vitest tests using the official `@cucumber/cucumber` runtime. The plugin intercepts `.feature` files during Vite's `transform` phase and rewrites them into JS that calls `runFeatureFile()`.
+
+It supports **two modes**, selected automatically per Vitest project:
+
+- **Node mode** (default) — Cucumber runs in Node; step/hook bodies run in Node.
+- **Browser mode** (`test.browser.enabled`) — Cucumber's orchestration (parse/match/schedule/results) runs in Node, while step/hook bodies **and the World run in the browser test realm**, bridged over Vitest's Commands API.
+
+`cucumber(config)` returns **`Plugin[]` = `[nodeCucumber, browserCucumber]`**; each self-selects via `apply: (cfg) => !/isBrowserEnabled(cfg)`. Vite flattens the nested array, so `plugins: [cucumber(...)]` works.
 
 ## Architecture
 
 ```
 src/
-├── index.ts              — re-exports plugin.ts (public API)
-├── plugin.ts             — Vite/Vitest Plugin; transforms .feature → JS
+├── index.ts              — re-exports plugin.ts (public API: cucumber())
+├── plugin.ts             — returns [nodeCucumber, browserCucumber]; transforms .feature → JS
 ├── features/
-│   └── lifecycle.feature — empty feature (no scenarios) used to drive AfterAll hooks
-├── types/global.ts       — global augmentation for __vitestCucumber bridge object
-└── utils/
-    ├── runner.ts         — runFeatureFile(): per-feature orchestrator, module-scoped support cache, BeforeAll/AfterAll lifecycle
-    ├── runCucumber.ts    — Cucumber runtime invocation; emits results map; supportWithHook() strips test-run hooks
-    ├── registerFeatureTests.ts — registers results as Vitest describe/test blocks
-    ├── loadSupport.ts    — globs & imports step definitions/hooks via Vitest's moduleLoader
-    ├── config.ts         — parses CUCUMBER_OPTIONS env var using Cucumber's ArgvParser
-    ├── createError.ts    — maps Cucumber failures to Vitest-friendly Error with clickable .stack
-    └── silentFormatter.ts — no-op Cucumber formatter (suppresses CLI output)
+│   └── lifecycle.feature — empty feature (no scenarios) used to drive a standalone AfterAll run
+├── node/                 — NODE-MODE runtime
+│   ├── runner.ts         — runFeatureFile(): per-feature orchestrator, worker support cache, BeforeAll/AfterAll lifecycle
+│   └── loadSupport.ts    — globs & imports step/support files via Vitest's moduleLoader; AfterStep error capture
+├── browser/              — BROWSER-MODE runtime
+│   ├── commands.ts       — Node-side Vitest commands (cucumberPlan/Run/NextTask/ReportTask/Attach/AfterAll/End)
+│   ├── runner.ts         — browser-realm runFeatureFile(): dry-run plan → register tests → pull loop
+│   ├── channel.ts        — BrowserChannel: FIFO async task queue between Node command and browser pull loop
+│   ├── taskBridge.ts     — Node-side dispatch* helpers + currentNodeWorld capture
+│   ├── cucumberShim.ts   — browser-realm "@cucumber/cucumber" replacement (registry + bridge + World/world/context)
+│   ├── loadSupport.ts    — registers browser-reported steps/hooks/param-types as native Node proxies
+│   ├── dataTable.ts      — verbatim DataTable port + serialization marker
+│   └── status.ts         — browser-safe TestStepResultStatus constant copy
+└── utils/                — SHARED (node + browser)
+    ├── runCucumber.ts    — Cucumber runtime invocation; emits a results Map; supportWithHook() strips test-run hooks
+    ├── registerFeatureTests.ts — registers the results Map as Vitest describe/test blocks (Rule grouping)
+    ├── config.ts         — cliConfig() parses CUCUMBER_OPTIONS via ArgvParser; mergeConfig() resolves the effective config
+    ├── serializeError.ts — serializeError(): plain, structured-clone-safe error for the Vitest/command boundary
+    ├── createError.ts    — maps Cucumber failures to a Vitest-friendly Error with a clickable .feature .stack
+    ├── silentFormatter.ts — no-op Cucumber formatter (suppresses CLI output)
+    └── globals.ts        — typed globalThis bridge: __vitest_cucumber_node__ / __vitest_cucumber_browser__ / __vitest_worker__
 ```
 
-`src/features/lifecycle.feature` is copied to `dist/features/lifecycle.feature` at build time via tsdown's `copy: [{ from: "src/features/lifecycle.feature", to: "dist/features" }]`. `runner.ts` resolves it with `path.join(import.meta.dirname, "..", "features", "lifecycle.feature")`, which lands on `src/features/` in dev and `dist/features/` when published.
+`src/features/lifecycle.feature` is copied to `dist/features/lifecycle.feature` at build time via tsdown's `copy: [{ from: "src/features/lifecycle.feature", to: "dist/features" }]`. Both runners resolve it with `path.join(import.meta.dirname, "..", "features", "lifecycle.feature")`, which lands on `src/features/` in dev and `dist/features/` when published.
 
 ## Build & Test
 
 ```bash
 pnpm build          # tsdown — outputs ESM to dist/, unbundled, with .d.mts types
-pnpm test           # vitest run --coverage (two projects: unit + functional)
+pnpm test           # vitest run --coverage (projects: unit, node×isolate, browser×isolate)
 pnpm lint           # tsc + prettier check + eslint
 pnpm format         # prettier write + eslint --fix
 ```
 
-- **Unit tests**: `src/**/__tests__/**/*.test.ts`
-- **Functional tests**: `features/**/*.feature` (run through the plugin itself)
-- Coverage thresholds: statements 90%, branches 80%, functions 90%, lines 90%
+- **Vitest projects**: `unit`, `node(isolate:true)`, `node(isolate:false)`, `browser(isolate:true)`, `browser(isolate:false)` (chromium via Playwright).
+- **Unit tests**: `src/**/__tests__/**/*.test.ts` — includes the in-Node **bridge harness** (`src/browser/__tests__/bridge.test.ts`) and `taskBridge.test.ts`, which drive the browser-mode Node-side host (`commands`/`channel`/`taskBridge`/`loadSupport`) under the Node v8 provider.
+- **Functional tests**: `features/**/*.feature` — ONE shared, realm-agnostic feature/step set run by every cucumber project; browser-only scenarios are tagged `@notNode`, node-only `@notBrowser`.
+- **Coverage**: thresholds are 90/80/90/90 and `pnpm test` **passes** (≈92.8/82.5/93.1/92.9). Browser-realm files (`cucumberShim.ts`, `browser/runner.ts`, `dataTable.ts`, `status.ts`) are instrumented by the browser project's page coverage; the browser Node-side host files are instrumented by the in-Node bridge harness + unit tests. Remaining gaps are intentional (defensive throws, `plugin.ts` browser hooks, the `setDefaultTimeout` setter).
 
-## Key Conventions
+## Mode selection & the plugin
 
-### Collection-phase test registration
+`plugin.ts` exposes `nodeCucumber`/`browserCucumber`, both `enforce: "pre"`, each gated by `apply`. The browser plugin additionally:
 
-`plugin.ts` transforms each `.feature` file into JS with a top-level `await runFeatureFile(...)`. This runs during Vitest's **collection phase** (module evaluation), before any tests execute. Inside `runFeatureFile`, `runCucumber` is called and its promise stored as `runCucumberPromise` — not awaited. `void runCucumberPromise.catch(() => null)` is attached **immediately** to suppress the unhandled-rejection warning that would otherwise fire before `afterAll` runs. `runCucumber` emits an `onTestCasesReady` callback when the first `testCaseStarted` envelope arrives. That callback calls `registerFeatureTests`, which calls `describe`/`test` — valid because we're still in the collection phase. `runFeatureFile` then `await`s a `testCasesReady` promise that is resolved inside `onTestCasesReady`, unblocking the top-level await and completing collection. An `afterAll` registered after the await awaits `runCucumberPromise` to propagate any Cucumber runtime error.
+- `config()` registers the Node-side commands (`createCucumberCommands(config)`) under `test.browser.commands`, and sets `optimizeDeps.exclude: ["@cucumber/cucumber"]`.
+- `resolveId()` redirects `"@cucumber/cucumber"` → `browser/cucumberShim.ts` **only in the browser realm** (`!options.ssr`). Without this, the real CJS runtime leaks into the page → `does not provide an export named 'default'`.
+- `transform()` emits a thin wrapper whose `import.meta.glob(globs, { eager: true })` loads step/support files **in the browser** for their registration side effects (the glob string must stay literal for Vite's static analysis).
 
-```
-plugin.ts transform → top-level await runFeatureFile()
-  runFeatureFile()
-    → runCucumberPromise = runCucumber()  (not awaited)
-    → void runCucumberPromise.catch(() => null)  (suppress unhandled-rejection)
-        → testCase envelopes: build results map (shuffled/filtered order)
-        → first testCaseStarted: onTestCasesReady → registerFeatureTests() → describe/test
-                                                   → testCasesReady.resolve()
-    → await testCasesReady.promise  ← unblocks here, collection complete
-    → afterAll(await runCucumberPromise)
-  Cucumber continues running scenarios, resolving resolvers as testCaseFinished arrives
-  Each test() awaits result.resolvers.promise
-```
+## Node mode flow (`node/runner.ts`)
 
-### Real-time streaming
+Both modes converge on **dry-run plan → register tests → real run streamed via `onTestCaseFinished`**:
 
-Each scenario is registered as a `test` with timeout `0`. Tests run sequentially in registration order. Each test `await`s `result.resolvers.promise` — a `PromiseWithResolvers` created in the `testCase` handler inside `runCucumber`. The `testCaseFinished` envelope handler resolves the promise for that scenario. Tag-filtered scenarios (which never fire `testCaseFinished`) are resolved by the `notifyReady?.()` fallback call after `cucumberApi.runCucumber` completes, so tests don't hang.
+1. `mergeConfig(config)` → `loadConfiguration` → `runConfiguration`; `loadSupport(runConfiguration)` (cached module-scoped per worker).
+2. **Dry run** (`dryRun: true`) `runCucumber` → a results `Map` (the scenario tree, no bodies executed).
+3. Build a `results` Map, giving each entry a `resolvers: Promise.withResolvers()`, and call `registerFeatureTests({ id, featureName, results })` — one `test` per scenario (timeout 0), each `await`ing `result.resolvers.promise`.
+4. **Real run** `runCucumber({ onTestCaseFinished })` — the callback `Object.assign`s the finished `ResultItem` onto the registered entry and resolves its `resolvers`. A trailing `.finally` resolves any still-pending resolvers (tag-filtered scenarios that never fire `testCaseFinished`).
+5. `afterAll(await runCucumberPromise)` surfaces parse/runtime/hook errors.
 
-### Execution order
+### Worker cache & BeforeAll/AfterAll
 
-`testCase` envelopes arrive in Cucumber's actual execution order — this includes `order: random` with a seed. `results` is a `Map` whose insertion order matches Cucumber's execution order. `registerFeatureTests` iterates `results.values()` directly, preserving that order. Scenarios belonging to the same `Rule` are grouped into consecutive `describe` blocks: consecutive entries with the same rule name share one `describe`; if the same rule appears non-consecutively (possible with `order: random`), it gets separate `describe` blocks.
+`cache` in `node/runner.ts` is module-scoped (`{ runConfiguration, support, testStepErrors }`). `isCacheReused = Boolean(cache)` is captured at entry:
 
-### `notifyReady` pattern
+- **BeforeAll** runs inline with the worker's first feature (`withHook: isCacheReused ? "none" : "before"`).
+- **AfterAll** runs once at worker teardown: inside the `if (!cache)` block, `worker?.onCleanup?.()` (private Vitest API, optional-chained) registers a callback that runs `runCucumber` against the empty `lifecycle.feature` with `withHook: "after"`.
 
-`notifyReady` is a self-nulling closure defined at the top of `runCucumber`:
+Frequency is **self-adjusting** with the user's `isolate` setting (never forced): `isolate: false` → BeforeAll once on the first feature, AfterAll once at worker stop; `isolate: true` → both per feature. The browser runner mirrors this exactly (its own cache + `onCleanup` + `cucumberAfterAll`).
 
-```ts
-let notifyReady: (() => void) | undefined = () => {
-  onTestCasesReady?.({ id, featureName, results });
-  notifyReady = undefined;
-};
-```
+## Browser mode flow (the bridge)
 
-Called at `testCaseStarted` (normal path) and with `?.` after the full run as a fallback for parse errors or empty features. Setting itself to `undefined` after the first call makes it safe to call multiple times with `notifyReady?.()`.
+Node runs the native Cucumber runtime; each step/hook/transform body + the World run in the **browser** realm. The bridge is **Vitest Commands only** (provider-agnostic — playwright/webdriverio/preview).
 
-### Empty-results / parse-error path
+- **`cucumberShim.ts`** (browser realm) is the `"@cucumber/cucumber"` replacement: `Given/Before/...` store definitions in a `BrowserRegistry`; a `BrowserBridge` (on `globalThis.__vitest_cucumber_browser__`) exposes `runStep`/`runHook`/`runTransform`/`runTestRunHook`/`newWorld`/`get*`. Bodies are invoked by key.
+- **`commands.ts`** (Node) hosts the run: `cucumberPlan` (dry run for the tree), `cucumberRun` (whole-feature run; streams each scenario back as a `testCaseFinished` channel task), `cucumberNextTask`/`cucumberReportTask` (the pull loop), `cucumberAttach`, `cucumberAfterAll`, `cucumberEnd`.
+- **`channel.ts`** is a FIFO queue: Node `dispatch`es step/hook tasks; the browser `runner.ts` pulls them (`cucumberNextTask`), runs the body via the shim, and reports (`cucumberReportTask`). `testCaseFinished` events are streamed fire-and-forget, so a queue (not a single slot) is required.
+- **`loadSupport.ts`** (Node, the Cucumber support import) registers a native proxy per browser-reported step/hook/param-type; each proxy `dispatch`es its body to the browser by key. Step files never load in Node.
 
-When `results.size === 0` (parse error, all scenarios tag-filtered, or empty feature), `registerFeatureTests` registers a **runtime-skip** test instead of a static `test.skip`:
+### Cucumber API supported in browser mode
 
-```ts
-test(featureName, (ctx) => {
-  ctx.skip();
-});
-```
+| API                                                            |                         | API                                                     |                                          |
+| -------------------------------------------------------------- | :---------------------: | ------------------------------------------------------- | :--------------------------------------: |
+| `Given`/`When`/`Then`/`defineStep`                             |           ✅            | `defineParameterType`                                   |    ✅ (transform round-trips to page)    |
+| `Before`/`After`/`BeforeStep`/`AfterStep` (+ tags/options/arg) |           ✅            | `world` (v10.8+)                                        |           ✅ (full-trap Proxy)           |
+| `BeforeAll`/`AfterAll`                                         | ✅ (per-feature/worker) | `context` (v11+)                                        |           ✅ (run-scope Proxy)           |
+| Callback interface                                             |           ✅            | `DataTable` / DocString                                 |                    ✅                    |
+| `setWorldConstructor` / `World` / `IWorldOptions`              |           ✅            | `attach`/`log`/`link`                                   |   ✅ (string/base64; replayed on Node)   |
+| `setDefaultTimeout`                                            |           ✅            | `wrapPromiseWithTimeout`                                |                    ✅                    |
+| `Status`                                                       |           ✅            | `setParallelCanAssign` / `setDefinitionFunctionWrapper` | ❌ (intentional — parallel is forbidden) |
 
-A static `test.skip` would cause Vitest to skip the entire suite — including `afterAll` — swallowing the parse error silently. A runtime `ctx.skip()` means Vitest executes the test body (completing the suite), so `afterAll` still fires and `await runCucumberPromise` throws the parse/hook error.
+Key browser-mode mechanisms:
 
-### `pickleById` local map
+- **World / `parameters`** — the base `World` is ported into the shim; `WorldCtor` defaults to it. `newWorld(parameters)` builds `new WorldCtor({ attach, log, link, parameters })`. `parameters` is plumbed Node→browser: the Node `Before(resetWorld)` hook's `this` is Node's real World, so it forwards `this.parameters`.
+- **`world`/`context`** — Proxies whose handler is built by enumerating `Reflect` and forwarding every trap to `requireWorld()`/`requireContext()` (an `activeWorld`/`activeContext` bound by `bindWorld`/`bindContext` for the body's duration). `world` is bound in steps/case-hooks; `context` only in `BeforeAll`/`AfterAll`. Each throws outside its scope.
+- **`attach`/`log`/`link`** — buffered during a body and flushed onto the `BodyResult`; the browser runner replays each via `cucumberAttach` **before** reporting the step, so Node's real `this.attach` (captured as `currentNodeWorld` by the bridged proxy) emits the attachment within the step scope. Strings only (base64 strings for binary, the screenshot pattern).
+- **`DataTable`** — native Cucumber builds it on Node; the proxy serializes it to a `{ [DATA_TABLE_MARKER]: raw }` marker, and the shim rebuilds a real `DataTable` (verbatim port) in the page.
 
-`envelope.pickle` arrives before `envelope.testCase`. A local `Map<string, Pickle>` is populated in the `pickle` handler for O(1) lookup in the `testCase` handler — avoids `query.findAllPickles().find()`.
+## Shared `runCucumber` (`utils/runCucumber.ts`)
 
-### ResultItem shape
+One run per feature. The `IConfiguration`/`ISupportCodeLibrary` come from the caller. `WithHook = "before" | "after" | "none"` selects which test-run hooks fire via `supportWithHook()` — it shallow-clones the support library, emptying `beforeTestRunHookDefinitions`/`afterTestRunHookDefinitions` as needed (those arrays exist on the concrete library but not the public `ISupportCodeLibrary` type, so a local `TestRunHookDefinitions` cast narrows it). Results are a `Map<pickleId, ResultItem>` in Cucumber's actual execution order (incl. `order: random` seed). `ResultItem` carries `id`/`name`/`lineage`/`status`/`stepResult`/`step`/`error` and (when registered) `resolvers`; status/step/error are mutated in-place by the `testStepFinished` handler and reset on `testCaseStarted` (retries). `registerFeatureTests` groups consecutive same-`Rule` scenarios into a shared `describe`.
 
-`ResultItem` embeds `resolvers: PromiseWithResolvers<unknown>` alongside `name`, `lineage`, and status/step/error fields. Entries are allocated in `runCucumber`'s `testCase` handler — one per `testCase` envelope, keyed by `pickle.id` (UUID). `name` and `lineage` are stored directly on `ResultItem` at allocation time. The `testStepFinished` handler mutates status/step/error in-place. `testCaseFinished` resolves the promise. Fields are reset to `undefined` on `testCaseStarted` to handle retries.
+### Config merging (`utils/config.ts`)
 
-### Support code loading
+`mergeConfig(config)` is shared by both runners: plugin config is the base; `cliConfig(CUCUMBER_OPTIONS)` overrides it; `order: "random"` is pinned to a concrete seed (so a dry-run plan and the real run agree on order); `parallel` is always forbidden — parallelism is Vitest's responsibility.
 
-`loadSupport.ts` is loaded as a fake Cucumber "import" path so it runs inside the Cucumber bootstrap, but all user step files are imported via `moduleLoader` (Vitest's `import(specifier)`). This ensures coverage instrumentation and module mocking apply to step definitions.
+### Error attribution (`utils/createError.ts`)
 
-An `AfterStep` hook in `loadSupport.ts` captures the raw `Error` object per `testStepId` into the `testStepErrors` map. `AfterStep` fires inside `runStepFn()` before the `testStepFinished` envelope is emitted, so the map is always populated when the envelope handler reads it.
+Builds a synthetic `.stack` pointing at the failing line in the `.feature` file — this is what makes errors clickable in VS Code. `err.stack = [cucumberError, ...frames].join("\n")` (no trailing newline when `frames` is empty, e.g. hook errors). Frames: `at Scenario`, `at Example` (outlines only), `at Step` — each only when its location is present. When a diff should show, `err.message` is replaced with the bare assertion sentence so Vitest doesn't render the diff twice (condition mirrors `@vitest/utils` `processError`: `showDiff === true` OR `showDiff === undefined && expected !== undefined && actual !== undefined`).
 
-### Worker-level cache
+### `serializeError` (`utils/serializeError.ts`)
 
-`cache` in `runner.ts` is module-scoped. When `isolate: false`, the same worker reuses cached `runConfiguration` and `ISupportCodeLibrary` across feature files. Clear `testStepErrors` (not the whole cache) between runs. The `mergedConfig` computation (including `cliConfig()`) is done once inside the `if (!cache)` block.
-
-### BeforeAll / AfterAll lifecycle hooks
-
-Cucumber runs its full lifecycle (`BeforeAll → scenarios → AfterAll`) on **every** `runCucumber` call. Left unchecked, that fires `BeforeAll`/`AfterAll` once per `.feature` file instead of once per run. The plugin controls this with the required `withHook: "before" | "after" | "none"` param (type `WithHook`) on `runCucumber`, which calls `supportWithHook({ support, withHook })` to shallow-clone the support library with `beforeTestRunHookDefinitions` / `afterTestRunHookDefinitions` selectively emptied. (Those arrays are on the concrete library but not the public `ISupportCodeLibrary` type, so the helper narrows via a local `TestRunHookDefinitions` cast.)
-
-- **BeforeAll** runs inline with the worker's first feature: `isCacheReused = Boolean(cache)` is captured at entry, so the first feature (fresh cache) uses `withHook: "before"` and every later feature uses `"none"`.
-- **AfterAll** runs once when the worker is torn down. Inside the `if (!cache)` block, `onWorkerCleanup` registers a callback via `globalThis.__vitest_worker__?.onCleanup` (a private Vitest API, optional-chained — silently no-ops, skipping AfterAll, if unavailable). The callback runs `runCucumber` against the empty `lifecycle.feature` with `withHook: "after"`.
-
-`onCleanup` fires once per worker on the `"stop"` message — Vitest's `cleanupListeners` Set is never cleared, so registering inside `if (!cache)` (once per realm) avoids duplicate AfterAll runs.
-
-Frequency is **self-adjusting** with the user's `isolate` setting (the plugin never forces it):
-
-- `isolate: false` — worker realm and cache persist across files → BeforeAll once on the first feature, AfterAll once at worker stop.
-- `isolate: true` — realm recreated per file → BeforeAll and AfterAll fire per feature (the only coherent behaviour when each feature is a sealed realm).
-
-A failing `BeforeAll` rejects the first feature's `runCucumberPromise` and surfaces via its `afterAll`. A failing `AfterAll` throws inside the `onCleanup` callback and surfaces as a Vitest **Teardown Error** (non-zero exit), not a test failure.
-
-### Error attribution
-
-`createError.ts` builds a synthetic `.stack` pointing at the failing line in the `.feature` file — this is what makes errors clickable in VS Code.
-
-`err.stack` is built as `[cucumberError, ...frames].join("\n")` — no trailing newline when `frames` is empty (e.g. hook errors with no scenario location). `cucumberError` falls back to `result.status ?? "FAILED"` when `stepResult.message` is absent.
-
-Frames emitted (each only when the relevant location is present):
-
-- `    at Scenario (${id}:${line}:${col})`
-- `    at Example (${id}:${line}:${col})` — outline examples only
-- `    at Step (${id}:${line}:${col})`
-
-When a diff should be shown, `err.message` is replaced with the bare assertion sentence so Vitest does not render the diff twice. The condition mirrors `@vitest/utils` `processError` exactly: `showDiff === true` OR (`showDiff === undefined` AND both `expected` and `actual` are present).
-
-### Config merging
-
-`plugin config` is the base; `cliConfig(CUCUMBER_OPTIONS)` values overwrite it. `parallel` is always forbidden — parallelism is Vitest's responsibility.
+Errors cross the Vitest command / channel boundary, so they're flattened to a plain object: `message`/`name`/`stack` plus every other own-enumerable prop that survives `structuredClone` (non-serializable values like functions/symbols are skipped). Used everywhere a raw `Error` would otherwise be serialized.
 
 ### `CUCUMBER_WORKER_ID`
 
@@ -149,25 +134,26 @@ Set equal to `VITEST_WORKER_ID` before running Cucumber so step definitions can 
 
 ## File Conventions
 
-- All source files use ESM (`import`/`export`), `.ts` extensions in import paths
-- `path.extname(import.meta.filename)` is used to resolve sibling util paths so the same code works in both `src/` (dev) and `dist/` (published)
-- No barrel files other than `src/index.ts`
-- Tests live in `__tests__/` folders co-located with source; excluded from the build via `!**/__*__/**`
+- All source files use ESM (`import`/`export`), `.ts` extensions in import paths.
+- `path.extname(import.meta.filename)` resolves sibling/relative paths so the same code works in both `src/` (dev) and `dist/` (published).
+- No barrel files other than `src/index.ts`.
+- Tests live in `__tests__/` folders co-located with source; excluded from the build via `!**/__*__/**`.
+- The `globalThis` bridge is typed once in `utils/globals.ts` (`globalRef`); never re-`declare global` elsewhere.
 
 ## Cucumber version compatibility
 
 `@cucumber/cucumber` v12 and v13 are both supported as peer dependencies.
 
-- **v13 breaking change**: `BeforeAll`/`AfterAll` hook failures no longer reject `runCucumber()`. Instead they are emitted as `testRunHookFinished` envelopes with `status: "FAILED"`. `runCucumber.ts` collects these into a `hookErrors: Error[]` array and throws `hookErrors[0]` after `cucumberApi.runCucumber()` resolves.
-- **Formatter path**: The silent formatter path is passed as `"${pathToFileURL(path).href}"` — a `file://` URL wrapped in double quotes. The file URL satisfies Node ESM's loader (which rejects bare Windows paths), and the double quotes prevent Cucumber 13's `splitFormatDescriptor` from mis-splitting on the `:` in `D:\...` paths.
+- **v13 breaking change**: `BeforeAll`/`AfterAll` failures no longer reject `runCucumber()`; they're emitted as `testRunHookFinished` envelopes with `status: "FAILED"`. `runCucumber.ts` collects these into `hookErrors: Error[]` and throws `hookErrors[0]` after `cucumberApi.runCucumber()` resolves.
+- **Formatter path**: the silent formatter is passed as `"${pathToFileURL(path).href}"` — a `file://` URL wrapped in double quotes. The URL satisfies Node ESM's loader (which rejects bare Windows paths); the quotes stop Cucumber 13's `splitFormatDescriptor` from mis-splitting on the `:` in `D:\...`.
 
 ## Dependencies
 
-- `@cucumber/cucumber` — runtime, API, ArgvParser (internal)
+- `@cucumber/cucumber` — runtime, API, ArgvParser (internal `lib/configuration`)
 - `@cucumber/messages` — envelope types, `getWorstTestStepResult`
 - `@cucumber/query` — `Query` helper for envelope lookups
-- `glob` — support file globbing in `loadSupport.ts`
-- `string-argv` — parses `CUCUMBER_OPTIONS` string into argv array
+- `glob` — support-file globbing in `node/loadSupport.ts`
+- `string-argv` — parses `CUCUMBER_OPTIONS` into argv
 
 ## Publishing
 

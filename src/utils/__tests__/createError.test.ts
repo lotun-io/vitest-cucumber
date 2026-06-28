@@ -7,6 +7,7 @@ describe("createError", () => {
     const err = createError({
       id: "features/test.feature",
       result: {
+        id: "",
         status: "FAILED",
         stepResult: {
           status: TestStepResultStatus.FAILED,
@@ -22,6 +23,7 @@ describe("createError", () => {
     const err = createError({
       id: "features/test.feature",
       result: {
+        id: "",
         status: "UNDEFINED",
       },
     });
@@ -32,6 +34,7 @@ describe("createError", () => {
     const err = createError({
       id: "features/test.feature",
       result: {
+        id: "",
         status: "FAILED",
         stepResult: {
           status: TestStepResultStatus.FAILED,
@@ -53,11 +56,12 @@ describe("createError", () => {
     const err = createError({
       id: "features/test.feature",
       result: {
+        id: "",
         lineage: {
-          // @ts-expect-error -- Partial Lineage for testing
           scenario: {
             location: { line: 7 },
-          },
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          } as any,
         },
         status: "FAILED",
         stepResult: {
@@ -74,13 +78,17 @@ describe("createError", () => {
     const err = createError({
       id: "features/test.feature",
       result: {
+        id: "",
         lineage: {
-          // @ts-expect-error -- Partial Lineage for testing
-          feature: { name: "My Feature" },
-          // @ts-expect-error -- Partial Lineage for testing
-          scenario: { name: "My Scenario", location: { line: 5, column: 3 } },
-          // @ts-expect-error -- Partial Lineage for testing
-          example: { location: { line: 12, column: 5 } },
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          feature: { name: "My Feature" } as any,
+          scenario: {
+            name: "My Scenario",
+            location: { line: 5, column: 3 },
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          } as any,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          example: { location: { line: 12, column: 5 } } as any,
         },
         status: "FAILED",
         stepResult: {
@@ -104,7 +112,9 @@ describe("createError", () => {
   it("falls back to FAILED when both stepResult message and status are absent", () => {
     const err = createError({
       id: "features/test.feature",
-      result: {},
+      result: {
+        id: "",
+      },
     });
     expect(err.message).toBe("FAILED");
   });
@@ -113,6 +123,7 @@ describe("createError", () => {
     const err = createError({
       id: "features/test.feature",
       result: {
+        id: "",
         status: "FAILED",
         stepResult: {
           status: TestStepResultStatus.FAILED,
@@ -120,7 +131,6 @@ describe("createError", () => {
           duration: { seconds: 0, nanos: 0 },
         },
         error: {
-          name: "AssertionError",
           message: "bare message",
           expected: 2,
           actual: 1,
@@ -136,11 +146,12 @@ describe("createError", () => {
     const err = createError({
       id: "features/test.feature",
       result: {
+        id: "",
         lineage: {
-          // @ts-expect-error -- Partial Lineage for testing
-          scenario: { location: { line: 5, column: 3 } },
-          // @ts-expect-error -- Partial Lineage for testing
-          example: { location: { line: 12 } },
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          scenario: { location: { line: 5, column: 3 } } as any,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          example: { location: { line: 12 } } as any,
         },
         status: "FAILED",
         step: {
@@ -159,6 +170,7 @@ describe("createError", () => {
     const err = createError({
       id: "features/test.feature",
       result: {
+        id: "",
         status: "FAILED",
         stepResult: {
           status: TestStepResultStatus.FAILED,
@@ -170,7 +182,6 @@ describe("createError", () => {
           },
         },
         error: {
-          name: "AssertionError",
           message: "Expected 1 to equal 2",
           showDiff: true,
           expected: 2,

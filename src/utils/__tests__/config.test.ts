@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { cliConfig } from "../config.ts";
+import { afterEach, describe, expect, it } from "vitest";
+import { cliConfig, mergeConfig } from "../config.ts";
 
 describe("cliConfig", () => {
   describe("empty input", () => {
@@ -43,5 +43,45 @@ describe("cliConfig", () => {
     it("throws on unknown flags", () => {
       expect(() => cliConfig("--totally-unknown-flag value")).toThrow();
     });
+  });
+});
+
+describe("mergeConfig", () => {
+  const original = process.env.CUCUMBER_OPTIONS;
+  afterEach(() => {
+    if (original === undefined) {
+      delete process.env.CUCUMBER_OPTIONS;
+    } else {
+      process.env.CUCUMBER_OPTIONS = original;
+    }
+  });
+
+  it("returns the base config when there are no CLI options", () => {
+    delete process.env.CUCUMBER_OPTIONS;
+    expect(mergeConfig({ tags: "@smoke" })).toMatchObject({ tags: "@smoke" });
+  });
+
+  it("lets CUCUMBER_OPTIONS override the base config", () => {
+    process.env.CUCUMBER_OPTIONS = "--tags @wip";
+    expect(mergeConfig({ tags: "@smoke" })).toMatchObject({ tags: "(@wip)" });
+  });
+
+  it("pins a concrete seed for order: random", () => {
+    delete process.env.CUCUMBER_OPTIONS;
+    expect(mergeConfig({ order: "random" }).order).toMatch(/^random:\d+$/);
+  });
+
+  it("throws when parallel is set in the base config", () => {
+    delete process.env.CUCUMBER_OPTIONS;
+    expect(() => mergeConfig({ parallel: 2 })).toThrow(
+      "Parallel execution is not supported",
+    );
+  });
+
+  it("throws when parallel comes from CUCUMBER_OPTIONS", () => {
+    process.env.CUCUMBER_OPTIONS = "--parallel 4";
+    expect(() => mergeConfig({})).toThrow(
+      "Parallel execution is not supported use vitest parallelism instead.",
+    );
   });
 });

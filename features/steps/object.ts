@@ -1,15 +1,15 @@
 import { Given, Then } from "@cucumber/cucumber";
 import { expect } from "vitest";
-import { ArithmeticWorld } from "../support/world.ts";
+import type { TestWorld } from "../support/world.ts";
 
-Given(/^object is:$/, function responseContain(this: ArithmeticWorld, value) {
+Given(/^object is:$/, function responseContain(this: TestWorld, value) {
   const parsed = JSON.parse(value);
   this.object = parsed;
 });
 
 Then(
   /^object should contain:$/,
-  function responseContain(this: ArithmeticWorld, expectedResponse) {
+  function responseContain(this: TestWorld, expectedResponse) {
     const parsedExpectedResponse = JSON.parse(expectedResponse);
     expect(this.object).to.containSubset(parsedExpectedResponse);
   },

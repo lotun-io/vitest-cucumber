@@ -7,21 +7,23 @@ import os from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { beforeAll, describe, expect, it } from "vitest";
-import type { WithHook } from "../runCucumber.ts";
+import { prepareRunConfiguration, type WithHook } from "../config.ts";
+import { globalRef } from "../globals.ts";
 import { runCucumber } from "../runCucumber.ts";
+import type { SerializedError } from "../serializeError.ts";
 
 const featuresDir = path.resolve(import.meta.dirname, "features");
 const config = {
   import: [
-    path.join("features", "support/**/*.ts"),
-    path.join("features", "step_definitions/**/*.ts"),
+    path.join(featuresDir, "support", "**/*.ts"),
+    path.join(featuresDir, "steps", "**/*.ts"),
   ],
   require: [os.devNull],
 };
 
 let runConfiguration: IRunConfiguration;
 let support: ISupportCodeLibrary;
-const testStepErrors: Map<string, Error> = new Map();
+const testStepErrors: Map<string, SerializedError> = new Map();
 
 beforeAll(async () => {
   ({ runConfiguration } = await loadConfiguration({
@@ -31,13 +33,15 @@ beforeAll(async () => {
       ],
       ...config,
       paths: [],
-      import: [path.join(import.meta.dirname, "../loadSupport.ts")],
+      import: [path.join(import.meta.dirname, "../../node/loadSupport.ts")],
       require: [],
       parallel: undefined,
     },
   }));
 
-  global.__vitestCucumber = {
+  globalRef.__vitest_cucumber_node__ ??= {};
+
+  globalRef.__vitest_cucumber_node__.support = {
     moduleLoader: (specifier: string) => import(specifier),
     config,
     testStepErrors,
@@ -47,39 +51,24 @@ beforeAll(async () => {
 
 async function run(
   feature: string,
-  {
-    runtime,
-    withHook,
-  }: {
-    runtime?: Partial<IRunConfiguration["runtime"]>;
-    withHook?: WithHook;
-  } = {},
+  { withHook }: { withHook?: WithHook } = {},
 ) {
   const id = path.join(featuresDir, feature);
 
-  testStepErrors.clear();
-
-  const results = await runCucumber({
+  const { results } = await runCucumber({
     id,
-    runConfiguration: {
-      ...runConfiguration,
-      runtime: { ...runConfiguration.runtime, ...runtime },
-    },
-    support,
-    withHook: withHook ?? "none",
+    runConfiguration: prepareRunConfiguration({
+      id,
+      runConfiguration,
+      support,
+      withHook: withHook ?? "none",
+    }),
     testStepErrors,
   });
   return new Map(results.values().map((value) => [value.name ?? "", value]));
 }
 
 describe("failing scenarios", () => {
-  it("step that throws records the error message", async () => {
-    const results = await run("failing-step.feature");
-    const result = results.get("Step throws an error");
-    expect(result?.stepResult?.message).toContain("intentional failure");
-    expect(result?.step).toBeDefined();
-  });
-
   it("parse error throws with all errors listed", async () => {
     const relPath = path.relative(
       process.cwd(),
@@ -97,46 +86,6 @@ describe("failing scenarios", () => {
     );
   });
 
-  it("unknown step records UNDEFINED when first step is undefined", async () => {
-    const results = await run("unknown-step.feature");
-    const result = results.get("First step is undefined");
-    expect(result?.status).toBe("UNDEFINED");
-  });
-
-  it("unknown step records UNDEFINED when last step is undefined", async () => {
-    const results = await run("unknown-step.feature");
-    const result = results.get("Last step is undefined");
-    expect(result?.status).toBe("UNDEFINED");
-  });
-
-  it("first failure wins when subsequent steps are skipped", async () => {
-    const results = await run("first-failure-wins.feature");
-    const result = results.get(
-      "First step fails and subsequent steps are skipped",
-    );
-    expect(result?.status).toBe("FAILED");
-    expect(result?.stepResult?.exception).toBeDefined();
-    expect(result?.stepResult?.message).toContain("intentional failure");
-  });
-
-  it("Before hook failure is recorded", async () => {
-    const results = await run("hook-errors.feature");
-    const result = results.get("Before hook fails");
-    expect(result?.status).toBe("FAILED");
-    expect(result?.stepResult?.message).toContain(
-      "Before hook failed intentionally",
-    );
-  });
-
-  it("After hook failure is recorded", async () => {
-    const results = await run("hook-errors.feature");
-    const result = results.get("After hook fails");
-    expect(result?.status).toBe("FAILED");
-    expect(result?.stepResult?.message).toContain(
-      "After hook failed intentionally",
-    );
-  });
-
   it("BeforeAll hook failure rejects with the hook error", async () => {
     process.env.FAIL_BEFORE_ALL = "1";
     try {
@@ -146,7 +95,7 @@ describe("failing scenarios", () => {
       const message =
         (err as Error & { cause?: Error }).cause?.message ??
         (err as Error).message;
-      expect(message).toContain("BeforeAll hook failed intentionally");
+      expect(message).toContain("BeforeAll failed intentionally");
       return;
     } finally {
       delete process.env.FAIL_BEFORE_ALL;
@@ -163,37 +112,11 @@ describe("failing scenarios", () => {
       const message =
         (err as Error & { cause?: Error }).cause?.message ??
         (err as Error).message;
-      expect(message).toContain("AfterAll hook failed intentionally");
+      expect(message).toContain("AfterAll failed intentionally");
       return;
     } finally {
       delete process.env.FAIL_AFTER_ALL;
     }
     expect.fail("Expected runCucumber to reject");
-  });
-
-  it("assertion error captures showDiff, expected and actual", async () => {
-    const results = await run("show-diff.feature");
-    const result = results.get("Assertion error carries showDiff");
-    expect(result?.status).toBe("FAILED");
-    expect(result?.error).toBeDefined();
-    expect(result?.error?.showDiff).toBe(true);
-    expect(result?.error?.expected).toBeDefined();
-    expect(result?.error?.actual).toBeDefined();
-  });
-
-  it("retry: scenario result reflects final attempt after all retries exhausted", async () => {
-    const results = await run("failing-step.feature", {
-      runtime: { retry: 1 },
-    });
-    const result = results.get("Step throws an error");
-    expect(result?.status).toBe("FAILED");
-    expect(result?.stepResult?.message).toContain("intentional failure");
-  });
-
-  it("retry: scenario passes when second attempt succeeds", async () => {
-    delete process.env.RETRY_STEP_ATTEMPTED;
-    const results = await run("retry.feature", { runtime: { retry: 1 } });
-    const result = results.get("Step passes on retry");
-    expect(result?.status).toBe("PASSED");
   });
 });

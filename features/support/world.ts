@@ -1,9 +1,19 @@
-import { setWorldConstructor } from "@cucumber/cucumber";
+import { setWorldConstructor, World } from "@cucumber/cucumber";
 
-export class ArithmeticWorld {
+// One World for both realms. `extends World` (the base class exists in node's
+// real runtime AND the browser shim) wires up IWorldOptions — attach/log/link
+// and `parameters` (the configured worldParameters) — so the same steps run in
+// node and browser unchanged.
+export class TestWorld extends World {
   value = 0;
-
   object = {};
+  hookCount = 0;
+  beforeStepCount = 0;
+  afterStepCount = 0;
+  scenarioName = "";
+  tagExpr = false;
 }
 
-setWorldConstructor(ArithmeticWorld);
+setWorldConstructor(TestWorld);
+
+// setDefaultTimeout(100);
