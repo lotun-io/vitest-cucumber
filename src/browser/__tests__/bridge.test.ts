@@ -84,9 +84,8 @@ let capturedRows: string[][] | undefined;
 
 BeforeAll(function beforeAll() {
   flags.beforeAll = true;
-  flags.contextGreeting = (
-    context as { parameters?: { greeting?: string } }
-  ).parameters?.greeting;
+  flags.contextGreeting = (context as { parameters?: { greeting?: string } })
+    .parameters?.greeting;
 });
 AfterAll(function afterAll() {
   flags.afterAll = true;

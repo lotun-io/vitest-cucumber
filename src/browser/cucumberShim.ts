@@ -28,8 +28,7 @@ type StepFn = (this: unknown, ...args: unknown[]) => unknown;
 // Serializable definition options forwarded verbatim to native Cucumber on Node.
 export type StepOptions = { timeout?: number; wrapperOptions?: unknown };
 export type HookOptions =
-  | string
-  | { tags?: string; name?: string; timeout?: number };
+  string | { tags?: string; name?: string; timeout?: number };
 export type TestRunHookOptions = { timeout?: number };
 
 interface StepEntry {
