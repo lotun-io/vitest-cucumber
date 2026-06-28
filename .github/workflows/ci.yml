@@ -37,4 +37,5 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm add -D @cucumber/cucumber@${{ matrix.cucumber-version }} --config.frozen-lockfile=false
+      - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test
