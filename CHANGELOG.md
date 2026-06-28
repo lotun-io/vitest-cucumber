@@ -1,5 +1,11 @@
 # @lotun/vitest-cucumber
 
+## 0.4.0
+
+### Minor Changes
+
+- 0fa659b: Add Vitest browser mode support — step and hook bodies now run in the browser, with @cucumber/cucumber importable there.
+
 ## 0.3.0
 
 ### Minor Changes
