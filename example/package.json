@@ -4,11 +4,14 @@
   "type": "module",
   "scripts": {
     "test": "vitest run",
-    "test:simple": "CUCUMBER_OPTIONS=\"--tags @simple\" vitest run"
+    "test:browser": "vitest run --project browser",
+    "test:node": "vitest run --project node",
+    "test:node-playwright": "vitest run --project node-playwright"
   },
   "devDependencies": {
     "@cucumber/cucumber": "^13.0.0",
-    "@lotun/vitest-cucumber": "^0.3.0",
+    "@lotun/vitest-cucumber": "^0.4.0",
+    "@playwright/test": "^1.61.1",
     "vitest": "^4.1.9"
   }
 }

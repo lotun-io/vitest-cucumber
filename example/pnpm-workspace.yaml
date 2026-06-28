@@ -1,2 +1,3 @@
 minimumReleaseAgeExclude:
   - "@lotun/vitest-cucumber@0.3.0"
+  - "@lotun/vitest-cucumber@0.4.0"

@@ -39,3 +39,24 @@ jobs:
       - run: pnpm add -D @cucumber/cucumber@${{ matrix.cucumber-version }} --config.frozen-lockfile=false
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test
+
+  smoke:
+    name: "smoke (pack + example)"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm pack
+      - name: Install packed tarball into example
+        working-directory: example
+        run: pnpm add "../lotun-vitest-cucumber-$(node -p "require('../package.json').version").tgz"
+      - working-directory: example
+        run: pnpm exec playwright install --with-deps chromium
+      - working-directory: example
+        run: pnpm test

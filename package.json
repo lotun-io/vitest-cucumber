@@ -61,7 +61,6 @@
     "@cucumber/cucumber": "^13.0.0",
     "@cucumber/messages": "^32.3.1",
     "@cucumber/query": "^15.0.1",
-    "@playwright/test": "^1.61.1",
     "@tsconfig/node24": "^24.0.4",
     "@types/node": "^24.13.2",
     "@vitest/browser-playwright": "^4.1.9",

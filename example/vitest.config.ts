@@ -48,15 +48,15 @@ export default defineConfig({
         plugins: [
           cucumber({
             import: [
-              "features/playwright/support/**/*.ts",
-              "features/playwright/steps/**/*.ts",
+              "features/node-playwright/support/**/*.ts",
+              "features/node-playwright/steps/**/*.ts",
             ],
           }),
         ],
         test: {
           name: "node-playwright",
           environment: "node",
-          include: ["features/playwright/**/*.feature"],
+          include: ["features/node-playwright/**/*.feature"],
           isolate: false,
         },
       },
