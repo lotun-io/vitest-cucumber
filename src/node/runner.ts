@@ -55,7 +55,7 @@ const ensureCache = async ({
   moduleLoader: ModuleLoader;
 }) => {
   if (cached) {
-    return { cached, isCached: true };
+    return { isCached: true };
   }
 
   const mergedConfig = mergeConfig(config);
@@ -85,7 +85,7 @@ const ensureCache = async ({
 
   cached = { runConfiguration, support, testStepErrors };
 
-  return { cached, isCached: false };
+  return { isCached: false };
 };
 
 const run = async ({
@@ -96,7 +96,7 @@ const run = async ({
   onTestCaseFinished,
 }: RunOptions) => {
   if (!cached) {
-    throw new Error("run called before ensureCache");
+    throw new Error("ensureCache was not called");
   }
 
   return runCucumber({

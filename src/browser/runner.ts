@@ -38,7 +38,7 @@ const bridge = () =>
 // persists across features (isolate: false → once per worker) — matching where
 // the support and the World/lifecycle state load, exactly like the node runner
 // self-adjusts. Mirrors node/runner.ts's `cached`/`isCached`.
-let cached = false;
+let cached: { lifecycleFeaturePath: string } | null = null;
 
 // Execute a task in the page. Step/hook/testRunHook bodies are run by the shim,
 // which catches internally and resolves with a { value | error } object — it
@@ -133,6 +133,22 @@ const pump = async (
   }
 };
 
+const ensureCache = async () => {
+  if (cached) {
+    return { isCached: true };
+  }
+
+  const { version, lifecycleFeaturePath } = await cucumber.cucumberMetadata();
+
+  setVersion(version);
+
+  cached = {
+    lifecycleFeaturePath,
+  };
+
+  return { isCached: false };
+};
+
 export const runFeatureFile = async ({
   id,
 }: {
@@ -145,8 +161,7 @@ export const runFeatureFile = async ({
     (file) => file?.filepath === id,
   )?.testLocations;
 
-  const { version, lifecycleFeaturePath } = await cucumber.cucumberMetadata();
-  setVersion(version);
+  const { isCached } = await ensureCache();
 
   await cucumber.cucumberRun({
     id,
@@ -158,15 +173,13 @@ export const runFeatureFile = async ({
   await pump();
   const { featureName, results: planResults } = await cucumber.cucumberEnd();
 
-  // The first feature of this realm runs BeforeAll and registers the realm's
-  // AfterAll teardown; later features in the same realm skip both.
-  const isCached = cached;
-  cached = true;
-
   if (!isCached) {
     worker?.onCleanup?.(async () => {
+      if (!cached) {
+        throw new Error("ensureCache was not called");
+      }
       await cucumber.cucumberRun({
-        id: lifecycleFeaturePath,
+        id: cached.lifecycleFeaturePath,
         dispatchTestCaseFinished: false,
         withHook: "after",
       });
@@ -184,7 +197,7 @@ export const runFeatureFile = async ({
 
   registerFeatureTests({ id, featureName, results });
 
-  // First feature of the worker keeps BeforeAll; later ones skip it.
+  // First feature of the realm keeps BeforeAll; later ones skip it.
   const withHook = isCached ? "none" : "before";
 
   const runPromise = (async () => {
