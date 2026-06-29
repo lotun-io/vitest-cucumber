@@ -107,23 +107,23 @@ browser projects in a run share one Cucumber config / step set.
 ### Cucumber API support
 
 Node mode runs the native `@cucumber/cucumber` runtime, so the **entire** API is
-supported. Browser mode supports nearly all of it via the bridge:
+supported. Browser mode supports the **entire** API too, via the bridge:
 
-| Cucumber API                                                          | Node.js | Browser |
-| --------------------------------------------------------------------- | :-----: | :-----: |
-| `Given` / `When` / `Then` / `defineStep`                              |   ✅    |   ✅    |
-| `Before` / `After` / `BeforeStep` / `AfterStep` (tags, options, arg)  |   ✅    |   ✅    |
-| `BeforeAll` / `AfterAll`                                              |   ✅    |   ✅    |
-| `setWorldConstructor` / `World` / `IWorldOptions` / `worldParameters` |   ✅    |   ✅    |
-| `world` (v10.8+) / `context` (v11+) / `version`                       |   ✅    |   ✅    |
-| `defineParameterType` (incl. async transformer, string/array regexp)  |   ✅    |   ✅    |
-| `DataTable` / DocString step arguments / `Status`                     |   ✅    |   ✅    |
-| Callback-interface steps                                              |   ✅    |   ✅    |
-| `setDefaultTimeout` / per-step `{ timeout }`                          |   ✅    |   ✅    |
-| `wrapPromiseWithTimeout`                                              |   ✅    |   ✅    |
-| `attach` / `log` / `link`                                             |   ✅    |   ✅    |
-| `setDefinitionFunctionWrapper`                                        |   ✅    |   ✅    |
-| `setParallelCanAssign`                                                |   ⚠️    |   ⚠️    |
+| Cucumber API                                                         | Node.js | Browser |
+| -------------------------------------------------------------------- | :-----: | :-----: |
+| `Given` / `When` / `Then` / `defineStep`                             |   ✅    |   ✅    |
+| `Before` / `After` / `BeforeStep` / `AfterStep` (tags, options, arg) |   ✅    |   ✅    |
+| `BeforeAll` / `AfterAll`                                             |   ✅    |   ✅    |
+| `setWorldConstructor` / `World`                                      |   ✅    |   ✅    |
+| `world` (v10.8+) / `context` (v11+) / `version`                      |   ✅    |   ✅    |
+| `defineParameterType` (incl. async transformer, string/array regexp) |   ✅    |   ✅    |
+| `DataTable` / DocString step arguments / `Status`                    |   ✅    |   ✅    |
+| Callback-interface steps                                             |   ✅    |   ✅    |
+| `setDefaultTimeout` / per-step `{ timeout }`                         |   ✅    |   ✅    |
+| `wrapPromiseWithTimeout`                                             |   ✅    |   ✅    |
+| `attach` / `log` / `link`                                            |   ✅    |   ✅    |
+| `setDefinitionFunctionWrapper`                                       |   ✅    |   ✅    |
+| `setParallelCanAssign`                                               |   ⚠️    |   ⚠️    |
 
 Notes:
 
