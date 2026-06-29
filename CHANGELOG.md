@@ -5,7 +5,7 @@
 ### Patch Changes
 
 - decef0a: Improve Cucumber config parsing - config files, named profiles
-- 3b0d33d: Support for cucucmber publish option
+- 3b0d33d: Support for Cucumber publish option
 
 ## 0.4.1
 
