@@ -242,4 +242,4 @@ Some Cucumber options conflict with how Vitest manages test execution and are no
 | ---------- | -------------------------------------------------------------------- |
 | `parallel` | Vitest handles parallelism via workers — use Vitest's config instead |
 
-Passing `parallel` (via plugin config or `CUCUMBER_OPTIONS`) will throw an error at runtime.
+Passing `parallel` config option will throw an error at runtime.

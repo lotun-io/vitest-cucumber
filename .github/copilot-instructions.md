@@ -34,7 +34,9 @@ src/
 └── utils/                — SHARED (node + browser)
     ├── runCucumber.ts    — Cucumber runtime invocation; emits a results Map; supportWithHook() strips test-run hooks
     ├── registerFeatureTests.ts — registers the results Map as Vitest describe/test blocks (Rule grouping); surfaces attachments as test annotations
-    ├── config.ts         — cliArgs() parses CUCUMBER_OPTIONS via ArgvParser (incl. --profile/--config); mergeConfig() resolves the effective config (profile-aware); resolveRunConfiguration() builds the IRunConfiguration; resolveSupportGlobs() returns the profile-resolved {import,require} step globs for the browser plugin
+    ├── config.ts         — cliArgs() parses CUCUMBER_OPTIONS via ArgvParser (incl. --profile/--config); mergeConfig() resolves the effective config (profile-aware); resolveRunConfiguration() builds the IRunConfiguration; resolveSupportGlobs() returns the profile-resolved step globs as ONE flat string[] (import+require merged, default fallback) for the browser plugin AND node/loadSupport
+    ├── publish.ts         — --publish: writeEnvelopes() (per-project subdir), mergeEnvelopeStream() (fold N runs → 1 report), publishReport(projectName) (merge→gzip→PUT, best-effort)
+    ├── publishGlobalSetup.ts — Vitest globalSetup: setup(project) → teardown publishes THIS project's report
     ├── serializeError.ts — serializeError(): plain, structured-clone-safe error for the Vitest/command boundary
     ├── createError.ts    — maps Cucumber failures to a Vitest-friendly Error with a clickable .feature .stack
     ├── silentFormatter.ts — no-op Cucumber formatter (suppresses CLI output)
@@ -115,7 +117,7 @@ Key browser-mode mechanisms:
 
 ## Shared `runCucumber` (`utils/runCucumber.ts`)
 
-One run per feature. The `IConfiguration`/`ISupportCodeLibrary` come from the caller. `WithHook = "before" | "after" | "none"` selects which test-run hooks fire via `supportWithHook()` — it shallow-clones the support library, emptying `beforeTestRunHookDefinitions`/`afterTestRunHookDefinitions` as needed (those arrays exist on the concrete library but not the public `ISupportCodeLibrary` type, so a local `TestRunHookDefinitions` cast narrows it). Results are a `Map<pickleId, ResultItem>` in Cucumber's actual execution order (incl. `order: random` seed). `ResultItem` carries `id`/`name`/`lineage`/`status`/`stepResult`/`step`/`error`/`attachments` and (when registered) `resolvers`; status/step/error/attachments are mutated in-place by the `testStepFinished` handler and reset on `testCaseStarted` (retries). `registerFeatureTests` groups consecutive same-`Rule` scenarios into a shared `describe`, and surfaces each scenario's `attachments` as Vitest test annotations (text → `bodyEncoding: "utf-8"`, binary → base64 — text MUST set utf-8 or Vitest base64-decodes the string body into garbage on download; images render inline, others get a Download link).
+One run per feature. The `IConfiguration`/`ISupportCodeLibrary` come from the caller. `WithHook = "before" | "after" | "none"` selects which test-run hooks fire via `supportWithHook()` — it shallow-clones the support library, emptying `beforeTestRunHookDefinitions`/`afterTestRunHookDefinitions` as needed (those arrays exist on the concrete library but not the public `ISupportCodeLibrary` type, so a local `TestRunHookDefinitions` cast narrows it). Results are a `Map<pickleId, ResultItem>` in Cucumber's actual execution order (incl. `order: random` seed). When `publish` is passed, the raw Cucumber envelopes are also collected and returned with `startedAt` (for `--publish`; see the Publish section). `ResultItem` carries `id`/`name`/`lineage`/`status`/`stepResult`/`step`/`error`/`attachments` and (when registered) `resolvers`; status/step/error/attachments are mutated in-place by the `testStepFinished` handler and reset on `testCaseStarted` (retries). `registerFeatureTests` groups consecutive same-`Rule` scenarios into a shared `describe`, and surfaces each scenario's `attachments` as Vitest test annotations (text → `bodyEncoding: "utf-8"`, binary → base64 — text MUST set utf-8 or Vitest base64-decodes the string body into garbage on download; images render inline, others get a Download link).
 
 ### Config merging (`utils/config.ts`)
 
@@ -139,6 +141,18 @@ Errors cross the Vitest command / channel boundary, so they're flattened to a pl
 
 Set equal to `VITEST_WORKER_ID` before running Cucumber so step definitions can detect the worker index.
 
+## Publish (`--publish`)
+
+`CUCUMBER_OPTIONS="--publish"` uploads **one report per Vitest project** to the Cucumber Reports service (node + browser). cucumber's native per-run publish is suppressed (`resolveRunConfiguration` forces `publish: false`); the plugin collects envelopes itself and uploads once per project at teardown.
+
+- **Provision** (`plugin.ts` `providePublishDir`): each plugin's `config()` (main process), when the merged config has `publish`, `mkdtemp`s a run base dir ONCE (`process.env[VITEST_CUCUMBER_PUBLISH_DIR] ??= …`) and surfaces it via `process.env` (for the globalSetup teardown + browser command host, both in the node/main process) AND `test.env` (so workers get it pool-agnostically — `test.env` reaches workers but NOT the command host, hence both channels). Also registers `test.globalSetup: [publishGlobalSetup]`.
+- **Collect** (`utils/runCucumber.ts`): when `publish` is passed, the raw Cucumber envelopes are pushed to an array and returned alongside `startedAt` (zero cost when off).
+- **Write** (`utils/publish.ts` `writeEnvelopes`): each feature/AfterAll run appends its envelopes as a timestamp-prefixed JSONL file into `base/sha1(projectName)/` — a per-project subdir. `projectName` is supplied per realm: node = `globalRef.__vitest_worker__.ctx.projectName` (the worker); browser = the `cucumberRun` command's `ctx.project?.name` (the Node command host — NOT a worker, so no `__vitest_worker__`). Both are the decorated runtime name (e.g. `"browser (chromium)"`), matching the teardown. `projectDirName(name || "default")` handles the no-projects/empty-name config on both sides.
+- **Publish** (`utils/publishGlobalSetup.ts`: `setup(project)` → teardown → `publishReport(project.name)`): each project's teardown merges its OWN subdir's JSONL files into ONE report (`mergeEnvelopeStream`: keep first `meta`/`testRunStarted`, rewrite every `testRunStartedId` back-ref to it, synthesize one `testRunFinished`), streams merge → JSONL → gzip → disk → PUT (constant memory), prints the banner headed by the project name, then removes the subdir (+ best-effort `rmdir` base). Because `project.name` from `setup(project)` matches the workers' subdir, there's NO label file and NO cross-project scan → one report per project, no duplication, no first-wins race.
+- **Errors are best-effort** (faithful port of cucumber-js `publish_plugin.js`): touch `>= 500` and upload-not-ok → `console.error` (+ the response body); touch-not-ok (e.g. bad token) → print the service banner; the whole network block is wrapped in `try/catch` so a network rejection LOGS instead of failing the run — unlike cucumber-js (a post-run formatter) we run in a globalSetup teardown, where an uncaught throw WOULD fail the Vitest run. Token/URL from `CUCUMBER_PUBLISH_TOKEN`/`CUCUMBER_PUBLISH_URL`.
+
+Caveats: `--publish` + `--coverage` in THIS repo triggers a one-time browser optimizer reload (coverage instruments the Node-side publish graph because tests run against `src/` in source mode); consumers don't hit it (the lib is in `node_modules`, which coverage excludes — verified by packing). `ctx.projectName` / `ctx.project.name` are internal Vitest fields (same risk class as the rest of the `globalRef` bridge).
+
 ## File Conventions
 
 - All source files use ESM (`import`/`export`), `.ts` extensions in import paths.
@@ -161,6 +175,7 @@ Set equal to `VITEST_WORKER_ID` before running Cucumber so step definitions can 
 - `@cucumber/query` — `Query` helper for envelope lookups
 - `glob` — support-file globbing in `node/loadSupport.ts`
 - `string-argv` — parses `CUCUMBER_OPTIONS` into argv
+- `stream-chain` — `jsonl/parserStream` + `jsonl/stringerStream` for the streamed `--publish` JSONL merge
 
 ## Publishing
 
