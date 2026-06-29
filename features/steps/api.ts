@@ -1,11 +1,12 @@
 import {
   Given,
+  setParallelCanAssign,
   Then,
   version,
   wrapPromiseWithTimeout,
 } from "@cucumber/cucumber";
 import { expect } from "vitest";
-import { lifecycle } from "../support/hooks.ts";
+import { lifecycle, wrapped } from "../support/hooks.ts";
 import { Point } from "../support/parameterTypes.ts";
 import type { TestWorld } from "../support/world.ts";
 
@@ -32,6 +33,18 @@ Then("a slow action times out", async () => {
 
 Then("the cucumber version is reported", () => {
   expect(version).toMatch(/^\d+\.\d+\.\d+/);
+});
+
+// setDefinitionFunctionWrapper wraps every step body, so by the time this step
+// runs the wrapper has fired at least once (this step is itself wrapped).
+Then("the step wrapper has run", () => {
+  expect(wrapped.count).toBeGreaterThan(0);
+});
+
+// setParallelCanAssign is a no-op (parallel is forbidden), so calling it with a
+// validator must not throw in either realm — the validator is simply never run.
+Then("setParallelCanAssign is callable", () => {
+  expect(() => setParallelCanAssign(() => true)).not.toThrow();
 });
 
 // A never-settling body with a per-step timeout: Cucumber's NATIVE step timeout

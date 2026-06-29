@@ -103,7 +103,8 @@ Node runs the native Cucumber runtime; each step/hook/transform body + the World
 | Callback interface                                             |           ✅            | `DataTable` / DocString                                 |                    ✅                    |
 | `setWorldConstructor` / `World` / `IWorldOptions`              |           ✅            | `attach`/`log`/`link`                                   |   ✅ (string/base64; replayed on Node)   |
 | `setDefaultTimeout`                                            |           ✅            | `wrapPromiseWithTimeout`                                |                    ✅                    |
-| `Status`                                                       |           ✅            | `setParallelCanAssign` / `setDefinitionFunctionWrapper` | ❌ (intentional — parallel is forbidden) |
+| `Status`                                                       |           ✅            | `setDefinitionFunctionWrapper`                          |                    ✅                    |
+| `setParallelCanAssign`                                         | ✅ (no-op — parallel forbidden) | —                                                       |                                          |
 
 Key browser-mode mechanisms:
 

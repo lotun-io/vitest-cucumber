@@ -13,3 +13,9 @@ Feature: Step definition variants
         When the value is doubled
         And the value is incremented
         Then the world value should be 9
+
+    Scenario: Definition function wrapper wraps step bodies
+        Then the step wrapper has run
+
+    Scenario: setParallelCanAssign is a callable no-op
+        Then setParallelCanAssign is callable

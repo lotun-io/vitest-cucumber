@@ -54,6 +54,10 @@ interface TestRunHookEntry {
 
 type TransformerFn = (this: unknown, ...groups: string[]) => unknown;
 
+// A step/hook wrapper (setDefinitionFunctionWrapper): given the user body (and a
+// step's wrapperOptions), it returns the function Cucumber actually invokes.
+type DefinitionFunctionWrapper = (fn: StepFn, options?: unknown) => StepFn;
+
 interface ParameterTypeEntry {
   name: string;
   regexp: string | string[];
@@ -75,6 +79,7 @@ export interface BrowserRegistry {
   world: unknown;
   parameters: unknown;
   defaultTimeout?: number;
+  definitionFunctionWrapper?: DefinitionFunctionWrapper;
 }
 
 export type HookKind = "before" | "after" | "beforeStep" | "afterStep";
@@ -298,6 +303,14 @@ export const setWorldConstructor = (
 export const setDefaultTimeout = (ms: number): void => {
   registry.defaultTimeout = ms;
 };
+export const setDefinitionFunctionWrapper = (
+  wrapper: DefinitionFunctionWrapper,
+): void => {
+  registry.definitionFunctionWrapper = wrapper;
+};
+// No-op: parallel execution is forbidden (mergeConfig throws on `parallel`), so
+// the serial runtime never invokes a parallelCanAssign validator — same as node.
+export const setParallelCanAssign = (): void => {};
 
 // Cucumber's `world` export (v10.8+): a live handle to the active World so
 // arrow-function steps/hooks — which don't bind `this` — can still read and write
@@ -459,16 +472,28 @@ const hookList = (kind: HookKind): HookEntry[] => {
 
 // Runs a definition body, honouring Cucumber's callback interface: when the body
 // declares one more parameter than we pass, that trailing param is an
-// (err, res) callback we append and turn into the promise runBody awaits.
-const invoke = (fn: StepFn, thisArg: unknown, args: unknown[]): unknown =>
-  fn.length > args.length
+// (err, res) callback we append and turn into the promise runBody awaits. A
+// setDefinitionFunctionWrapper, if registered, wraps the body first — the
+// callback decision still uses the ORIGINAL arity (the wrapper changes length).
+const invoke = (
+  fn: StepFn,
+  thisArg: unknown,
+  args: unknown[],
+  wrapperOptions?: unknown,
+): unknown => {
+  const arity = fn.length;
+  const body = registry.definitionFunctionWrapper
+    ? registry.definitionFunctionWrapper(fn, wrapperOptions)
+    : fn;
+  return arity > args.length
     ? new Promise((resolve, reject) => {
-        fn.apply(thisArg, [
+        body.apply(thisArg, [
           ...args,
           (err: unknown, res?: unknown) => (err ? reject(err) : resolve(res)),
         ]);
       })
-    : fn.apply(thisArg, args);
+    : body.apply(thisArg, args);
+};
 
 // Parameter-type transforms run in the page (where the World + transformer live)
 // but the value must reach Node and come back as the step arg. To keep it intact
@@ -540,7 +565,12 @@ browser.bridge = {
             `No browser step definition registered for: ${pattern}`,
           );
         }
-        return invoke(entry.fn, registry.world, resolveHandles(args));
+        return invoke(
+          entry.fn,
+          registry.world,
+          resolveHandles(args),
+          entry.options?.wrapperOptions,
+        );
       }),
     ),
   runHook: async (kind, index, arg) => {

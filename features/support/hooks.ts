@@ -7,6 +7,7 @@ import {
   BeforeStep,
   context,
   ITestCaseHookParameter,
+  setDefinitionFunctionWrapper,
   Status,
 } from "@cucumber/cucumber";
 
@@ -16,6 +17,16 @@ import type { TestWorld } from "./world.ts";
 // Lifecycle counters (BeforeAll/AfterAll have no World) — a step asserts
 // BeforeAll runs once per feature, not once per scenario.
 export const lifecycle = { beforeAll: 0, afterAll: 0 };
+
+// setDefinitionFunctionWrapper wraps every step/hook body; count invocations so
+// a step can assert the wrapper actually ran (works in node + browser realms).
+export const wrapped = { count: 0 };
+setDefinitionFunctionWrapper((fn: (...args: unknown[]) => unknown) =>
+  function wrapper(this: unknown, ...args: unknown[]) {
+    wrapped.count += 1;
+    return fn.apply(this, args);
+  },
+);
 
 // `context` (run scope) carries the worldParameters and is only usable inside
 // BeforeAll/AfterAll; assert it resolves (throws → surfaces as a hook error).

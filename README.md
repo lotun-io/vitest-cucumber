@@ -117,19 +117,19 @@ supported. Browser mode supports nearly all of it via the bridge:
 | `setWorldConstructor` / `World` / `IWorldOptions` / `worldParameters` |   ✅    |   ✅    |
 | `world` (v10.8+) / `context` (v11+) / `version`                       |   ✅    |   ✅    |
 | `defineParameterType` (incl. async transformer, string/array regexp)  |   ✅    |   ✅    |
-| `DataTable` / DocString step arguments                                |   ✅    |   ✅    |
+| `DataTable` / DocString step arguments / `Status`                     |   ✅    |   ✅    |
 | Callback-interface steps                                              |   ✅    |   ✅    |
 | `setDefaultTimeout` / per-step `{ timeout }`                          |   ✅    |   ✅    |
-| `wrapPromiseWithTimeout` / `Status`                                   |   ✅    |   ✅    |
+| `wrapPromiseWithTimeout`                                              |   ✅    |   ✅    |
 | `attach` / `log` / `link`                                             |   ✅    |   ✅    |
-| `setDefinitionFunctionWrapper`                                        |   ✅    |   ❌    |
-| `setParallelCanAssign`                                                |   ⚠️    |   ❌    |
+| `setDefinitionFunctionWrapper`                                        |   ✅    |   ✅    |
+| `setParallelCanAssign`                                                |   ⚠️    |   ⚠️    |
 
-Browser-mode notes:
+Notes:
 
-- **`setDefinitionFunctionWrapper`** and **`setParallelCanAssign`** are
-  intentionally not bridged — parallelism is delegated to Vitest, and the function
-  wrapper is discouraged upstream.
+- **`setParallelCanAssign`** is a no-op in **both** Node and browser modes: the
+  `parallel` config flag is rejected (Vitest owns parallelism), so the serial
+  runtime never invokes the validator. Calling it is harmless.
 
 ## Writing features & steps
 
