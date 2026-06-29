@@ -15,12 +15,14 @@ import type {
   IRunConfiguration,
   ISupportCodeLibrary,
 } from "@cucumber/cucumber/api";
-import { loadConfiguration, loadSupport } from "@cucumber/cucumber/api";
+import { loadSupport } from "@cucumber/cucumber/api";
 import path from "node:path";
-import { pathToFileURL } from "node:url";
 import type { BrowserCommand } from "vitest/node";
 import type { WithHook } from "../utils/config.ts";
-import { mergeConfig, prepareRunConfiguration } from "../utils/config.ts";
+import {
+  prepareRunConfiguration,
+  resolveRunConfiguration,
+} from "../utils/config.ts";
 import { globalRef } from "../utils/globals.ts";
 import type { ResultItem } from "../utils/runCucumber.ts";
 import { runCucumber } from "../utils/runCucumber.ts";
@@ -37,12 +39,6 @@ import {
 } from "./taskBridge.ts";
 
 const ext = path.extname(import.meta.filename);
-const silentFormatter = path.join(
-  import.meta.dirname,
-  "..",
-  "utils",
-  `silentFormatter${ext}`,
-);
 const loadSupportPath = path.join(import.meta.dirname, `loadSupport${ext}`);
 const lifecycleFeaturePath = path.join(
   import.meta.dirname,
@@ -115,13 +111,6 @@ const getChannel = (sessionId: string): BrowserChannel => {
 };
 
 export const createCucumberCommands = (config: Partial<IConfiguration>) => {
-  // Resolve the effective config (plugin config + CUCUMBER_OPTIONS), cached per
-  // session so the dry-run plan and the real run share the same resolved config
-  // — notably the `order: random` seed, so scenario indices line up.
-  let mergedConfig: Partial<IConfiguration> | undefined;
-  const getMergedConfig = (): Partial<IConfiguration> =>
-    (mergedConfig ??= mergeConfig(config));
-
   // Builds the native support library once for the whole project: fetches the
   // browser's step/hook/param-type registry, then loads `loadSupport`, which
   // registers a Node proxy per definition that dispatches its body back to the
@@ -135,14 +124,12 @@ export const createCucumberCommands = (config: Partial<IConfiguration>) => {
     const parameterTypes = await dispatchGetParameterTypes();
     const defaultTimeout = await dispatchGetDefaultTimeout();
 
-    const { runConfiguration } = await loadConfiguration({
-      provided: {
-        format: [`"${pathToFileURL(silentFormatter).toString()}"`],
-        ...getMergedConfig(),
-        paths: [],
-        import: [loadSupportPath],
-        require: [],
-      },
+    // Resolve the run config (plugin config + CUCUMBER_OPTIONS + profiles) once
+    // for the whole project — the dry-run plan and the real run share it (notably
+    // the pinned `order: random` seed, so scenario indices line up).
+    const { runConfiguration } = await resolveRunConfiguration({
+      config,
+      loadSupportPath,
     });
     globalRef.__vitest_cucumber_browser__ ??= {};
     globalRef.__vitest_cucumber_browser__.support = {

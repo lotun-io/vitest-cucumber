@@ -34,7 +34,7 @@ src/
 └── utils/                — SHARED (node + browser)
     ├── runCucumber.ts    — Cucumber runtime invocation; emits a results Map; supportWithHook() strips test-run hooks
     ├── registerFeatureTests.ts — registers the results Map as Vitest describe/test blocks (Rule grouping); surfaces attachments as test annotations
-    ├── config.ts         — cliConfig() parses CUCUMBER_OPTIONS via ArgvParser; mergeConfig() resolves the effective config
+    ├── config.ts         — cliArgs() parses CUCUMBER_OPTIONS via ArgvParser (incl. --profile/--config); mergeConfig() resolves the effective config (profile-aware); resolveRunConfiguration() builds the IRunConfiguration; resolveSupportGlobs() returns the profile-resolved {import,require} step globs for the browser plugin
     ├── serializeError.ts — serializeError(): plain, structured-clone-safe error for the Vitest/command boundary
     ├── createError.ts    — maps Cucumber failures to a Vitest-friendly Error with a clickable .feature .stack
     ├── silentFormatter.ts — no-op Cucumber formatter (suppresses CLI output)
@@ -63,13 +63,13 @@ pnpm format         # prettier write + eslint --fix
 
 - `config()` registers the Node-side commands (`createCucumberCommands(config)`) under `test.browser.commands`, and sets `optimizeDeps.exclude: ["@cucumber/cucumber"]`.
 - `resolveId()` redirects `"@cucumber/cucumber"` → `browser/cucumberShim.ts` **only in the browser realm** (`!options.ssr`). Without this, the real CJS runtime leaks into the page → `does not provide an export named 'default'`.
-- `transform()` emits a thin wrapper whose `import.meta.glob(globs, { eager: true })` loads step/support files **in the browser** for their registration side effects (the glob string must stay literal for Vite's static analysis).
+- `transform()` is **async**: it resolves the effective config once (`resolveSupportGlobs(config)`, memoised) and emits a thin wrapper whose `import.meta.glob([...import, ...require], { eager: true })` loads step/support files **in the browser** for their registration side effects. The resolved (profile-aware) glob list — both Cucumber keys, mapped to Vite root-relative patterns — is baked as a **literal** (Vite requires `import.meta.glob`'s argument to be statically analyzable). Because it's fixed at transform time, changing profiles/config needs a re-run.
 
 ## Node mode flow (`node/runner.ts`)
 
 Both modes converge on **dry-run plan → register tests → real run streamed via `onTestCaseFinished`**:
 
-1. `mergeConfig(config)` → `loadConfiguration` → `runConfiguration`; `loadSupport(runConfiguration)` (cached module-scoped per worker).
+1. `resolveRunConfiguration({ config, loadSupportPath })` → `runConfiguration` + the profile-resolved `merged` flat config; `loadSupport(runConfiguration)` (cached module-scoped per worker). The step globs fed to our own loader come from `merged.import`/`require`.
 2. **Dry run** (`dryRun: true`) `runCucumber` → a results `Map` (the scenario tree, no bodies executed).
 3. Build a `results` Map, giving each entry a `resolvers: Promise.withResolvers()`, and call `registerFeatureTests({ id, featureName, results })` — one `test` per scenario (timeout 0), each `await`ing `result.resolvers.promise` and then surfacing the scenario's attachments as annotations.
 4. **Real run** `runCucumber({ onTestCaseFinished })` — the callback `Object.assign`s the finished `ResultItem` onto the registered entry and resolves its `resolvers`. A trailing `.finally` resolves any still-pending resolvers (tag-filtered scenarios that never fire `testCaseFinished`).
@@ -119,7 +119,13 @@ One run per feature. The `IConfiguration`/`ISupportCodeLibrary` come from the ca
 
 ### Config merging (`utils/config.ts`)
 
-`mergeConfig(config)` is shared by both runners: plugin config is the base; `cliConfig(CUCUMBER_OPTIONS)` overrides it; `order: "random"` is pinned to a concrete seed (so a dry-run plan and the real run agree on order); `parallel` is always forbidden — parallelism is Vitest's responsibility.
+Resolution is **two passes of Cucumber's own `loadConfiguration`**, so named profiles and an explicit config file behave like native cucumber-js (precedence **provided > profile > default**):
+
+- `cliArgs(CUCUMBER_OPTIONS)` runs `ArgvParser`, splitting `--profile` (repeatable) and `--config` into a loader bucket (`{ profiles, file }`) from the ad-hoc `configuration`.
+- `mergeConfig(config)` (async) — **pass 1**: `loadConfiguration({ file, profiles, provided: { ...pluginConfig, ...cliConfiguration, paths: [] } })`. It auto-locates a `cucumber.*` config file when no `--config` is given (so a default profile already applies). Our invariants are imposed on the **resolved** flat config — so they also catch profile-supplied values: `order: "random"` is pinned to a concrete seed (dry-run plan and real run agree on order); `parallel` is forbidden (Vitest owns parallelism).
+- `resolveRunConfiguration({ config, loadSupportPath })` — **pass 2**: `loadConfiguration({ file: false, provided: { ...merged, paths: [], import: [loadSupportPath], require: [], format } })`. `file: false` makes `provided` authoritative; `import` is forced to our support-bridge loader. A user-provided `format` is **preserved** — the silent formatter is only injected when none is configured. Returns `{ runConfiguration, mergedConfig }`; the runners feed `mergedConfig.import`/`require` (profile-resolved step globs) to their own module loader.
+
+Browser note: the page's step globs are resolved (profile-aware) at transform time via `resolveSupportGlobs(config)` in `plugin.ts` (memoised) and baked into the literal `import.meta.glob`, so profile/config `import` **and** `require` globs reach the browser bundle too (both are additive arrays in Cucumber's merge, so profile globs concatenate with the plugin's; the page loads `require` files as ESM via Vite). The only caveat is that the glob is fixed at transform time, so changing profiles/config requires a re-run.
 
 ### Error attribution (`utils/createError.ts`)
 

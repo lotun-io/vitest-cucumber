@@ -3,12 +3,14 @@ import type {
   IRunConfiguration,
   ISupportCodeLibrary,
 } from "@cucumber/cucumber/api";
-import { loadConfiguration, loadSupport } from "@cucumber/cucumber/api";
+import { loadSupport } from "@cucumber/cucumber/api";
 import path from "node:path";
-import { pathToFileURL } from "node:url";
 import { afterAll } from "vitest";
 import type { WithHook } from "../utils/config.ts";
-import { mergeConfig, prepareRunConfiguration } from "../utils/config.ts";
+import {
+  prepareRunConfiguration,
+  resolveRunConfiguration,
+} from "../utils/config.ts";
 import { globalRef } from "../utils/globals.ts";
 import { registerFeatureTests } from "../utils/registerFeatureTests.ts";
 import type { ResultItem } from "../utils/runCucumber.ts";
@@ -18,12 +20,6 @@ import type { SerializedError } from "../utils/serializeError.ts";
 export type ModuleLoader = (specifier: string) => Promise<unknown>;
 
 const ext = path.extname(import.meta.filename);
-const silentFormatterPath = path.join(
-  import.meta.dirname,
-  "..",
-  "utils",
-  `silentFormatter${ext}`,
-);
 const loadSupportPath = path.join(import.meta.dirname, `loadSupport${ext}`);
 const lifecycleFeaturePath = path.join(
   import.meta.dirname,
@@ -58,20 +54,15 @@ const ensureCache = async ({
     return { isCached: true };
   }
 
-  const mergedConfig = mergeConfig(config);
-
-  const { runConfiguration } = await loadConfiguration({
-    provided: {
-      format: [`"${pathToFileURL(path.join(silentFormatterPath)).toString()}"`],
-      ...mergedConfig,
-      paths: [],
-      import: [loadSupportPath],
-      require: [],
-    },
+  const { runConfiguration, mergedConfig } = await resolveRunConfiguration({
+    config,
+    loadSupportPath,
   });
 
   // We load support code using the Vitest module loader so that imports
   // inside step definitions go through Vitest's module resolution pipeline.
+  // The step globs come from `merged` (the profile-resolved import/require), not
+  // from our overridden loader path above.
   const testStepErrors = new Map<string, SerializedError>();
   globalRef.__vitest_cucumber_node__ ??= {};
   globalRef.__vitest_cucumber_node__.support = {
