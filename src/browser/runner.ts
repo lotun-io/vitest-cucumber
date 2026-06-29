@@ -21,18 +21,24 @@ import type { SerializedError } from "../utils/serializeError.ts";
 import { serializeError } from "../utils/serializeError.ts";
 import type { ChannelTask } from "./channel.ts";
 import type { CucumberCommands } from "./commands.ts";
-import type {
-  BrowserAttachment,
-  BrowserBridge,
-  HookArg,
-} from "./cucumberShim.ts";
+import type { BrowserAttachment, BrowserBridge } from "./cucumberShim.ts";
+import { setVersion } from "./cucumberShim.ts";
 
 const cucumber = commands as unknown as CucumberCommands;
+
+const worker = globalRef.__vitest_worker__;
 
 // The shim's invocation API, installed on globalThis. Read at call time (not
 // module load) so the shim has registered it by the time tasks run.
 const bridge = () =>
   globalRef.__vitest_cucumber_browser__?.bridge as BrowserBridge;
+
+// Whether this realm has already loaded support (and fired BeforeAll). Module-
+// scoped, so it resets with the realm (isolate: true → per feature file) or
+// persists across features (isolate: false → once per worker) — matching where
+// the support and the World/lifecycle state load, exactly like the node runner
+// self-adjusts. Mirrors node/runner.ts's `cached`/`isCached`.
+let cached = false;
 
 // Execute a task in the page. Step/hook/testRunHook bodies are run by the shim,
 // which catches internally and resolves with a { value | error } object — it
@@ -61,33 +67,19 @@ const runTask = async (
       case "newWorld":
         return { value: bridge().newWorld(task.payload) };
       case "step": {
-        const { pattern, args } = task.payload as {
-          pattern: string;
-          args: unknown[];
-        };
+        const { pattern, args } = task.payload;
         return await bridge().runStep(pattern, args);
       }
       case "hook": {
-        const { kind, index, arg } = task.payload as {
-          kind: "before" | "after" | "beforeStep" | "afterStep";
-          index: number;
-          arg: HookArg;
-        };
+        const { kind, index, arg } = task.payload;
         return await bridge().runHook(kind, index, arg);
       }
       case "testRunHook": {
-        const { kind, index, parameters } = task.payload as {
-          kind: "beforeAll" | "afterAll";
-          index: number;
-          parameters: unknown;
-        };
+        const { kind, index, parameters } = task.payload;
         return await bridge().runTestRunHook(kind, index, parameters);
       }
       case "transform": {
-        const { name, groups } = task.payload as {
-          name: string;
-          groups: string[];
-        };
+        const { name, groups } = task.payload;
         return await bridge().runTransform(name, groups);
       }
       default:
@@ -112,7 +104,7 @@ const pump = async (
     task = await cucumber.cucumberNextTask()
   ) {
     if (task.kind === "testCaseFinished") {
-      onTestCaseFinished?.(task.payload as ResultItem);
+      onTestCaseFinished?.(task.payload);
       await cucumber.cucumberReportTask(task.id, {});
       continue;
     }
@@ -128,43 +120,22 @@ const pump = async (
     const current = task;
     void (async () => {
       const outcome = await runTask(current);
-      // Replay attachments first so Node emits them while the step is still in
-      // flight (before the report resolves it).
-      for (const attachment of outcome.attachments ?? []) {
-        await cucumber.cucumberAttach(attachment);
-      }
-      // A hook body may mutate its parameter in place; fold the post-run result/
-      // error into the reported value so the Node proxy can re-apply them.
-      const result =
-        current.kind === "hook"
-          ? {
-              value: outcome.value,
-              hookResult: outcome.hookResult,
-              hookError: outcome.hookError,
-            }
-          : outcome.value;
+      // Step/hook bodies report the whole BodyResult so the Node proxy can, in
+      // scope, replay attachments via its real World and re-apply hook mutations.
+      // Every other kind (queries / newWorld / transform) just returns its value.
+      const isBody = current.kind === "step" || current.kind === "hook";
       await cucumber.cucumberReportTask(current.id, {
-        result,
+        result: isBody ? outcome : outcome.value,
         err: outcome.err,
       });
     })().catch(() => {});
   }
 };
 
-const worker = globalRef.__vitest_worker__;
-
-// Whether BeforeAll has already fired in THIS browser realm. Module-scoped, so
-// it resets with the realm (isolate: true → per feature file) or persists across
-// features (isolate: false → once per worker) — matching where the support and
-// the World/lifecycle state load, exactly like the node runner self-adjusts.
-let beforeAllDone = false;
-
 export const runFeatureFile = async ({
   id,
-  lifecycleFeaturePath,
 }: {
   id: string;
-  lifecycleFeaturePath: string;
   // Eager glob of step/support modules — imported for their registration side
   // effects by the plugin wrapper; nothing to consume here.
   steps?: Record<string, unknown>;
@@ -172,6 +143,9 @@ export const runFeatureFile = async ({
   const testLocations = worker?.ctx?.files?.find(
     (file) => file?.filepath === id,
   )?.testLocations;
+
+  const { version, lifecycleFeaturePath } = await cucumber.cucumberMetadata();
+  setVersion(version);
 
   await cucumber.cucumberRun({
     id,
@@ -185,10 +159,10 @@ export const runFeatureFile = async ({
 
   // The first feature of this realm runs BeforeAll and registers the realm's
   // AfterAll teardown; later features in the same realm skip both.
-  const firstInRealm = !beforeAllDone;
-  beforeAllDone = true;
+  const isCached = cached;
+  cached = true;
 
-  if (firstInRealm) {
+  if (!isCached) {
     worker?.onCleanup?.(async () => {
       await cucumber.cucumberRun({
         id: lifecycleFeaturePath,
@@ -209,12 +183,8 @@ export const runFeatureFile = async ({
 
   registerFeatureTests({ id, featureName, results });
 
-  // RUN: the real feature run. BeforeAll fires on the first feature of the realm;
-  // step/hook bodies execute here via the pull loop, and each scenario's result
-  // streams back as it finishes so its test resolves progressively (not batched
-  // at the end of the feature).
-
-  const withHook = firstInRealm ? "before" : "none";
+  // First feature of the worker keeps BeforeAll; later ones skip it.
+  const withHook = isCached ? "none" : "before";
 
   const runPromise = (async () => {
     await cucumber.cucumberRun({

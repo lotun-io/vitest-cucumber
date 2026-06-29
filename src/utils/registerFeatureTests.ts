@@ -1,3 +1,4 @@
+import type { TestContext } from "vitest";
 import { describe, test, TestRunner } from "vitest";
 import { createError } from "./createError.ts";
 import type { ResultItem, Results } from "./runCucumber.ts";
@@ -19,12 +20,36 @@ const setLocation = (obj: object, line: number | undefined) => {
   }
 };
 
+// Surface each Cucumber attachment as a Vitest test annotation. Cucumber stores
+// the body as either a base64 string (binary, contentEncoding "BASE64") or plain
+// text; Vitest's annotate defaults a string body to base64, so text MUST declare
+// bodyEncoding "utf-8" or it gets base64-decoded into garbage on download.
+export const annotateAttachments = async (
+  ctx: TestContext,
+  result: ResultItem,
+) => {
+  for (const attachment of result.attachments ?? []) {
+    const isText = attachment.contentEncoding !== "BASE64";
+    const suffix = isText
+      ? `: ${attachment.body}`
+      : attachment.fileName
+        ? `: ${attachment.fileName}`
+        : "";
+    await ctx.annotate(`Attachment (${attachment.mediaType})${suffix}`, {
+      body: attachment.body,
+      contentType: attachment.mediaType,
+      bodyEncoding: isText ? "utf-8" : "base64",
+    });
+  }
+};
+
 const registerTests = ({ id, group }: { id: string; group: ScenarioGroup }) => {
   for (const result of group.items) {
     test(
       result.name ?? "Unknown",
       async (ctx) => {
         await result.resolvers?.promise;
+        await annotateAttachments(ctx, result);
         if (result.status === "SKIPPED") {
           ctx.skip();
           return;

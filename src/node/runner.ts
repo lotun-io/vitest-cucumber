@@ -25,6 +25,12 @@ const silentFormatterPath = path.join(
   `silentFormatter${ext}`,
 );
 const loadSupportPath = path.join(import.meta.dirname, `loadSupport${ext}`);
+const lifecycleFeaturePath = path.join(
+  import.meta.dirname,
+  "..",
+  "features",
+  "lifecycle.feature",
+);
 const worker = globalRef.__vitest_worker__;
 
 let cached: {
@@ -112,12 +118,10 @@ export const runFeatureFile = async ({
   id,
   config,
   moduleLoader,
-  lifecycleFeaturePath,
 }: {
   id: string;
   config: Partial<IConfiguration>;
   moduleLoader: ModuleLoader;
-  lifecycleFeaturePath: string;
 }): Promise<void> => {
   const testLocations = worker?.ctx?.files?.find(
     (file) => file?.filepath === id,

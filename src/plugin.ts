@@ -15,11 +15,6 @@ const browserCucumberShimPath = path.join(
   "browser",
   `cucumberShim${ext}`,
 );
-const lifecycleFeaturePath = path.join(
-  import.meta.dirname,
-  "features",
-  "lifecycle.feature",
-);
 
 export type VitestCucumberOptions = Partial<IConfiguration>;
 
@@ -46,7 +41,6 @@ const nodeCucumber = (config?: VitestCucumberOptions): Plugin => ({
           id: ${JSON.stringify(id)},
           config: ${JSON.stringify(config ?? {})},
           moduleLoader: (specifier) => import(specifier),
-          lifecycleFeaturePath: ${JSON.stringify(lifecycleFeaturePath)}
         });
       `,
       map: null,
@@ -98,7 +92,6 @@ const browserCucumber = (config?: VitestCucumberOptions): Plugin => ({
         const steps = import.meta.glob(${JSON.stringify(globs)}, { eager: true });
         await runFeatureFile({
           id: ${JSON.stringify(id)},
-          lifecycleFeaturePath: ${JSON.stringify(lifecycleFeaturePath)},
           steps
         });
       `,

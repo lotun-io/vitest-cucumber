@@ -12,3 +12,6 @@ Feature: Step outcomes
     @expectStatus(UNDEFINED)
     Scenario: An undefined step is reported as undefined
         Given a step with no definition
+
+    Scenario: The cucumber version is available
+        Then the cucumber version is reported

@@ -12,9 +12,7 @@ import {
   dispatchStep,
   dispatchTestRunHook,
   dispatchTransform,
-  getCurrentNodeWorld,
   runWithChannel,
-  setCurrentNodeWorld,
 } from "../taskBridge.ts";
 
 describe("taskBridge", () => {
@@ -67,13 +65,5 @@ describe("taskBridge", () => {
       index: 0,
       arg: { pickle: { name: "S" } },
     });
-  });
-
-  it("tracks the in-flight Node World", () => {
-    const world = { attach: () => undefined };
-    setCurrentNodeWorld(world);
-    expect(getCurrentNodeWorld()).toBe(world);
-    setCurrentNodeWorld(undefined);
-    expect(getCurrentNodeWorld()).toBeUndefined();
   });
 });

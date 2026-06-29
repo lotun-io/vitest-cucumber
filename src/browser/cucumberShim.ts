@@ -12,16 +12,19 @@
 import { globalRef } from "../utils/globals.ts";
 import type { SerializedError } from "../utils/serializeError.ts";
 import { serializeError } from "../utils/serializeError.ts";
-import {
-  DATA_TABLE_MARKER,
-  DataTable,
-  isDataTableMarker,
-} from "./dataTable.ts";
+import { decodeAll, hold } from "./wire.ts";
 
 // Re-export so step files' `import { DataTable } from "@cucumber/cucumber"`
 // (resolved to this shim in the browser) gets the browser-side class.
 export { DataTable } from "./dataTable.ts";
 export { Status } from "./status.ts";
+
+// The native runtime's `version`. Set on Node (where the package is installed)
+// and injected by the runner; live-bound so `import { version }` reflects it.
+export let version = "";
+export const setVersion = (value: string): void => {
+  version = value;
+};
 
 type StepFn = (this: unknown, ...args: unknown[]) => unknown;
 
@@ -74,7 +77,7 @@ export interface BrowserRegistry {
   defaultTimeout?: number;
 }
 
-type HookKind = "before" | "after" | "beforeStep" | "afterStep";
+export type HookKind = "before" | "after" | "beforeStep" | "afterStep";
 
 // Serialized metadata the browser reports so Node can register native proxies.
 export type StepInfo = {
@@ -112,7 +115,7 @@ export type HookArg = {
   testStepId?: string;
 };
 
-type BodyResult = {
+export type BodyResult = {
   value?: unknown;
   err?: SerializedError;
   attachments?: BrowserAttachment[];
@@ -469,24 +472,9 @@ const invoke = (fn: StepFn, thisArg: unknown, args: unknown[]): unknown =>
 
 // Parameter-type transforms run in the page (where the World + transformer live)
 // but the value must reach Node and come back as the step arg. To keep it intact
-// (including non-serializable instances), runTransform stores the value under an
-// opaque token; the token crosses the channel and runStep swaps it back.
-const transformHandles = new Map<string, unknown>();
-let transformCounter = 0;
-
-const resolveHandles = (args: unknown[]): unknown[] =>
-  args.map((arg) => {
-    if (typeof arg === "string" && transformHandles.has(arg)) {
-      const value = transformHandles.get(arg);
-      transformHandles.delete(arg);
-      return value;
-    }
-    // A DataTable was serialized to its raw form on Node; rebuild the instance.
-    if (isDataTableMarker(arg)) {
-      return new DataTable(arg[DATA_TABLE_MARKER]);
-    }
-    return arg;
-  });
+// (including non-serializable instances), the value is held in the page and only
+// a handle marker crosses the channel; runStep redeems it via the wire codec.
+const resolveHandles = decodeAll;
 
 browser.bridge = {
   // Construct a fresh World for the next scenario, seeded with Cucumber's
@@ -540,9 +528,7 @@ browser.bridge = {
           throw new Error(`No parameter type registered for: ${name}`);
         }
         const value = await pt.transformer.apply(registry.world, groups);
-        const token = `__vc_pt_${(transformCounter++).toString()}__`;
-        transformHandles.set(token, value);
-        return token;
+        return hold(value);
       }),
     ),
   runStep: (pattern, args) =>

@@ -42,30 +42,17 @@ const channel = (): BrowserChannel => {
   return current;
 };
 
-// The Node-side World for the in-flight step/hook (its `this`). Captured by the
-// bridged proxies so the `cucumberAttach` command can replay browser attachments
-// via the real `this.attach` while that step/hook is still executing.
-type NodeWorld = {
-  attach: (data: unknown, mediaTypeOrOptions?: unknown) => void;
-};
-let currentNodeWorld: NodeWorld | undefined;
-export const setCurrentNodeWorld = (world: unknown): void => {
-  currentNodeWorld = world as NodeWorld | undefined;
-};
-export const getCurrentNodeWorld = (): NodeWorld | undefined =>
-  currentNodeWorld;
-
 export const dispatchGetSteps = (): Promise<StepInfo[]> =>
-  channel().dispatch("getSteps") as Promise<StepInfo[]>;
+  channel().dispatch("getSteps", undefined);
 
 export const dispatchGetHooks = (): Promise<HookInfo[]> =>
-  channel().dispatch("getHooks") as Promise<HookInfo[]>;
+  channel().dispatch("getHooks", undefined);
 
 export const dispatchGetTestRunHooks = (): Promise<TestRunHooksInfo> =>
-  channel().dispatch("getTestRunHooks") as Promise<TestRunHooksInfo>;
+  channel().dispatch("getTestRunHooks", undefined);
 
 export const dispatchGetParameterTypes = (): Promise<ParameterTypeInfo[]> =>
-  channel().dispatch("getParameterTypes") as Promise<ParameterTypeInfo[]>;
+  channel().dispatch("getParameterTypes", undefined);
 
 export const dispatchTransform = (
   name: string,
@@ -73,7 +60,7 @@ export const dispatchTransform = (
 ): Promise<unknown> => channel().dispatch("transform", { name, groups });
 
 export const dispatchGetDefaultTimeout = (): Promise<number | undefined> =>
-  channel().dispatch("getDefaultTimeout") as Promise<number | undefined>;
+  channel().dispatch("getDefaultTimeout", undefined);
 
 export const dispatchNewWorld = (parameters: unknown): Promise<unknown> =>
   channel().dispatch("newWorld", parameters);

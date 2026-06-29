@@ -12,15 +12,6 @@
 
 import type * as messages from "@cucumber/messages";
 
-// Marker key wrapping a serialized table as it crosses the channel. A plain
-// string property (not a Symbol) so it survives structured clone.
-export const DATA_TABLE_MARKER = "__vitestCucumberBrowserDataTable__";
-
-export type DataTableMarker = { [DATA_TABLE_MARKER]: string[][] };
-
-export const isDataTableMarker = (value: unknown): value is DataTableMarker =>
-  typeof value === "object" && value !== null && DATA_TABLE_MARKER in value;
-
 export class DataTable {
   private readonly rawTable: string[][];
 

@@ -42,13 +42,6 @@ const harnessFeature = path.join(
   "features",
   "harness.feature",
 );
-const lifecycleFeature = path.join(
-  import.meta.dirname,
-  "..",
-  "..",
-  "features",
-  "lifecycle.feature",
-);
 
 const cmds = createCucumberCommands({ worldParameters: { greeting: "hello" } });
 type Ctx = Parameters<typeof cmds.cucumberNextTask>[0];
@@ -190,33 +183,19 @@ const runTask = async (task: ChannelTask): Promise<Outcome> => {
       case "newWorld":
         return { value: bridge().newWorld(task.payload) };
       case "step": {
-        const { pattern, args } = task.payload as {
-          pattern: string;
-          args: unknown[];
-        };
+        const { pattern, args } = task.payload;
         return await bridge().runStep(pattern, args);
       }
       case "hook": {
-        const { kind, index, arg } = task.payload as {
-          kind: "before" | "after" | "beforeStep" | "afterStep";
-          index: number;
-          arg: Parameters<BrowserBridge["runHook"]>[2];
-        };
+        const { kind, index, arg } = task.payload;
         return await bridge().runHook(kind, index, arg);
       }
       case "testRunHook": {
-        const { kind, index, parameters } = task.payload as {
-          kind: "beforeAll" | "afterAll";
-          index: number;
-          parameters: unknown;
-        };
+        const { kind, index, parameters } = task.payload;
         return await bridge().runTestRunHook(kind, index, parameters);
       }
       case "transform": {
-        const { name, groups } = task.payload as {
-          name: string;
-          groups: string[];
-        };
+        const { name, groups } = task.payload;
         return await bridge().runTransform(name, groups);
       }
       default:
@@ -245,7 +224,7 @@ const pump = async (
   ) {
     const task = cross(pulled);
     if (task.kind === "testCaseFinished") {
-      onTestCaseFinished?.(task.payload as ResultItem);
+      onTestCaseFinished?.(task.payload);
       await cmds.cucumberReportTask(ctx, task.id, {});
       continue;
     }
@@ -256,22 +235,12 @@ const pump = async (
     const current = task;
     void (async () => {
       const outcome = await runTask(current);
-      for (const attachment of outcome.attachments ?? []) {
-        await cmds.cucumberAttach(ctx, cross(attachment));
-      }
-      const result =
-        current.kind === "hook"
-          ? {
-              value: outcome.value,
-              hookResult: outcome.hookResult,
-              hookError: outcome.hookError,
-            }
-          : outcome.value;
+      const isBody = current.kind === "step" || current.kind === "hook";
       await cmds.cucumberReportTask(
         ctx,
         current.id,
         cross({
-          result,
+          result: isBody ? outcome : outcome.value,
           err: outcome.err,
         }),
       );
@@ -327,10 +296,11 @@ describe("browser bridge (driven in Node)", () => {
       ["1", "2"],
     ]);
 
-    // AFTERALL TEARDOWN: the browser drives this by passing the lifecycle
-    // feature with `withHook: "after"`.
+    // AFTERALL TEARDOWN: the browser drives this by running the lifecycle
+    // feature (Node-resolved via cucumberMetadata) with `withHook: "after"`.
+    const { lifecycleFeaturePath } = await cmds.cucumberMetadata(ctx);
     cmds.cucumberRun(ctx, {
-      id: lifecycleFeature,
+      id: lifecycleFeaturePath,
       dispatchTestCaseFinished: false,
       withHook: "after",
     });

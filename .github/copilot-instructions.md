@@ -23,7 +23,7 @@ src/
 │   ├── runner.ts         — runFeatureFile(): per-feature orchestrator, worker support cache, BeforeAll/AfterAll lifecycle
 │   └── loadSupport.ts    — globs & imports step/support files via Vitest's moduleLoader; AfterStep error capture
 ├── browser/              — BROWSER-MODE runtime
-│   ├── commands.ts       — Node-side Vitest commands (cucumberPlan/Run/NextTask/ReportTask/Attach/AfterAll/End)
+│   ├── commands.ts       — Node-side Vitest commands (cucumberMetadata/Run/NextTask/ReportTask/End)
 │   ├── runner.ts         — browser-realm runFeatureFile(): dry-run plan → register tests → pull loop
 │   ├── channel.ts        — BrowserChannel: FIFO async task queue between Node command and browser pull loop
 │   ├── taskBridge.ts     — Node-side dispatch* helpers + currentNodeWorld capture
@@ -33,7 +33,7 @@ src/
 │   └── status.ts         — browser-safe TestStepResultStatus constant copy
 └── utils/                — SHARED (node + browser)
     ├── runCucumber.ts    — Cucumber runtime invocation; emits a results Map; supportWithHook() strips test-run hooks
-    ├── registerFeatureTests.ts — registers the results Map as Vitest describe/test blocks (Rule grouping)
+    ├── registerFeatureTests.ts — registers the results Map as Vitest describe/test blocks (Rule grouping); surfaces attachments as test annotations
     ├── config.ts         — cliConfig() parses CUCUMBER_OPTIONS via ArgvParser; mergeConfig() resolves the effective config
     ├── serializeError.ts — serializeError(): plain, structured-clone-safe error for the Vitest/command boundary
     ├── createError.ts    — maps Cucumber failures to a Vitest-friendly Error with a clickable .feature .stack
@@ -71,7 +71,7 @@ Both modes converge on **dry-run plan → register tests → real run streamed v
 
 1. `mergeConfig(config)` → `loadConfiguration` → `runConfiguration`; `loadSupport(runConfiguration)` (cached module-scoped per worker).
 2. **Dry run** (`dryRun: true`) `runCucumber` → a results `Map` (the scenario tree, no bodies executed).
-3. Build a `results` Map, giving each entry a `resolvers: Promise.withResolvers()`, and call `registerFeatureTests({ id, featureName, results })` — one `test` per scenario (timeout 0), each `await`ing `result.resolvers.promise`.
+3. Build a `results` Map, giving each entry a `resolvers: Promise.withResolvers()`, and call `registerFeatureTests({ id, featureName, results })` — one `test` per scenario (timeout 0), each `await`ing `result.resolvers.promise` and then surfacing the scenario's attachments as annotations.
 4. **Real run** `runCucumber({ onTestCaseFinished })` — the callback `Object.assign`s the finished `ResultItem` onto the registered entry and resolves its `resolvers`. A trailing `.finally` resolves any still-pending resolvers (tag-filtered scenarios that never fire `testCaseFinished`).
 5. `afterAll(await runCucumberPromise)` surfaces parse/runtime/hook errors.
 
@@ -89,7 +89,7 @@ Frequency is **self-adjusting** with the user's `isolate` setting (never forced)
 Node runs the native Cucumber runtime; each step/hook/transform body + the World run in the **browser** realm. The bridge is **Vitest Commands only** (provider-agnostic — playwright/webdriverio/preview).
 
 - **`cucumberShim.ts`** (browser realm) is the `"@cucumber/cucumber"` replacement: `Given/Before/...` store definitions in a `BrowserRegistry`; a `BrowserBridge` (on `globalThis.__vitest_cucumber_browser__`) exposes `runStep`/`runHook`/`runTransform`/`runTestRunHook`/`newWorld`/`get*`. Bodies are invoked by key.
-- **`commands.ts`** (Node) hosts the run: `cucumberPlan` (dry run for the tree), `cucumberRun` (whole-feature run; streams each scenario back as a `testCaseFinished` channel task), `cucumberNextTask`/`cucumberReportTask` (the pull loop), `cucumberAttach`, `cucumberAfterAll`, `cucumberEnd`.
+- **`commands.ts`** (Node) hosts the run: `cucumberPlan` (dry run for the tree), `cucumberRun` (whole-feature run; streams each scenario back as a `testCaseFinished` channel task), `cucumberNextTask`/`cucumberReportTask` (the pull loop), `cucumberAfterAll`, `cucumberEnd`.
 - **`channel.ts`** is a FIFO queue: Node `dispatch`es step/hook tasks; the browser `runner.ts` pulls them (`cucumberNextTask`), runs the body via the shim, and reports (`cucumberReportTask`). `testCaseFinished` events are streamed fire-and-forget, so a queue (not a single slot) is required.
 - **`loadSupport.ts`** (Node, the Cucumber support import) registers a native proxy per browser-reported step/hook/param-type; each proxy `dispatch`es its body to the browser by key. Step files never load in Node.
 
@@ -109,12 +109,12 @@ Key browser-mode mechanisms:
 
 - **World / `parameters`** — the base `World` is ported into the shim; `WorldCtor` defaults to it. `newWorld(parameters)` builds `new WorldCtor({ attach, log, link, parameters })`. `parameters` is plumbed Node→browser: the Node `Before(resetWorld)` hook's `this` is Node's real World, so it forwards `this.parameters`.
 - **`world`/`context`** — Proxies whose handler is built by enumerating `Reflect` and forwarding every trap to `requireWorld()`/`requireContext()` (an `activeWorld`/`activeContext` bound by `bindWorld`/`bindContext` for the body's duration). `world` is bound in steps/case-hooks; `context` only in `BeforeAll`/`AfterAll`. Each throws outside its scope.
-- **`attach`/`log`/`link`** — buffered during a body and flushed onto the `BodyResult`; the browser runner replays each via `cucumberAttach` **before** reporting the step, so Node's real `this.attach` (captured as `currentNodeWorld` by the bridged proxy) emits the attachment within the step scope. Strings only (base64 strings for binary, the screenshot pattern).
+- **`attach`/`log`/`link`** — buffered during a body and flushed onto the `BodyResult`, which step/hook bodies report **whole** over `cucumberReportTask`; the Node proxy replays each via its bound `this` (the real World) right after the dispatch resolves, so the envelope lands within the step scope. No separate command or `currentNodeWorld` global. Strings only (base64 strings for binary, the screenshot pattern).
 - **`DataTable`** — native Cucumber builds it on Node; the proxy serializes it to a `{ [DATA_TABLE_MARKER]: raw }` marker, and the shim rebuilds a real `DataTable` (verbatim port) in the page.
 
 ## Shared `runCucumber` (`utils/runCucumber.ts`)
 
-One run per feature. The `IConfiguration`/`ISupportCodeLibrary` come from the caller. `WithHook = "before" | "after" | "none"` selects which test-run hooks fire via `supportWithHook()` — it shallow-clones the support library, emptying `beforeTestRunHookDefinitions`/`afterTestRunHookDefinitions` as needed (those arrays exist on the concrete library but not the public `ISupportCodeLibrary` type, so a local `TestRunHookDefinitions` cast narrows it). Results are a `Map<pickleId, ResultItem>` in Cucumber's actual execution order (incl. `order: random` seed). `ResultItem` carries `id`/`name`/`lineage`/`status`/`stepResult`/`step`/`error` and (when registered) `resolvers`; status/step/error are mutated in-place by the `testStepFinished` handler and reset on `testCaseStarted` (retries). `registerFeatureTests` groups consecutive same-`Rule` scenarios into a shared `describe`.
+One run per feature. The `IConfiguration`/`ISupportCodeLibrary` come from the caller. `WithHook = "before" | "after" | "none"` selects which test-run hooks fire via `supportWithHook()` — it shallow-clones the support library, emptying `beforeTestRunHookDefinitions`/`afterTestRunHookDefinitions` as needed (those arrays exist on the concrete library but not the public `ISupportCodeLibrary` type, so a local `TestRunHookDefinitions` cast narrows it). Results are a `Map<pickleId, ResultItem>` in Cucumber's actual execution order (incl. `order: random` seed). `ResultItem` carries `id`/`name`/`lineage`/`status`/`stepResult`/`step`/`error`/`attachments` and (when registered) `resolvers`; status/step/error/attachments are mutated in-place by the `testStepFinished` handler and reset on `testCaseStarted` (retries). `registerFeatureTests` groups consecutive same-`Rule` scenarios into a shared `describe`, and surfaces each scenario's `attachments` as Vitest test annotations (text → `bodyEncoding: "utf-8"`, binary → base64 — text MUST set utf-8 or Vitest base64-decodes the string body into garbage on download; images render inline, others get a Download link).
 
 ### Config merging (`utils/config.ts`)
 

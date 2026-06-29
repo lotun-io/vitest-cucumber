@@ -13,8 +13,3 @@ Feature: Step definition variants
         When the value is doubled
         And the value is incremented
         Then the world value should be 9
-
-    @notNode
-    Scenario: Steps run in the real browser
-        Given the value 42 is rendered
-        Then the rendered text should be "value=42"

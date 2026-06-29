@@ -9,6 +9,7 @@
  * provider agnostic (playwright, webdriverio, preview).
  */
 
+import { version as cucumberVersion } from "@cucumber/cucumber";
 import type {
   IConfiguration,
   IRunConfiguration,
@@ -26,14 +27,12 @@ import { runCucumber } from "../utils/runCucumber.ts";
 import type { SerializedError } from "../utils/serializeError.ts";
 import type { ChannelTask } from "./channel.ts";
 import { BrowserChannel } from "./channel.ts";
-import type { BrowserAttachment } from "./cucumberShim.ts";
 import {
   dispatchGetDefaultTimeout,
   dispatchGetHooks,
   dispatchGetParameterTypes,
   dispatchGetSteps,
   dispatchGetTestRunHooks,
-  getCurrentNodeWorld,
   runWithChannel,
 } from "./taskBridge.ts";
 
@@ -45,6 +44,12 @@ const silentFormatter = path.join(
   `silentFormatter${ext}`,
 );
 const loadSupportPath = path.join(import.meta.dirname, `loadSupport${ext}`);
+const lifecycleFeaturePath = path.join(
+  import.meta.dirname,
+  "..",
+  "features",
+  "lifecycle.feature",
+);
 
 // Options for a `cucumberRun` call, supplied by the browser runner: the feature
 // to run (`id`), which test-run hooks to fire (`withHook`), whether to stream
@@ -63,13 +68,16 @@ export type RunOptions = {
 
 // The command surface the browser-side `runFeatureFile` calls.
 export interface CucumberCommands {
+  cucumberMetadata(): Promise<{
+    version: string;
+    lifecycleFeaturePath: string;
+  }>;
   cucumberRun(options: RunOptions): Promise<void>;
   cucumberNextTask(): Promise<ChannelTask | null>;
   cucumberReportTask(
-    taskId: number,
+    taskId: string,
     outcome: { result?: unknown; err?: SerializedError },
   ): Promise<void>;
-  cucumberAttach(attachment: BrowserAttachment): Promise<void>;
   cucumberEnd(): Promise<{
     featureName: string;
     results: ResultItem[];
@@ -219,24 +227,19 @@ export const createCucumberCommands = (config: Partial<IConfiguration>) => {
     getChannel(ctx.sessionId).next();
 
   const cucumberReportTask: BrowserCommand<
-    [number, { result?: unknown; err?: SerializedError }],
+    [string, { result?: unknown; err?: SerializedError }],
     void
   > = (ctx, taskId, outcome) => {
     getChannel(ctx.sessionId).report(taskId, outcome.result, outcome.err);
   };
 
-  // Replays a browser attachment via the in-flight step/hook's real Node World
-  // (captured by the bridged proxy), so the attachment envelope is emitted while
-  // that step is still executing and is associated with it.
-  const cucumberAttach: BrowserCommand<[BrowserAttachment], void> = (
-    _ctx,
-    attachment,
-  ) => {
-    getCurrentNodeWorld()?.attach(
-      attachment.data,
-      attachment.mediaTypeOrOptions,
-    );
-  };
+  // Cucumber facts the page can't compute (Node-only): the installed runtime
+  // version (mirrored into the shim) and the lifecycle feature path (used as the
+  // AfterAll teardown's feature id). Fetched once before the run.
+  const cucumberMetadata: BrowserCommand<
+    [],
+    { version: string; lifecycleFeaturePath: string }
+  > = () => ({ version: cucumberVersion, lifecycleFeaturePath });
 
   // Awaits the in-flight run to surface its feature name + scenario results and
   // any Cucumber runtime/hook error, then cleans up the session's channel.
@@ -259,10 +262,10 @@ export const createCucumberCommands = (config: Partial<IConfiguration>) => {
   };
 
   return {
+    cucumberMetadata,
     cucumberRun,
     cucumberNextTask,
     cucumberReportTask,
-    cucumberAttach,
     cucumberEnd,
   };
 };

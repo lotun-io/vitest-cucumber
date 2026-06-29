@@ -30,6 +30,7 @@ import { globalRef } from "../utils/globals.ts";
 import type { SerializedError } from "../utils/serializeError.ts";
 import { serializeError } from "../utils/serializeError.ts";
 import type {
+  BrowserAttachment,
   HookArg,
   HookInfo,
   HookOptions,
@@ -37,14 +38,12 @@ import type {
   StepInfo,
   TestRunHooksInfo,
 } from "./cucumberShim.ts";
-import { DATA_TABLE_MARKER } from "./dataTable.ts";
 import {
   dispatchHook,
   dispatchNewWorld,
   dispatchStep,
   dispatchTestRunHook,
   dispatchTransform,
-  setCurrentNodeWorld,
 } from "./taskBridge.ts";
 
 export type BrowserSupport = {
@@ -88,10 +87,26 @@ AfterStep(function ({ testStepId, error }) {
 });
 
 // A DataTable step argument is a class instance that can't survive the channel,
-// so replace it with a serializable marker carrying its raw rows; the browser
-// rebuilds the DataTable from it (DocStrings are plain strings — no conversion).
+// so replace it with the wire marker carrying its raw rows; the browser rebuilds
+// a real DataTable from it (DocStrings are plain strings — no conversion).
 const toSerializableArg = (arg: unknown): unknown =>
-  arg instanceof DataTable ? { [DATA_TABLE_MARKER]: arg.raw() } : arg;
+  arg instanceof DataTable ? { __vc: "dataTable", rows: arg.raw() } : arg;
+
+// A bridged body reports `{ value, attachments }`; replay each attachment via
+// the real Node World so the attachment envelope is emitted while the step/hook
+// is still executing (associated with it), then return the body's value.
+const replayBodyAttachments = (world: unknown, result: unknown): unknown => {
+  const { value, attachments } = (result ?? {}) as {
+    value?: unknown;
+    attachments?: BrowserAttachment[];
+  };
+  const attach = (world as { attach?: (d: unknown, m?: unknown) => void })
+    ?.attach;
+  for (const attachment of attachments ?? []) {
+    attach?.(attachment.data, attachment.mediaTypeOrOptions);
+  }
+  return value;
+};
 
 const bridgeStep = (pattern: string, arity: number) => {
   const bridged = function bridged(this: unknown, ...args: unknown[]) {
@@ -109,22 +124,17 @@ const bridgeStep = (pattern: string, arity: number) => {
       typeof args[args.length - 1] === "function"
         ? (args.pop() as (err: unknown, result?: unknown) => void)
         : undefined;
-    // `this` is Node's real World — expose it so cucumberAttach can replay the
-    // step's browser attachments in scope; cleared when the dispatch settles.
-    setCurrentNodeWorld(this);
-    const promise = dispatchStep(pattern, args.map(toSerializableArg)).finally(
-      () => {
-        setCurrentNodeWorld(undefined);
-      },
-    );
+    // `this` is Node's real World — replay any attachments the browser body
+    // produced via the real `this.attach` while this step is still in scope.
+    const promise = dispatchStep(pattern, args.map(toSerializableArg));
     if (usesCallback && callback) {
       promise.then(
-        (result) => callback(null, result),
+        (result) => callback(null, replayBodyAttachments(this, result)),
         (err) => callback(err),
       );
       return undefined;
     }
-    return promise;
+    return promise.then((result) => replayBodyAttachments(this, result));
   };
   Object.defineProperty(bridged, "length", { value: arity });
   return bridged;
@@ -172,24 +182,22 @@ const applyHookMutations = (
 
 const bridgeHook = (kind: HookInfo["kind"], index: number) =>
   async function bridgedHook(this: unknown, arg: unknown) {
-    // `this` is Node's real World — expose it so attachments made in the hook
-    // body are replayed in scope by cucumberAttach.
-    setCurrentNodeWorld(this);
-    try {
-      const outcome = (await dispatchHook(
-        kind,
-        index,
-        toHookArg(arg as Record<string, unknown>),
-      )) as {
-        value?: unknown;
-        hookResult?: unknown;
-        hookError?: SerializedError;
-      };
-      applyHookMutations(arg as Record<string, unknown>, outcome);
-      return outcome.value;
-    } finally {
-      setCurrentNodeWorld(undefined);
-    }
+    const outcome = (await dispatchHook(
+      kind,
+      index,
+      toHookArg(arg as Record<string, unknown>),
+    )) as {
+      value?: unknown;
+      hookResult?: unknown;
+      hookError?: SerializedError;
+      attachments?: BrowserAttachment[];
+    };
+    applyHookMutations(arg as Record<string, unknown>, outcome);
+    // `this` is Node's real World — replay any attachments the hook body made.
+    return replayBodyAttachments(this, {
+      value: outcome.value,
+      attachments: outcome.attachments,
+    });
   };
 
 const bridgeTestRunHook = (kind: "beforeAll" | "afterAll", index: number) =>

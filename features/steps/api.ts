@@ -1,12 +1,17 @@
-import { Given, Then, wrapPromiseWithTimeout } from "@cucumber/cucumber";
+import {
+  Given,
+  Then,
+  version,
+  wrapPromiseWithTimeout,
+} from "@cucumber/cucumber";
 import { expect } from "vitest";
 import { lifecycle } from "../support/hooks.ts";
 import { Point } from "../support/parameterTypes.ts";
 import type { TestWorld } from "../support/world.ts";
 
-// 1×1 transparent PNG (base64) — stands in for a screenshot.
-const PNG_1x1 =
-  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
+// 32×32 solid blue PNG (base64) — stands in for a screenshot; visible in the UI.
+const PNG =
+  "iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAAAKklEQVR42u3NQQkAAAgEsKtiaYtawBQ+hMH+S/WcikAgEAgEAoFAIPgSLKFXqFspoaczAAAAAElFTkSuQmCC";
 
 Then(
   "the point should be {point}",
@@ -25,6 +30,10 @@ Then("a slow action times out", async () => {
   ).rejects.toThrow("Action did not complete within 10 milliseconds");
 });
 
+Then("the cucumber version is reported", () => {
+  expect(version).toMatch(/^\d+\.\d+\.\d+/);
+});
+
 // A never-settling body with a per-step timeout: Cucumber's NATIVE step timeout
 // must fire and fail the step — in node directly, and in browser via the non-
 // blocking pump (which lets the loop advance past the orphaned body).
@@ -40,7 +49,7 @@ Given("attachments are recorded", function record(this: TestWorld) {
   this.attach("a plain text note", "text/plain");
   this.link("https://example.com/report");
   // base64 string + `base64:` media type — the screenshot pattern.
-  this.attach(PNG_1x1, { mediaType: "base64:image/png" });
+  this.attach(PNG, { mediaType: "base64:image/png" });
 });
 
 Then(

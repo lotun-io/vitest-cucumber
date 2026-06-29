@@ -115,7 +115,7 @@ supported. Browser mode supports nearly all of it via the bridge:
 | `Before` / `After` / `BeforeStep` / `AfterStep` (tags, options, arg)  |   ✅    |   ✅    |
 | `BeforeAll` / `AfterAll`                                              |   ✅    |   ✅    |
 | `setWorldConstructor` / `World` / `IWorldOptions` / `worldParameters` |   ✅    |   ✅    |
-| `world` (v10.8+) / `context` (v11+)                                   |   ✅    |   ✅    |
+| `world` (v10.8+) / `context` (v11+) / `version`                       |   ✅    |   ✅    |
 | `defineParameterType` (incl. async transformer, string/array regexp)  |   ✅    |   ✅    |
 | `DataTable` / DocString step arguments                                |   ✅    |   ✅    |
 | Callback-interface steps                                              |   ✅    |   ✅    |

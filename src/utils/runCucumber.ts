@@ -1,6 +1,7 @@
 import type { IRunConfiguration } from "@cucumber/cucumber/api";
 import * as cucumberApi from "@cucumber/cucumber/api";
 import type {
+  Attachment,
   Pickle,
   Step,
   TestStepResult,
@@ -21,6 +22,7 @@ export type ResultItem = {
   step?: Step;
   error?: SerializedError;
   resolvers?: PromiseWithResolvers<unknown>;
+  attachments?: Attachment[];
 };
 
 export type Results = Map<string, ResultItem>;
@@ -81,12 +83,12 @@ export const runCucumber = async ({
         });
       }
       if (envelope.testRunHookFinished) {
-        const { result } = envelope.testRunHookFinished;
+        const { testRunHookStartedId, result } = envelope.testRunHookFinished;
         if (result.status === "FAILED") {
           const error = createError({
             id,
             result: {
-              id: "",
+              id: testRunHookStartedId,
               name: "Hook error",
               stepResult: result,
               status: result.status,
@@ -109,6 +111,7 @@ export const runCucumber = async ({
         current.stepResult = undefined;
         current.step = undefined;
         current.error = undefined;
+        current.attachments = undefined;
       }
       if (envelope.testCaseFinished) {
         const pickle = query.findPickleBy(envelope.testCaseFinished);
@@ -148,11 +151,12 @@ export const runCucumber = async ({
         const testStepError = testStepErrors.get(
           envelope.testStepFinished.testStepId,
         );
-
+        const attachments = query.findAttachmentsBy(envelope.testStepFinished);
         current.status = worstStepResult.status;
         current.stepResult = worstStepResult;
         current.step = step ?? current.step;
         current.error = testStepError ?? current.error;
+        current.attachments = [...(current.attachments ?? []), ...attachments];
       }
     })
     .finally(() => {
