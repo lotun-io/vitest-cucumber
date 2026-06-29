@@ -1,5 +1,12 @@
 # @lotun/vitest-cucumber
 
+## 0.4.2
+
+### Patch Changes
+
+- decef0a: Improve Cucumber config parsing - config files, named profiles
+- 3b0d33d: Support for cucucmber publish option
+
 ## 0.4.1
 
 ### Patch Changes
