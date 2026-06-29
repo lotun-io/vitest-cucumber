@@ -89,22 +89,22 @@ Frequency is **self-adjusting** with the user's `isolate` setting (never forced)
 Node runs the native Cucumber runtime; each step/hook/transform body + the World run in the **browser** realm. The bridge is **Vitest Commands only** (provider-agnostic — playwright/webdriverio/preview).
 
 - **`cucumberShim.ts`** (browser realm) is the `"@cucumber/cucumber"` replacement: `Given/Before/...` store definitions in a `BrowserRegistry`; a `BrowserBridge` (on `globalThis.__vitest_cucumber_browser__`) exposes `runStep`/`runHook`/`runTransform`/`runTestRunHook`/`newWorld`/`get*`. Bodies are invoked by key.
-- **`commands.ts`** (Node) hosts the run: `cucumberPlan` (dry run for the tree), `cucumberRun` (whole-feature run; streams each scenario back as a `testCaseFinished` channel task), `cucumberNextTask`/`cucumberReportTask` (the pull loop), `cucumberAfterAll`, `cucumberEnd`.
+- **`commands.ts`** (Node) hosts the run: `cucumberMetadata` (version + lifecycle feature path), `cucumberRun` (whole-feature run; dry-run plan or real run; streams each scenario back as a `testCaseFinished` channel task), `cucumberNextTask`/`cucumberReportTask` (the pull loop), `cucumberEnd`. Every command takes either nothing or a single options object — no positional `undefined` for the RPC to drop.
 - **`channel.ts`** is a FIFO queue: Node `dispatch`es step/hook tasks; the browser `runner.ts` pulls them (`cucumberNextTask`), runs the body via the shim, and reports (`cucumberReportTask`). `testCaseFinished` events are streamed fire-and-forget, so a queue (not a single slot) is required.
 - **`loadSupport.ts`** (Node, the Cucumber support import) registers a native proxy per browser-reported step/hook/param-type; each proxy `dispatch`es its body to the browser by key. Step files never load in Node.
 
 ### Cucumber API supported in browser mode
 
-| API                                                            |                         | API                                                     |                                          |
-| -------------------------------------------------------------- | :---------------------: | ------------------------------------------------------- | :--------------------------------------: |
-| `Given`/`When`/`Then`/`defineStep`                             |           ✅            | `defineParameterType`                                   |    ✅ (transform round-trips to page)    |
-| `Before`/`After`/`BeforeStep`/`AfterStep` (+ tags/options/arg) |           ✅            | `world` (v10.8+)                                        |           ✅ (full-trap Proxy)           |
-| `BeforeAll`/`AfterAll`                                         | ✅ (per-feature/worker) | `context` (v11+)                                        |           ✅ (run-scope Proxy)           |
-| Callback interface                                             |           ✅            | `DataTable` / DocString                                 |                    ✅                    |
-| `setWorldConstructor` / `World` / `IWorldOptions`              |           ✅            | `attach`/`log`/`link`                                   |   ✅ (string/base64; replayed on Node)   |
-| `setDefaultTimeout`                                            |           ✅            | `wrapPromiseWithTimeout`                                |                    ✅                    |
-| `Status`                                                       |           ✅            | `setDefinitionFunctionWrapper`                          |                    ✅                    |
-| `setParallelCanAssign`                                         | ✅ (no-op — parallel forbidden) | —                                                       |                                          |
+| API                                                            |                                 | API                            |                                      |
+| -------------------------------------------------------------- | :-----------------------------: | ------------------------------ | :----------------------------------: |
+| `Given`/`When`/`Then`/`defineStep`                             |               ✅                | `defineParameterType`          |  ✅ (transform round-trips to page)  |
+| `Before`/`After`/`BeforeStep`/`AfterStep` (+ tags/options/arg) |               ✅                | `world` (v10.8+)               |         ✅ (full-trap Proxy)         |
+| `BeforeAll`/`AfterAll`                                         |     ✅ (per-feature/worker)     | `context` (v11+)               |         ✅ (run-scope Proxy)         |
+| Callback interface                                             |               ✅                | `DataTable` / DocString        |                  ✅                  |
+| `setWorldConstructor` / `World` / `IWorldOptions`              |               ✅                | `attach`/`log`/`link`          | ✅ (string/base64; replayed on Node) |
+| `setDefaultTimeout`                                            |               ✅                | `wrapPromiseWithTimeout`       |                  ✅                  |
+| `Status`                                                       |               ✅                | `setDefinitionFunctionWrapper` |                  ✅                  |
+| `setParallelCanAssign`                                         | ✅ (no-op — parallel forbidden) | —                              |                                      |
 
 Key browser-mode mechanisms:
 

@@ -21,11 +21,12 @@ export const lifecycle = { beforeAll: 0, afterAll: 0 };
 // setDefinitionFunctionWrapper wraps every step/hook body; count invocations so
 // a step can assert the wrapper actually ran (works in node + browser realms).
 export const wrapped = { count: 0 };
-setDefinitionFunctionWrapper((fn: (...args: unknown[]) => unknown) =>
-  function wrapper(this: unknown, ...args: unknown[]) {
-    wrapped.count += 1;
-    return fn.apply(this, args);
-  },
+setDefinitionFunctionWrapper(
+  (fn: (...args: unknown[]) => unknown) =>
+    function wrapper(this: unknown, ...args: unknown[]) {
+      wrapped.count += 1;
+      return fn.apply(this, args);
+    },
 );
 
 // `context` (run scope) carries the worldParameters and is only usable inside

@@ -74,10 +74,11 @@ export interface CucumberCommands {
   }>;
   cucumberRun(options: RunOptions): Promise<void>;
   cucumberNextTask(): Promise<ChannelTask | null>;
-  cucumberReportTask(
-    taskId: string,
-    outcome: { result?: unknown; err?: SerializedError },
-  ): Promise<void>;
+  cucumberReportTask(outcome: {
+    taskId: string;
+    result?: unknown;
+    err?: SerializedError;
+  }): Promise<void>;
   cucumberEnd(): Promise<{
     featureName: string;
     results: ResultItem[];
@@ -227,10 +228,14 @@ export const createCucumberCommands = (config: Partial<IConfiguration>) => {
     getChannel(ctx.sessionId).next();
 
   const cucumberReportTask: BrowserCommand<
-    [string, { result?: unknown; err?: SerializedError }],
+    [{ taskId: string; result?: unknown; err?: SerializedError }],
     void
-  > = (ctx, taskId, outcome) => {
-    getChannel(ctx.sessionId).report(taskId, outcome.result, outcome.err);
+  > = (ctx, outcome) => {
+    getChannel(ctx.sessionId).report(
+      outcome.taskId,
+      outcome.result,
+      outcome.err,
+    );
   };
 
   // Cucumber facts the page can't compute (Node-only): the installed runtime

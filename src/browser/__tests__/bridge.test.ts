@@ -225,7 +225,7 @@ const pump = async (
     const task = cross(pulled);
     if (task.kind === "testCaseFinished") {
       onTestCaseFinished?.(task.payload);
-      await cmds.cucumberReportTask(ctx, task.id, {});
+      await cmds.cucumberReportTask(ctx, { taskId: task.id });
       continue;
     }
     // Fire-and-forget (mirrors browser/runner.ts): Cucumber dispatches serially,
@@ -238,8 +238,8 @@ const pump = async (
       const isBody = current.kind === "step" || current.kind === "hook";
       await cmds.cucumberReportTask(
         ctx,
-        current.id,
         cross({
+          taskId: current.id,
           result: isBody ? outcome : outcome.value,
           err: outcome.err,
         }),

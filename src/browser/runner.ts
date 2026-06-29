@@ -105,7 +105,7 @@ const pump = async (
   ) {
     if (task.kind === "testCaseFinished") {
       onTestCaseFinished?.(task.payload);
-      await cucumber.cucumberReportTask(task.id, {});
+      await cucumber.cucumberReportTask({ taskId: task.id });
       continue;
     }
     // Run the body WITHOUT blocking the loop. Cucumber dispatches serially — it
@@ -124,7 +124,8 @@ const pump = async (
       // scope, replay attachments via its real World and re-apply hook mutations.
       // Every other kind (queries / newWorld / transform) just returns its value.
       const isBody = current.kind === "step" || current.kind === "hook";
-      await cucumber.cucumberReportTask(current.id, {
+      await cucumber.cucumberReportTask({
+        taskId: current.id,
         result: isBody ? outcome : outcome.value,
         err: outcome.err,
       });
