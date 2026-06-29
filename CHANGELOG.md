@@ -1,5 +1,11 @@
 # @lotun/vitest-cucumber
 
+## 0.4.1
+
+### Patch Changes
+
+- 2a5d460: Cucumber attachments now surface as Vitest test annotations
+
 ## 0.4.0
 
 ### Minor Changes
