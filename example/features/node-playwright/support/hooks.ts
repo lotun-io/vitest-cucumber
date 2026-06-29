@@ -1,5 +1,6 @@
 import { After, AfterAll, Before, BeforeAll } from "@cucumber/cucumber";
-import { chromium, type Browser } from "@playwright/test";
+import type { Browser } from "@playwright/test";
+import { chromium } from "@playwright/test";
 import type { PlaywrightWorld } from "./world.ts";
 
 let browser: Browser;

@@ -1,6 +1,7 @@
 import type { IConfiguration } from "@cucumber/cucumber";
 import { AfterStep } from "@cucumber/cucumber";
 import { glob } from "glob";
+import { resolveSupportGlobs } from "../utils/config.ts";
 import { globalRef } from "../utils/globals.ts";
 import type { SerializedError } from "../utils/serializeError.ts";
 import { serializeError } from "../utils/serializeError.ts";
@@ -31,21 +32,11 @@ const cwd = process.cwd();
 
 const globOpts = { absolute: true, windowsPathsNoEscape: true, cwd };
 
-const [resolvedRequirePaths, resolvedImportPaths] = await Promise.all([
-  Promise.all(
-    (support.config.require ?? []).map((pattern) => glob(pattern, globOpts)),
-  ).then((r) => r.flat()),
-  Promise.all(
-    (support.config.import?.length
-      ? support.config.import
-      : ["features/**/*.{js,ts,cjs,cts,mjs,mts}"]
-    ).map((pattern) => glob(pattern, globOpts)),
-  ).then((r) => r.flat()),
-]);
+const supportGlobs = await resolveSupportGlobs(support.config);
+const resolvedImportPaths = await Promise.all(
+  supportGlobs.map((pattern) => glob(pattern, globOpts)),
+).then((r) => r.flat());
 
-for (const path of resolvedRequirePaths) {
-  await support.moduleLoader(path);
-}
 for (const path of resolvedImportPaths) {
   await support.moduleLoader(path);
 }

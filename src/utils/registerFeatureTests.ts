@@ -20,10 +20,6 @@ const setLocation = (obj: object, line: number | undefined) => {
   }
 };
 
-// Surface each Cucumber attachment as a Vitest test annotation. Cucumber stores
-// the body as either a base64 string (binary, contentEncoding "BASE64") or plain
-// text; Vitest's annotate defaults a string body to base64, so text MUST declare
-// bodyEncoding "utf-8" or it gets base64-decoded into garbage on download.
 export const annotateAttachments = async (
   ctx: TestContext,
   result: ResultItem,

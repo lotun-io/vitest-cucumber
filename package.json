@@ -48,6 +48,7 @@
   },
   "dependencies": {
     "glob": "^13.0.6",
+    "stream-chain": "^4.2.5",
     "string-argv": "^0.3.2"
   },
   "peerDependencies": {

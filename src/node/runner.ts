@@ -12,6 +12,7 @@ import {
   resolveRunConfiguration,
 } from "../utils/config.ts";
 import { globalRef } from "../utils/globals.ts";
+import { isPublishEnabled, writeEnvelopes } from "../utils/publish.ts";
 import { registerFeatureTests } from "../utils/registerFeatureTests.ts";
 import type { ResultItem } from "../utils/runCucumber.ts";
 import { runCucumber } from "../utils/runCucumber.ts";
@@ -33,6 +34,7 @@ let cached: {
   runConfiguration: IRunConfiguration;
   support: ISupportCodeLibrary;
   testStepErrors: Map<string, SerializedError>;
+  mergedConfig: IConfiguration;
 } | null = null;
 
 type RunOptions = {
@@ -74,7 +76,7 @@ const ensureCache = async ({
     delete globalRef.__vitest_cucumber_node__;
   });
 
-  cached = { runConfiguration, support, testStepErrors };
+  cached = { runConfiguration, support, testStepErrors, mergedConfig };
 
   return { isCached: false };
 };
@@ -90,6 +92,8 @@ const run = async ({
     throw new Error("ensureCache was not called");
   }
 
+  const publish = !runtime?.dryRun && isPublishEnabled();
+
   return runCucumber({
     id,
     runConfiguration: prepareRunConfiguration({
@@ -101,6 +105,7 @@ const run = async ({
       runtime,
     }),
     testStepErrors: cached.testStepErrors,
+    publish,
     onTestCaseFinished,
   });
 };
@@ -135,11 +140,17 @@ export const runFeatureFile = async ({
   });
 
   if (!isCached) {
-    // Register AfterAll to run once when this worker is torn down
+    // Register AfterAll to run once when this worker is torn down. Its envelopes
+    // (the AfterAll hook) are collected too so they reach the --publish report.
     worker?.onCleanup?.(async () => {
-      await run({
+      const { envelopes, startedAt } = await run({
         id: lifecycleFeaturePath,
         withHook: "after",
+      });
+      await writeEnvelopes({
+        envelopes,
+        startedAt,
+        projectName: worker?.ctx?.projectName,
       });
     });
   }
@@ -183,6 +194,9 @@ export const runFeatureFile = async ({
   });
 
   afterAll(async () => {
-    await runCucumberPromise;
+    // Collect the real run's envelopes for the --publish report.
+    const { envelopes, startedAt } = await runCucumberPromise;
+    const projectName = worker?.ctx?.projectName;
+    await writeEnvelopes({ envelopes, startedAt, projectName });
   });
 };

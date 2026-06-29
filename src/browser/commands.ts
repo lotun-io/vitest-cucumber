@@ -24,6 +24,7 @@ import {
   resolveRunConfiguration,
 } from "../utils/config.ts";
 import { globalRef } from "../utils/globals.ts";
+import { isPublishEnabled, writeEnvelopes } from "../utils/publish.ts";
 import type { ResultItem } from "../utils/runCucumber.ts";
 import { runCucumber } from "../utils/runCucumber.ts";
 import type { SerializedError } from "../utils/serializeError.ts";
@@ -165,6 +166,7 @@ export const createCucumberCommands = (config: Partial<IConfiguration>) => {
   const run = async (
     channel: BrowserChannel,
     options: RunOptions,
+    projectName?: string,
   ): Promise<{
     featureName: string;
     results: ResultItem[];
@@ -175,7 +177,12 @@ export const createCucumberCommands = (config: Partial<IConfiguration>) => {
 
       const cached = await ensureSupport();
 
-      const { featureName, results } = await runCucumber({
+      // Collect + persist envelopes for `--publish` on real runs (and the
+      // AfterAll lifecycle run), never the dry-run plan. `writeEnvelopes` reads
+      // the run dir from the env and is a no-op when publishing is off.
+      const publish = !runtime?.dryRun && isPublishEnabled();
+
+      const { featureName, results, envelopes, startedAt } = await runCucumber({
         id,
         runConfiguration: prepareRunConfiguration({
           id,
@@ -186,12 +193,15 @@ export const createCucumberCommands = (config: Partial<IConfiguration>) => {
           testLocations,
         }),
         testStepErrors: cached.testStepErrors,
+        publish,
         onTestCaseFinished: dispatchTestCaseFinished
           ? (result) => {
               void channel.dispatch("testCaseFinished", result);
             }
           : undefined,
       });
+
+      await writeEnvelopes({ envelopes, startedAt, projectName });
 
       return { featureName, results: [...results.values()] };
     } finally {
@@ -205,9 +215,14 @@ export const createCucumberCommands = (config: Partial<IConfiguration>) => {
   // error.
   const cucumberRun: BrowserCommand<[RunOptions], void> = (ctx, options) => {
     const channel = getChannel(ctx.sessionId);
+
+    // `ctx.project?.name` is the decorated project name (e.g. "browser
+    // (chromium)"), available here on the Node command host — no browser
+    // round-trip needed. It matches the name the globalSetup teardown sees.
+    // (Optional-chained for the in-Node bridge harness, whose ctx has no project.)
     runs.set(
       ctx.sessionId,
-      runWithChannel(channel, () => run(channel, options)),
+      runWithChannel(channel, () => run(channel, options, ctx.project?.name)),
     );
   };
 

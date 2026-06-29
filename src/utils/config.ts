@@ -10,6 +10,8 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { parseArgsStringToArgv } from "string-argv";
 
+export const DEFAULT_IMPORT_GLOB = "features/**/*.{js,ts,cjs,cts,mjs,mts}";
+
 const require = createRequire(import.meta.url);
 const { ArgvParser } = require("@cucumber/cucumber/lib/configuration/index");
 
@@ -49,17 +51,6 @@ export const cliArgs = (stringArgs?: string): CliArgs => {
   };
 };
 
-// Resolves the effective Cucumber configuration shared by the node and browser
-// runners. The plugin config is the base; CUCUMBER_OPTIONS override it and may
-// select named `--profile`s / a `--config` file, which Cucumber's own loader
-// merges UNDER the provided values (provided > profile > default). Our invariants
-// are then imposed on the resolved flat config — so they catch profile-supplied
-// values too: `order: "random"` is pinned to a concrete seed (so the dry-run plan
-// and the real run agree on scenario order) and `parallel` is forbidden (Vitest
-// owns parallelism). The returned flat config carries the profile-resolved
-// `import`/`require` step globs: the node runner feeds them to its own module
-// loader, and the browser plugin reads them (via `resolveSupportGlobs`) to bake
-// the page's `import.meta.glob`.
 export const mergeConfig = async (
   config: Partial<IConfiguration>,
 ): Promise<IConfiguration> => {
@@ -73,27 +64,9 @@ export const mergeConfig = async (
     provided: { ...config, ...configuration, paths: [] },
   });
 
-  if (useConfiguration.parallel) {
-    throw new Error(
-      "Parallel execution is not supported use vitest parallelism instead.",
-    );
-  }
-
-  if (useConfiguration.order === "random") {
-    useConfiguration.order = `random:${Math.floor(Math.random() * 999999).toString()}`;
-  }
-
   return useConfiguration;
 };
 
-// Produces the `IRunConfiguration` both runners feed to Cucumber. It re-resolves
-// the profile-merged flat config with `file: false` (so our values are
-// authoritative), pointing `import` at the caller's support-bridge loader. A
-// user-provided `format` is PRESERVED — the silent formatter is only injected
-// when none is configured, so Cucumber's CLI output stays quiet by default but a
-// user formatter still works. Returns the resolved `mergedConfig` flat config too: the
-// node runner feeds its `import`/`require` globs to its own module loader (the
-// browser command ignores `mergedConfig` — its page globs come from the plugin).
 export const resolveRunConfiguration = async ({
   config,
   loadSupportPath,
@@ -106,10 +79,21 @@ export const resolveRunConfiguration = async ({
 }> => {
   const mergedConfig = await mergeConfig(config);
 
+  if (mergedConfig.parallel) {
+    throw new Error(
+      "Parallel execution is not supported use vitest parallelism instead.",
+    );
+  }
+
   const { runConfiguration } = await loadConfiguration({
     file: false,
     provided: {
       ...mergedConfig,
+      order:
+        mergedConfig.order === "random"
+          ? `random:${Math.floor(Math.random() * 999999).toString()}`
+          : mergedConfig.order,
+      publish: false,
       paths: [],
       format: mergedConfig.format?.length
         ? mergedConfig.format
@@ -122,20 +106,16 @@ export const resolveRunConfiguration = async ({
   return { runConfiguration, mergedConfig };
 };
 
-// Resolves the effective (profile-aware) support-code globs, split by Cucumber's
-// two keys. The browser plugin bakes these into the wrapper's literal
-// `import.meta.glob`, so a profile's/config file's globs reach the page bundle too
-// (not just the Node support build). `require` (CJS) globs are returned alongside
-// `import` (ESM) for parity with node mode — the page loads everything as ESM via
-// Vite (a genuinely Node-only `require` entry can't run in the browser regardless).
 export const resolveSupportGlobs = async (
   config: Partial<IConfiguration>,
-): Promise<{ import: string[]; require: string[] }> => {
+): Promise<string[]> => {
   const mergedConfig = await mergeConfig(config);
-  return {
-    import: mergedConfig.import ?? [],
-    require: mergedConfig.require ?? [],
-  };
+  const supportGlobs = [
+    ...(mergedConfig.import ?? []),
+    ...(mergedConfig.require ?? []),
+  ];
+
+  return supportGlobs.length ? supportGlobs : [DEFAULT_IMPORT_GLOB];
 };
 
 export type WithHook = "before" | "after" | "none";

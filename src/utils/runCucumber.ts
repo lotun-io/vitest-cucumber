@@ -32,6 +32,7 @@ export type RunCucumberOptions = {
   runConfiguration: IRunConfiguration;
   testStepErrors: Map<string, SerializedError>;
   onTestCaseFinished?: (result: ResultItem) => void;
+  publish?: boolean;
 };
 
 export const runCucumber = async ({
@@ -39,8 +40,11 @@ export const runCucumber = async ({
   runConfiguration,
   testStepErrors,
   onTestCaseFinished,
+  publish,
 }: RunCucumberOptions) => {
+  const startedAt = new Date();
   const results: Results = new Map();
+  const envelopes: unknown[] = [];
   const query = new Query();
   const pickleById = new Map<string, Pickle>();
   const parseErrors: string[] = [];
@@ -60,6 +64,9 @@ export const runCucumber = async ({
   await cucumberApi
     .runCucumber(runConfiguration, {}, (envelope) => {
       query.update(envelope);
+      if (publish) {
+        envelopes.push(envelope);
+      }
       if (envelope.parseError) {
         const { source, message: msg } = envelope.parseError;
         parseErrors.push(`Parse error in "${source.uri}" ${msg}`);
@@ -172,5 +179,5 @@ export const runCucumber = async ({
     throw hookErrors[0];
   }
 
-  return { featureName, results };
+  return { featureName, results, envelopes, startedAt };
 };

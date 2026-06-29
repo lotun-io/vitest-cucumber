@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { cliArgs, mergeConfig, resolveSupportGlobs } from "../config.ts";
+import { DEFAULT_IMPORT_GLOB } from "../../utils/config.ts";
+import {
+  cliArgs,
+  mergeConfig,
+  resolveRunConfiguration,
+  resolveSupportGlobs,
+} from "../config.ts";
 
 // Cucumber resolves `--config` relative to cwd (the repo root during tests).
 const profileConfig = "src/utils/__tests__/fixtures/cucumber.ts";
@@ -92,20 +98,30 @@ describe("mergeConfig", () => {
 
   it("pins a concrete seed for order: random", async () => {
     delete process.env.CUCUMBER_OPTIONS;
-    const mergedConfig = await mergeConfig({ order: "random" });
-    expect(mergedConfig.order).toMatch(/^random:\d+$/);
+    const { runConfiguration } = await resolveRunConfiguration({
+      config: { order: "random" },
+      loadSupportPath: "support.ts",
+    });
+    expect(runConfiguration.sources.order).toMatch(/^random:\d+$/);
   });
 
   it("throws when parallel is set in the base config", async () => {
     delete process.env.CUCUMBER_OPTIONS;
-    await expect(mergeConfig({ parallel: 2 })).rejects.toThrow(
-      "Parallel execution is not supported",
+    await expect(
+      resolveRunConfiguration({
+        config: { parallel: 2 },
+        loadSupportPath: "support.ts",
+      }),
+    ).rejects.toThrow(
+      "Parallel execution is not supported use vitest parallelism instead.",
     );
   });
 
   it("throws when parallel comes from CUCUMBER_OPTIONS", async () => {
     process.env.CUCUMBER_OPTIONS = "--parallel 4";
-    await expect(mergeConfig({})).rejects.toThrow(
+    await expect(
+      resolveRunConfiguration({ config: {}, loadSupportPath: "support.ts" }),
+    ).rejects.toThrow(
       "Parallel execution is not supported use vitest parallelism instead.",
     );
   });
@@ -146,19 +162,22 @@ describe("resolveSupportGlobs", () => {
     }
   });
 
-  it("returns the resolved import/require globs split by key", async () => {
+  it("returns the resolved import and require globs as one flat list", async () => {
     delete process.env.CUCUMBER_OPTIONS;
     const globs = await resolveSupportGlobs({
       import: ["features/steps/**/*.ts", "./support/*.ts"],
       require: ["legacy/**/*.cjs"],
     });
-    expect(globs.import).toEqual(["features/steps/**/*.ts", "./support/*.ts"]);
-    expect(globs.require).toEqual(["legacy/**/*.cjs"]);
+    expect(globs).toEqual([
+      "features/steps/**/*.ts",
+      "./support/*.ts",
+      "legacy/**/*.cjs",
+    ]);
   });
 
-  it("returns empty arrays when no globs are configured", async () => {
+  it("falls back to the default glob when none are configured", async () => {
     delete process.env.CUCUMBER_OPTIONS;
-    expect(await resolveSupportGlobs({})).toEqual({ import: [], require: [] });
+    expect(await resolveSupportGlobs({})).toEqual([DEFAULT_IMPORT_GLOB]);
   });
 
   it("is profile-aware (import AND require globs from a --profile)", async () => {
@@ -166,8 +185,8 @@ describe("resolveSupportGlobs", () => {
     const globs = await resolveSupportGlobs({
       import: ["features/steps/**/*.ts"],
     });
-    expect(globs.import).toContain("features/steps/**/*.ts");
-    expect(globs.import).toContain("features/import.ts");
-    expect(globs.require).toContain("features/require.ts");
+    expect(globs).toContain("features/steps/**/*.ts");
+    expect(globs).toContain("features/import.ts");
+    expect(globs).toContain("features/require.ts");
   });
 });

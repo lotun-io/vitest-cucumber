@@ -11,6 +11,7 @@ export type VitestWorker = {
   onCleanup?: (cb: () => unknown) => void;
   ctx?: {
     files?: { filepath?: string; testLocations?: number[] }[];
+    projectName?: string;
   };
 };
 
