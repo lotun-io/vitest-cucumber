@@ -1,5 +1,6 @@
 import type { TestContext } from "vitest";
-import { describe, test, TestRunner } from "vitest";
+import { describe, TestRunner } from "vitest";
+import type { TestAPI } from "./createBaseTest.ts";
 import { createError } from "./createError.ts";
 import type { ResultItem, Results } from "./runCucumber.ts";
 
@@ -21,7 +22,7 @@ const setLocation = (obj: object, line: number | undefined) => {
 };
 
 export const annotateAttachments = async (
-  ctx: TestContext,
+  ctx: Pick<TestContext, "annotate">,
   result: ResultItem,
 ) => {
   for (const attachment of result.attachments ?? []) {
@@ -39,15 +40,23 @@ export const annotateAttachments = async (
   }
 };
 
-const registerTests = ({ id, group }: { id: string; group: ScenarioGroup }) => {
+const registerTests = ({
+  id,
+  group,
+  test,
+}: {
+  id: string;
+  group: ScenarioGroup;
+  test: TestAPI;
+}) => {
   for (const result of group.items) {
     test(
       result.name ?? "Unknown",
-      async (ctx) => {
+      async ({ skip, annotate }) => {
         await result.resolvers?.promise;
-        await annotateAttachments(ctx, result);
+        await annotateAttachments({ annotate }, result);
         if (result.status === "SKIPPED") {
-          ctx.skip();
+          skip();
           return;
         }
         if (result.status !== "PASSED") {
@@ -68,16 +77,18 @@ export type RegisterFeatureTestsParams = {
   id: string;
   featureName: string;
   results: Results;
+  test: TestAPI;
 };
 
 export const registerFeatureTests = ({
   id,
   featureName,
   results,
+  test,
 }: RegisterFeatureTestsParams): void => {
   if (results.size === 0) {
-    test(featureName, (ctx) => {
-      ctx.skip();
+    test(featureName, ({ skip }) => {
+      skip();
     });
     return;
   }
@@ -129,10 +140,10 @@ export const registerFeatureTests = ({
                 TestRunner.getCurrentSuite().suite ?? {},
                 group.scenarioLine,
               );
-              registerTests({ id, group });
+              registerTests({ id, group, test });
             });
           } else {
-            registerTests({ id, group });
+            registerTests({ id, group, test });
           }
         }
       };

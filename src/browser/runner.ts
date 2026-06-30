@@ -12,8 +12,8 @@
  * analogue of the Node runner's `onTestCaseFinished`.
  */
 
-import { afterAll } from "vitest";
 import { commands } from "vitest/browser";
+import { createBaseTest } from "../utils/createBaseTest.ts";
 import { globalRef } from "../utils/globals.ts";
 import { registerFeatureTests } from "../utils/registerFeatureTests.ts";
 import type { ResultItem } from "../utils/runCucumber.ts";
@@ -149,6 +149,21 @@ const ensureCache = async () => {
   return { isCached: false };
 };
 
+const test = createBaseTest({
+  onCleanup: async () => {
+    if (!cached) {
+      throw new Error("ensureCache was not called");
+    }
+    await cucumber.cucumberRun({
+      id: cached.lifecycleFeaturePath,
+      dispatchTestCaseFinished: false,
+      withHook: "after",
+    });
+    await pump();
+    await cucumber.cucumberEnd();
+  },
+});
+
 export const runFeatureFile = async ({
   id,
 }: {
@@ -173,21 +188,6 @@ export const runFeatureFile = async ({
   await pump();
   const { featureName, results: planResults } = await cucumber.cucumberEnd();
 
-  if (!isCached) {
-    worker?.onCleanup?.(async () => {
-      if (!cached) {
-        throw new Error("ensureCache was not called");
-      }
-      await cucumber.cucumberRun({
-        id: cached.lifecycleFeaturePath,
-        dispatchTestCaseFinished: false,
-        withHook: "after",
-      });
-      await pump();
-      await cucumber.cucumberEnd();
-    });
-  }
-
   const results = new Map<string, ResultItem>(
     planResults.map((result) => [
       result.id,
@@ -195,7 +195,12 @@ export const runFeatureFile = async ({
     ]),
   );
 
-  registerFeatureTests({ id, featureName, results });
+  registerFeatureTests({
+    id,
+    featureName,
+    results,
+    test,
+  });
 
   // First feature of the realm keeps BeforeAll; later ones skip it.
   const withHook = isCached ? "none" : "before";
@@ -221,7 +226,7 @@ export const runFeatureFile = async ({
     }
   });
 
-  afterAll(async () => {
+  test.afterAll(async () => {
     await runPromise;
   });
 };

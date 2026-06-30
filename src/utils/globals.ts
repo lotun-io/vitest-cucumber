@@ -8,7 +8,6 @@ import type { BrowserSupport } from "../browser/loadSupport.ts";
 import type { NodeSupport } from "../node/loadSupport.ts";
 
 export type VitestWorker = {
-  onCleanup?: (cb: () => unknown) => void;
   ctx?: {
     files?: { filepath?: string; testLocations?: number[] }[];
     projectName?: string;
