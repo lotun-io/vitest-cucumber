@@ -42,25 +42,18 @@ const channel = (): BrowserChannel => {
   return current;
 };
 
-export const dispatchGetSteps = (): Promise<StepInfo[]> =>
-  channel().dispatch("getSteps", undefined);
-
-export const dispatchGetHooks = (): Promise<HookInfo[]> =>
-  channel().dispatch("getHooks", undefined);
-
-export const dispatchGetTestRunHooks = (): Promise<TestRunHooksInfo> =>
-  channel().dispatch("getTestRunHooks", undefined);
-
-export const dispatchGetParameterTypes = (): Promise<ParameterTypeInfo[]> =>
-  channel().dispatch("getParameterTypes", undefined);
+export const dispatchGetRegistry = (): Promise<{
+  steps: StepInfo[];
+  hooks: HookInfo[];
+  testRunHooks: TestRunHooksInfo;
+  parameterTypes: ParameterTypeInfo[];
+  defaultTimeout?: number;
+}> => channel().dispatch("getRegistry", undefined);
 
 export const dispatchTransform = (
   name: string,
   groups: string[],
 ): Promise<unknown> => channel().dispatch("transform", { name, groups });
-
-export const dispatchGetDefaultTimeout = (): Promise<number | undefined> =>
-  channel().dispatch("getDefaultTimeout", undefined);
 
 export const dispatchNewWorld = (parameters: unknown): Promise<unknown> =>
   channel().dispatch("newWorld", parameters);

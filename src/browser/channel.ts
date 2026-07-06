@@ -26,11 +26,16 @@ import type {
 // keeps `dispatch`, the pull loop and every `dispatch*` helper type-safe with no
 // casts at the call sites.
 export type TaskMap = {
-  getSteps: { payload: undefined; result: StepInfo[] };
-  getHooks: { payload: undefined; result: HookInfo[] };
-  getTestRunHooks: { payload: undefined; result: TestRunHooksInfo };
-  getParameterTypes: { payload: undefined; result: ParameterTypeInfo[] };
-  getDefaultTimeout: { payload: undefined; result: number | undefined };
+  getRegistry: {
+    payload: undefined;
+    result: {
+      steps: StepInfo[];
+      hooks: HookInfo[];
+      testRunHooks: TestRunHooksInfo;
+      parameterTypes: ParameterTypeInfo[];
+      defaultTimeout?: number;
+    };
+  };
   newWorld: { payload: unknown; result: undefined };
   step: { payload: { pattern: string; args: unknown[] }; result: BodyResult };
   hook: {

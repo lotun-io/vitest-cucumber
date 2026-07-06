@@ -2,11 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { BrowserChannel } from "../channel.ts";
 import type { HookArg } from "../cucumberShim.ts";
 import {
-  dispatchGetDefaultTimeout,
-  dispatchGetHooks,
-  dispatchGetParameterTypes,
-  dispatchGetSteps,
-  dispatchGetTestRunHooks,
+  dispatchGetRegistry,
   dispatchHook,
   dispatchNewWorld,
   dispatchStep,
@@ -17,7 +13,7 @@ import {
 
 describe("taskBridge", () => {
   it("throws when a dispatch happens with no channel bound", () => {
-    expect(() => dispatchGetSteps()).toThrow(
+    expect(() => dispatchGetRegistry()).toThrow(
       "No browser channel is bound for the Cucumber run.",
     );
   });
@@ -27,11 +23,7 @@ describe("taskBridge", () => {
     const spy = vi.spyOn(channel, "dispatch");
 
     runWithChannel(channel, () => {
-      void dispatchGetSteps();
-      void dispatchGetHooks();
-      void dispatchGetTestRunHooks();
-      void dispatchGetParameterTypes();
-      void dispatchGetDefaultTimeout();
+      void dispatchGetRegistry();
       void dispatchTransform("num", ["1"]);
       void dispatchNewWorld({ greeting: "hi" });
       void dispatchStep("a step", [1]);
@@ -40,11 +32,7 @@ describe("taskBridge", () => {
     });
 
     expect(spy.mock.calls.map(([kind]) => kind)).toEqual([
-      "getSteps",
-      "getHooks",
-      "getTestRunHooks",
-      "getParameterTypes",
-      "getDefaultTimeout",
+      "getRegistry",
       "transform",
       "newWorld",
       "step",

@@ -170,16 +170,8 @@ type Outcome = {
 const runTask = async (task: ChannelTask): Promise<Outcome> => {
   try {
     switch (task.kind) {
-      case "getSteps":
-        return { value: bridge().getSteps() };
-      case "getHooks":
-        return { value: bridge().getHooks() };
-      case "getTestRunHooks":
-        return { value: bridge().getTestRunHooks() };
-      case "getParameterTypes":
-        return { value: bridge().getParameterTypes() };
-      case "getDefaultTimeout":
-        return { value: bridge().getDefaultTimeout() };
+      case "getRegistry":
+        return { value: bridge().getRegistry() };
       case "newWorld":
         return { value: bridge().newWorld(task.payload) };
       case "step": {

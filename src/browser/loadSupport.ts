@@ -207,58 +207,27 @@ const bridgeTestRunHook = (kind: "beforeAll" | "afterAll", index: number) =>
     return dispatchTestRunHook(kind, index, this.parameters);
   };
 
-// Native registrar for each browser-defined hook kind. Cucumber matches tags
-// and orders execution (Before/BeforeStep in order, After/AfterStep reversed);
-// each proxy dispatches its body to the browser by (kind, index). The options
-// (tag string or { tags, name, timeout }) are forwarded straight to native
-// Cucumber, which evaluates them.
-const registerHook: Record<
-  HookInfo["kind"],
-  (
-    options: HookOptions | undefined,
-    proxy: (arg: unknown) => Promise<unknown>,
-  ) => void
-> = {
-  before: (options, proxy) => {
-    if (options === undefined) {
-      Before(proxy);
-    } else if (typeof options === "string") {
-      Before(options, proxy);
-    } else {
-      Before(options, proxy);
-    }
-  },
-  after: (options, proxy) => {
-    if (options === undefined) {
-      After(proxy);
-    } else if (typeof options === "string") {
-      After(options, proxy);
-    } else {
-      After(options, proxy);
-    }
-  },
-  beforeStep: (options, proxy) => {
-    if (options === undefined) {
-      BeforeStep(proxy);
-    } else if (typeof options === "string") {
-      BeforeStep(options, proxy);
-    } else {
-      BeforeStep(options, proxy);
-    }
-  },
-  afterStep: (options, proxy) => {
-    if (options === undefined) {
-      AfterStep(proxy);
-    } else if (typeof options === "string") {
-      AfterStep(options, proxy);
-    } else {
-      AfterStep(options, proxy);
-    }
-  },
+// One lookup replaces the 4×3-arm registrar map. Cucumber evaluates tag
+// expressions and ordering; each proxy dispatches its body to the browser.
+// Cast bypasses TypeScript's overloads — runtime behaviour is identical.
+type RegisterHook = (
+  optOrFn: HookOptions | ((this: unknown, arg: unknown) => unknown),
+  fn?: (this: unknown, arg: unknown) => unknown,
+) => void;
+const registerHook: Record<HookInfo["kind"], RegisterHook> = {
+  before: Before as RegisterHook,
+  after: After as RegisterHook,
+  beforeStep: BeforeStep as RegisterHook,
+  afterStep: AfterStep as RegisterHook,
 };
 
-for (const hook of support.hooks ?? []) {
-  registerHook[hook.kind](hook.options, bridgeHook(hook.kind, hook.index));
+for (const { kind, index, options } of support.hooks ?? []) {
+  const proxy = bridgeHook(kind, index);
+  if (options === undefined) {
+    registerHook[kind](proxy);
+  } else {
+    registerHook[kind](options, proxy);
+  }
 }
 
 // Register custom parameter types BEFORE the steps (their cucumber expressions
@@ -290,19 +259,25 @@ for (const { pattern, arity, options, regexp } of support.steps ?? []) {
 
 // Register one native BeforeAll/AfterAll proxy per browser-defined test-run
 // hook; each dispatches its body to the browser when Cucumber runs it.
-(support.testRunHooks.beforeAll ?? []).forEach((options, index) => {
-  const proxy = bridgeTestRunHook("beforeAll", index);
-  if (options) {
-    BeforeAll(options, proxy);
-  } else {
-    BeforeAll(proxy);
-  }
-});
-(support.testRunHooks.afterAll ?? []).forEach((options, index) => {
-  const proxy = bridgeTestRunHook("afterAll", index);
-  if (options) {
-    AfterAll(options, proxy);
-  } else {
-    AfterAll(proxy);
-  }
-});
+type RegisterTestRunHook = (
+  optOrFn: { timeout?: number } | (() => unknown),
+  fn?: () => unknown,
+) => void;
+const registerTestRunHook: Record<
+  "beforeAll" | "afterAll",
+  RegisterTestRunHook
+> = {
+  beforeAll: BeforeAll as RegisterTestRunHook,
+  afterAll: AfterAll as RegisterTestRunHook,
+};
+
+for (const kind of ["beforeAll", "afterAll"] as const) {
+  (support.testRunHooks[kind] ?? []).forEach((options, index) => {
+    const proxy = bridgeTestRunHook(kind, index);
+    if (options) {
+      registerTestRunHook[kind](options, proxy);
+    } else {
+      registerTestRunHook[kind](proxy);
+    }
+  });
+}

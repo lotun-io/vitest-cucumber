@@ -30,14 +30,7 @@ import { runCucumber } from "../utils/runCucumber.ts";
 import type { SerializedError } from "../utils/serializeError.ts";
 import type { ChannelTask } from "./channel.ts";
 import { BrowserChannel } from "./channel.ts";
-import {
-  dispatchGetDefaultTimeout,
-  dispatchGetHooks,
-  dispatchGetParameterTypes,
-  dispatchGetSteps,
-  dispatchGetTestRunHooks,
-  runWithChannel,
-} from "./taskBridge.ts";
+import { dispatchGetRegistry, runWithChannel } from "./taskBridge.ts";
 
 const ext = path.extname(import.meta.filename);
 const loadSupportPath = path.join(import.meta.dirname, `loadSupport${ext}`);
@@ -118,12 +111,9 @@ export const createCucumberCommands = (config: Partial<IConfiguration>) => {
   // browser (over whichever session's channel is active for the run).
   const buildSharedSupport = async (): Promise<SharedSupport> => {
     const testStepErrors = new Map<string, SerializedError>();
-    // Ask the browser (sequentially — single-slot channel) for its registry.
-    const steps = await dispatchGetSteps();
-    const hooks = await dispatchGetHooks();
-    const testRunHooks = await dispatchGetTestRunHooks();
-    const parameterTypes = await dispatchGetParameterTypes();
-    const defaultTimeout = await dispatchGetDefaultTimeout();
+    // Ask the browser for the full registry in one round-trip.
+    const { steps, hooks, testRunHooks, parameterTypes, defaultTimeout } =
+      await dispatchGetRegistry();
 
     // Resolve the run config (plugin config + CUCUMBER_OPTIONS + profiles) once
     // for the whole project — the dry-run plan and the real run share it (notably

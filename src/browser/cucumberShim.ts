@@ -142,14 +142,19 @@ export type BrowserAttachment = {
 // page (the registered definitions + World live in BrowserRegistry).
 export type BrowserBridge = {
   newWorld: (parameters: unknown) => void;
-  getSteps: () => StepInfo[];
-  getHooks: () => HookInfo[];
-  getParameterTypes: () => ParameterTypeInfo[];
-  getDefaultTimeout: () => number | undefined;
+  // Node asks for the full browser registry in one call so it can register
+  // matching proxies with the native runtime — step files never load in Node,
+  // so their browser-only imports never run there.
+  getRegistry: () => {
+    steps: StepInfo[];
+    hooks: HookInfo[];
+    testRunHooks: TestRunHooksInfo;
+    parameterTypes: ParameterTypeInfo[];
+    defaultTimeout?: number;
+  };
   runStep: (pattern: string, args: unknown[]) => Promise<BodyResult>;
   runHook: (kind: HookKind, index: number, arg: HookArg) => Promise<BodyResult>;
   runTransform: (name: string, groups: string[]) => Promise<BodyResult>;
-  getTestRunHooks: () => TestRunHooksInfo;
   runTestRunHook: (
     kind: "beforeAll" | "afterAll",
     index: number,
@@ -509,11 +514,10 @@ browser.bridge = {
     registry.parameters = parameters;
     registry.world = new registry.WorldCtor({ attach, log, link, parameters });
   },
-  // Node asks which step patterns are registered (with their arity) so it can
-  // register matching proxies with the native runtime — step files never load
-  // in Node, so their browser-only imports never run there.
-  getSteps: () =>
-    Object.entries(registry.steps).map(
+  // Collect the full browser registry in one shot: Node asks once at support-
+  // build time and registers matching proxies (step files never load in Node).
+  getRegistry: () => ({
+    steps: Object.entries(registry.steps).map(
       ([pattern, { fn, options, regexp }]) => ({
         pattern,
         arity: fn.length,
@@ -521,21 +525,21 @@ browser.bridge = {
         regexp,
       }),
     ),
-  getHooks: () =>
-    (["before", "after", "beforeStep", "afterStep"] as const).flatMap((kind) =>
-      hookList(kind).map((hook, index) => ({
-        kind,
-        index,
-        options: hook.options,
-      })),
+    hooks: (["before", "after", "beforeStep", "afterStep"] as const).flatMap(
+      (kind) =>
+        hookList(kind).map((hook, index) => ({
+          kind,
+          index,
+          options: hook.options,
+        })),
     ),
-  // The global default timeout (setDefaultTimeout); Node applies it via native
-  // Cucumber's setDefaultTimeout when loading support.
-  getDefaultTimeout: () => registry.defaultTimeout,
-  // Custom parameter types (defineParameterType); Node registers them with the
-  // regexp and round-trips each transform back here via runTransform.
-  getParameterTypes: () =>
-    registry.parameterTypes.map(
+    testRunHooks: {
+      beforeAll: registry.beforeAll.map((hook) => hook.options),
+      afterAll: registry.afterAll.map((hook) => hook.options),
+    },
+    // Custom parameter types (defineParameterType); Node registers them with
+    // the regexp and round-trips each transform back here via runTransform.
+    parameterTypes: registry.parameterTypes.map(
       ({ name, regexp, useForSnippets, preferForRegexpMatch }) => ({
         name,
         regexp,
@@ -543,6 +547,10 @@ browser.bridge = {
         preferForRegexpMatch,
       }),
     ),
+    // The global default timeout (setDefaultTimeout); Node applies it via
+    // native Cucumber's setDefaultTimeout when loading support.
+    defaultTimeout: registry.defaultTimeout,
+  }),
   // Run a parameter type's transformer (World as `this`) and return a token the
   // step later resolves back to the real value (see resolveHandles).
   runTransform: (name, groups) =>
@@ -586,12 +594,6 @@ browser.bridge = {
     result.hookError = arg.error ? serializeError(arg.error) : undefined;
     return result;
   },
-  // BeforeAll/AfterAll run once per feature with no World, so Node only needs
-  // each hook's options to register matching native proxies.
-  getTestRunHooks: () => ({
-    beforeAll: registry.beforeAll.map((hook) => hook.options),
-    afterAll: registry.afterAll.map((hook) => hook.options),
-  }),
   runTestRunHook: (kind, index, parameters) =>
     runBody(() => {
       // Cucumber seeds each run-level hook with a fresh `{ parameters }` context
