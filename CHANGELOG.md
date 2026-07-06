@@ -1,5 +1,12 @@
 # @lotun/vitest-cucumber
 
+## 0.4.3
+
+### Patch Changes
+
+- 4346b26: Simplify browser node bridge
+- 6746574: Replace Vitest private onCleanup with public alternative
+
 ## 0.4.2
 
 ### Patch Changes
