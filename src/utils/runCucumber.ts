@@ -49,14 +49,14 @@ export const runCucumber = async ({
   const pickleById = new Map<string, Pickle>();
   const parseErrors: string[] = [];
   const hookErrors: Error[] = [];
-  const testCaseFinished = new Map<string, boolean>();
+  const emittedTestCaseFinishedIds = new Set<string>();
   let featureName = "";
 
   testStepErrors.clear();
 
   const emitTestCaseFinished = (result: ResultItem) => {
-    if (onTestCaseFinished && !testCaseFinished.get(result.id)) {
-      testCaseFinished.set(result.id, true);
+    if (onTestCaseFinished && !emittedTestCaseFinishedIds.has(result.id)) {
+      emittedTestCaseFinishedIds.add(result.id);
       onTestCaseFinished(result);
     }
   };

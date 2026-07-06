@@ -11,6 +11,7 @@ import path from "node:path";
 import { gunzipSync } from "node:zlib";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  ensurePublishDir,
   mergeEnvelopeStream,
   publishReport,
   writeEnvelopes,
@@ -182,6 +183,23 @@ describe("merge logic (via mergeEnvelopeStream)", () => {
     ]);
 
     expect(merged.some((e) => "testRunFinished" in e)).toBe(false);
+  });
+
+  it("passes a body envelope through unchanged when no testRunStarted has been seen yet", async () => {
+    // canonicalId is undefined at this point — rewriteRunStartedId early-returns.
+    const merged = await merge([
+      {
+        testCase: {
+          id: "tc1",
+          pickleId: "p1",
+          testRunStartedId: "original-id",
+        },
+      },
+    ]);
+    const tc = merged.find((e) => "testCase" in e)?.testCase as {
+      testRunStartedId: string;
+    };
+    expect(tc?.testRunStartedId).toBe("original-id");
   });
 });
 
@@ -534,5 +552,71 @@ describe("publishReport", () => {
     expect(error).toHaveBeenCalledWith(
       expect.stringContaining('Failed to publish report for project "node"'),
     );
+  });
+
+  it("skips upload when the project subdir exists but has no jsonl files", async () => {
+    // writeRun seeds the subdir, then we remove all files leaving it empty.
+    await writeRun(new Date("2026-01-01T00:00:00.000Z"), [
+      { testRunStarted: { id: "s1", timestamp: ts(0) } },
+      { testRunFinished: { success: true, timestamp: ts(1) } },
+    ]);
+    const [sub] = readdirSync(dir);
+    for (const f of readdirSync(path.join(dir, sub))) {
+      rmSync(path.join(dir, sub, f));
+    }
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    await publishReport("node");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("skips upload when the touch response has no Location header", async () => {
+    await writeRun(new Date("2026-01-01T00:00:00.000Z"), [
+      { meta: { protocolVersion: "1" } },
+      { testRunStarted: { id: "s1", timestamp: ts(0) } },
+      { testRunFinished: { success: true, timestamp: ts(1) } },
+    ]);
+    // Touch succeeds (200 OK) but the service returns no Location.
+    const fetchMock = vi.fn(() =>
+      Promise.resolve(
+        new Response(JSON.stringify({ banner: "b" }), { status: 200 }),
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    await publishReport("node");
+    expect(fetchMock).toHaveBeenCalledTimes(1); // touch only, no upload
+  });
+});
+
+describe("ensurePublishDir", () => {
+  const originalEnv = process.env[DIR_ENV];
+
+  afterEach(() => {
+    if (originalEnv === undefined) {
+      Reflect.deleteProperty(process.env, DIR_ENV);
+    } else {
+      process.env[DIR_ENV] = originalEnv;
+    }
+  });
+
+  it("returns undefined when publish is falsy", () => {
+    expect(ensurePublishDir(undefined)).toBeUndefined();
+    expect(ensurePublishDir(false)).toBeUndefined();
+  });
+
+  it("creates a temp dir and returns it when publish is true", () => {
+    Reflect.deleteProperty(process.env, DIR_ENV);
+    const result = ensurePublishDir(true);
+    expect(result).toBeTruthy();
+    expect(process.env[DIR_ENV]).toBe(result);
+    if (result) rmSync(result, { recursive: true, force: true });
+  });
+
+  it("is idempotent — repeated calls return the same dir", () => {
+    Reflect.deleteProperty(process.env, DIR_ENV);
+    const first = ensurePublishDir(true);
+    const second = ensurePublishDir(true);
+    expect(first).toBe(second);
+    if (first) rmSync(first, { recursive: true, force: true });
   });
 });

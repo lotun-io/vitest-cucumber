@@ -1,6 +1,7 @@
 import type { TestRunFinished, TestRunStarted } from "@cucumber/messages";
 import crypto from "node:crypto";
 import fs from "node:fs";
+import { tmpdir } from "node:os";
 import path from "node:path";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
@@ -16,6 +17,22 @@ const publishDir = (): string | undefined => process.env[PUBLISH_DIR_ENV];
 
 // Whether `--publish` is active (the run folder has been provisioned).
 export const isPublishEnabled = (): boolean => Boolean(publishDir());
+
+// Provisions the run's publish directory on first call (idempotent): creates a
+// temp dir keyed by pid and stores it in the env so every worker and the
+// globalSetup teardown all use the same path. Returns the dir path, or
+// undefined when publishing is off.
+export const ensurePublishDir = (
+  publish: boolean | undefined,
+): string | undefined => {
+  if (!publish) {
+    return undefined;
+  }
+  process.env[PUBLISH_DIR_ENV] ??= fs.mkdtempSync(
+    path.join(tmpdir(), "vitest-cucumber-publish-"),
+  );
+  return process.env[PUBLISH_DIR_ENV];
+};
 
 // A filesystem-safe subdir name for a project: hash the (possibly decorated,
 // space/paren-laden) name so it can't break `mkdir`. Each project writes into

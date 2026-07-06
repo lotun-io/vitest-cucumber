@@ -16,15 +16,10 @@ export const createError = ({
       result.error?.actual !== undefined &&
       result.error?.expected !== undefined);
 
-  Object.assign(err, {
+  if (isDiffError) {
     // Avoid double diff: cucumberError already contains a formatted diff; use the bare message so Vitest renders it once.
-    ...(isDiffError && {
-      message: result.error?.message,
-      showDiff: result.error?.showDiff,
-      expected: result.error?.expected,
-      actual: result.error?.actual,
-    }),
-  });
+    Object.assign(err, result.error);
+  }
 
   const scenarioLocation = result.lineage?.scenario?.location;
   const exampleLocation = result.lineage?.example?.location;

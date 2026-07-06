@@ -1,11 +1,9 @@
 import type { IConfiguration } from "@cucumber/cucumber/api";
-import { mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
 import path from "node:path";
 import type { Plugin, ViteUserConfig } from "vitest/config";
 import { createCucumberCommands } from "./browser/commands.ts";
 import { mergeConfig, resolveSupportGlobs } from "./utils/config.ts";
-import { PUBLISH_DIR_ENV } from "./utils/publish.ts";
+import { ensurePublishDir, PUBLISH_DIR_ENV } from "./utils/publish.ts";
 
 const ext = path.extname(import.meta.filename);
 const nodeRunnerPath = path.join(import.meta.dirname, "node", `runner${ext}`);
@@ -30,18 +28,6 @@ export type VitestCucumberOptions = Partial<IConfiguration>;
 const isBrowserEnabled = (config: ViteUserConfig): boolean =>
   Boolean(config.test?.browser?.enabled);
 
-const providePublishDir = (
-  publish: boolean | undefined,
-): string | undefined => {
-  if (!publish) {
-    return undefined;
-  }
-  process.env[PUBLISH_DIR_ENV] ??= mkdtempSync(
-    path.join(tmpdir(), "vitest-cucumber-publish-"),
-  );
-  return process.env[PUBLISH_DIR_ENV];
-};
-
 const nodeCucumber = (config?: VitestCucumberOptions): Plugin => {
   return {
     name: "vitest-cucumber:node",
@@ -49,7 +35,7 @@ const nodeCucumber = (config?: VitestCucumberOptions): Plugin => {
     apply: (userConfig) => !isBrowserEnabled(userConfig),
     async config() {
       const mergedConfig = await mergeConfig(config ?? {});
-      const publishDir = providePublishDir(mergedConfig.publish);
+      const publishDir = ensurePublishDir(mergedConfig.publish);
 
       return {
         test: {
@@ -91,7 +77,7 @@ const browserCucumber = (config?: VitestCucumberOptions): Plugin => {
 
     async config() {
       const mergedConfig = await mergeConfig(config ?? {});
-      const publishDir = providePublishDir(mergedConfig.publish);
+      const publishDir = ensurePublishDir(mergedConfig.publish);
 
       return {
         optimizeDeps: {

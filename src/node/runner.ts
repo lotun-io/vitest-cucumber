@@ -37,14 +37,6 @@ let cached: {
   mergedConfig: IConfiguration;
 } | null = null;
 
-type RunOptions = {
-  id: string;
-  withHook: WithHook;
-  runtime?: Partial<Pick<IRunConfiguration["runtime"], "dryRun" | "retry">>;
-  testLocations?: number[];
-  onTestCaseFinished?: (result: ResultItem) => void;
-};
-
 const ensureCache = async ({
   config,
   moduleLoader,
@@ -79,6 +71,14 @@ const ensureCache = async ({
   cached = { runConfiguration, support, testStepErrors, mergedConfig };
 
   return { isCached: false };
+};
+
+type RunOptions = {
+  id: string;
+  withHook: WithHook;
+  runtime?: Partial<Pick<IRunConfiguration["runtime"], "dryRun" | "retry">>;
+  testLocations?: number[];
+  onTestCaseFinished?: (result: ResultItem) => void;
 };
 
 const run = async ({

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { BrowserChannel } from "../channel.ts";
 import { DataTable } from "../dataTable.ts";
 import { decode, decodeAll, hold } from "../wire.ts";
 
@@ -39,5 +40,29 @@ describe("wire codec", () => {
     expect(num).toBe(7);
     expect(table).toBeInstanceOf(DataTable);
     expect(held).toBe(42);
+  });
+});
+
+describe("BrowserChannel", () => {
+  it("finish resolves a parked next() with null", async () => {
+    const channel = new BrowserChannel();
+    const nextPromise = channel.next(); // parks waitingPull
+    channel.finish();
+    expect(await nextPromise).toBeNull();
+  });
+
+  it("next returns null immediately after finish", async () => {
+    const channel = new BrowserChannel();
+    channel.finish();
+    expect(await channel.next()).toBeNull(); // the `if (this.finished)` branch
+  });
+
+  it("dispatch hands a task directly to a parked next()", async () => {
+    const channel = new BrowserChannel();
+    const nextPromise = channel.next(); // park waitingPull
+    void channel.dispatch("newWorld", { greeting: "hi" }); // resolves the parked pull
+    const task = await nextPromise;
+    expect(task?.kind).toBe("newWorld");
+    expect(task?.payload).toEqual({ greeting: "hi" });
   });
 });

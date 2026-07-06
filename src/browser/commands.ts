@@ -95,7 +95,7 @@ type SharedSupport = {
 // first build would register anything. A promise (not the value) is cached so
 // concurrent sessions await the same build instead of racing it.
 let sharedSupport: Promise<SharedSupport> | undefined;
-const getChannel = (sessionId: string): BrowserChannel => {
+const getOrCreateChannel = (sessionId: string): BrowserChannel => {
   let channel = channels.get(sessionId);
   if (!channel) {
     channel = new BrowserChannel();
@@ -204,7 +204,7 @@ export const createCucumberCommands = (config: Partial<IConfiguration>) => {
   // channel, then awaits `cucumberEnd` for the results and any runtime/hook
   // error.
   const cucumberRun: BrowserCommand<[RunOptions], void> = (ctx, options) => {
-    const channel = getChannel(ctx.sessionId);
+    const channel = getOrCreateChannel(ctx.sessionId);
 
     // `ctx.project?.name` is the decorated project name (e.g. "browser
     // (chromium)"), available here on the Node command host — no browser
@@ -217,13 +217,13 @@ export const createCucumberCommands = (config: Partial<IConfiguration>) => {
   };
 
   const cucumberNextTask: BrowserCommand<[], ChannelTask | null> = (ctx) =>
-    getChannel(ctx.sessionId).next();
+    getOrCreateChannel(ctx.sessionId).next();
 
   const cucumberReportTask: BrowserCommand<
     [{ taskId: string; result?: unknown; err?: SerializedError }],
     void
   > = (ctx, outcome) => {
-    getChannel(ctx.sessionId).report(
+    getOrCreateChannel(ctx.sessionId).report(
       outcome.taskId,
       outcome.result,
       outcome.err,

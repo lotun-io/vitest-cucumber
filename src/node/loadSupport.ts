@@ -13,6 +13,7 @@ export type NodeSupport = {
   testStepErrors: Map<string, SerializedError>;
 };
 
+/* v8 ignore start */
 const support = globalRef.__vitest_cucumber_node__?.support;
 
 if (!support) {
@@ -27,6 +28,7 @@ AfterStep(function ({ testStepId, error }) {
     support.testStepErrors.set(testStepId, serializeError(error));
   }
 });
+/* v8 ignore stop */
 
 const cwd = process.cwd();
 
