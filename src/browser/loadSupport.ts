@@ -1,19 +1,5 @@
-/**
- * Registers browser-defined steps AND hooks with the native Cucumber runtime.
- *
- * Loaded as Cucumber's support "import" inside the browser command. It reads the
- * step patterns and hooks the browser reported (via
- * `globalThis.__vitest_cucumber_browser__.support`) and registers proxies: native
- * Cucumber matches/parses/schedules in Node, and
- * each proxy bridges execution to the browser by key. The user's step files are
- * never imported here — only their patterns/hook metadata cross to Node — so
- * browser-only imports never evaluate in Node.
- *
- * Cucumber drives the lifecycle: a leading `Before` recreates the browser World
- * per scenario, then user hooks (with their tag expressions evaluated natively)
- * and steps run in the browser.
- */
-
+// Registers browser-defined steps/hooks/param-types with the native Cucumber
+// runtime as Node proxies. Step files never load in Node.
 import {
   After,
   AfterAll,
@@ -63,38 +49,28 @@ if (!support) {
   );
 }
 
-// Apply the browser's global default step/hook timeout (setDefaultTimeout) to
-// the native runtime, which enforces it against each proxy.
+// Apply the browser's default timeout to the native runtime.
 if (support.defaultTimeout !== undefined) {
   setDefaultTimeout(support.defaultTimeout);
 }
 
-// Fresh browser World per scenario (registered first → runs before user hooks).
-// `this` is Node's real World, so forward its `parameters` (the resolved
-// worldParameters) to the browser so its World gets the same IWorldOptions.
+// Fresh World per scenario; `this.parameters` comes from Node's real World.
 Before(async function resetWorld(this: { parameters: unknown }) {
   await dispatchNewWorld(this.parameters);
 });
 
-// Capture each failed step's error (the revived, rich error sent back from the
-// browser) so runCucumber can attach it to the Vitest result. Stored as a PLAIN
-// object (not the raw Error) because the result is serialized again when it is
-// streamed back to the browser as a `testCaseFinished` task.
+// Capture failed step errors so runCucumber can attach them to the Vitest result.
 AfterStep(function ({ testStepId, error }) {
   if (error) {
     support.testStepErrors.set(testStepId, serializeError(error));
   }
 });
 
-// A DataTable step argument is a class instance that can't survive the channel,
-// so replace it with the wire marker carrying its raw rows; the browser rebuilds
-// a real DataTable from it (DocStrings are plain strings — no conversion).
+// DataTable can't survive the channel; replace with a wire marker (DocStrings are plain strings).
 const toSerializableArg = (arg: unknown): unknown =>
   arg instanceof DataTable ? { __vc: "dataTable", rows: arg.raw() } : arg;
 
-// A bridged body reports `{ value, attachments }`; replay each attachment via
-// the real Node World so the attachment envelope is emitted while the step/hook
-// is still executing (associated with it), then return the body's value.
+// Replays body attachments via the real Node World so envelopes land in scope.
 const replayBodyAttachments = (world: unknown, result: unknown): unknown => {
   const { value, attachments } = (result ?? {}) as {
     value?: unknown;
@@ -110,14 +86,9 @@ const replayBodyAttachments = (world: unknown, result: unknown): unknown => {
 
 const bridgeStep = (pattern: string, arity: number) => {
   const bridged = function bridged(this: unknown, ...args: unknown[]) {
-    // Cucumber's user_code_runner ALWAYS appends an (error, result) callback to
-    // the argument array, then picks the interface via
-    // `callbackInterface = fn.length === argsArray.length`. `fn.length` is the
-    // browser step's arity: for a callback-interface step it equals the
-    // appended-args length, so Cucumber uses the callback — we must resolve that
-    // callback from the dispatch (returning a promise too would be "multiple
-    // asynchronous interfaces"). For a normal step the lengths differ, so we
-    // strip the unused callback and return the dispatch promise.
+    // Cucumber appends a callback when fn.length === argsArray.length; detect
+    // this from the browser step's arity and use the matching interface.
+    // For normal steps strip the unused callback and return the dispatch promise.
     const usesCallback =
       args.length === arity && typeof args[args.length - 1] === "function";
     const callback =
@@ -140,25 +111,19 @@ const bridgeStep = (pattern: string, arity: number) => {
   return bridged;
 };
 
-// Cucumber's native hook parameter ({ pickle, gherkinDocument, result, error,
-// … }) is built on the Node side; serialize it (error → SerializedError) and
-// forward it so the browser hook body receives it as its first argument.
+// Serialize the hook parameter (error → SerializedError) to forward to the browser.
 const toHookArg = (arg: Record<string, unknown>): HookArg =>
   ({
     ...arg,
     error: arg.error ? serializeError(arg.error) : undefined,
   }) as HookArg;
 
-// Revive a SerializedError sent back from the browser into a real Error so the
-// Cucumber hook parameter's `error` matches what a Node hook would receive.
 const reviveError = (error: SerializedError): Error =>
   Object.assign(new Error(error.message), error);
 
-// Re-apply a browser hook body's in-place mutations onto Node's real hook
-// parameter. `result` MUST be mutated in place (not reassigned): Cucumber holds
-// this exact object in its stepResults array and re-reads its status after the
-// hook runs, so a fresh object would not propagate (e.g. flipping a step to
-// PASSED). `error` is informational, so reassigning it is enough.
+// Re-apply in-place mutations the browser hook body made to the hook parameter.
+// `result` MUST be mutated in place: Cucumber re-reads this exact object after
+// the hook runs.
 const applyHookMutations = (
   arg: Record<string, unknown>,
   outcome: { hookResult?: unknown; hookError?: SerializedError },
@@ -202,9 +167,8 @@ const bridgeHook = (kind: HookInfo["kind"], index: number) =>
 
 const bridgeTestRunHook = (kind: "beforeAll" | "afterAll", index: number) =>
   async function bridgedTestRunHook(this: { parameters: unknown }) {
-    // `this` is Cucumber's run context ({ parameters }); forward its parameters
-    // so the browser's `context` export resolves to the same shape.
-    return dispatchTestRunHook(kind, index, this.parameters);
+  // `this` is Cucumber's run context; forward parameters so the `context` export resolves.
+  return dispatchTestRunHook(kind, index, this.parameters);
   };
 
 // One lookup replaces the 4×3-arm registrar map. Cucumber evaluates tag
@@ -230,9 +194,7 @@ for (const { kind, index, options } of support.hooks ?? []) {
   }
 }
 
-// Register custom parameter types BEFORE the steps (their cucumber expressions
-// reference them). Each transformer round-trips to the browser, which runs the
-// real one (World as `this`) and returns a token resolved back to the value.
+// Register parameter types before steps (cucumber expressions reference them).
 for (const pt of support.parameterTypes ?? []) {
   defineParameterType({
     name: pt.name,
@@ -247,8 +209,7 @@ for (const pt of support.parameterTypes ?? []) {
 
 for (const { pattern, arity, options, regexp } of support.steps ?? []) {
   const proxy = bridgeStep(pattern, arity);
-  // A RegExp-defined step is registered with a real RegExp matcher; the proxy
-  // still dispatches by the string key, so the browser looks it up unchanged.
+  // RegExp-defined steps use a real RegExp matcher; proxy dispatches by string key.
   const matcher = regexp ? new RegExp(regexp.source, regexp.flags) : pattern;
   if (options) {
     Given(matcher, options, proxy);

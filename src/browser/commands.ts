@@ -1,14 +1,3 @@
-/**
- * Node-side Vitest commands backing browser mode.
- *
- * The transformed `.feature` (see `runnerBrowser.ts`, which runs in the browser
- * realm) calls these over Vitest's command channel. They run the native
- * `@cucumber/cucumber` runtime in Node; each step/hook body executes back in the
- * browser test realm (its real imports + the World live there) via a pull loop.
- * The bridge uses Vitest commands only — no browser-provider API — so it is
- * provider agnostic (playwright, webdriverio, preview).
- */
-
 import { version as cucumberVersion } from "@cucumber/cucumber";
 import type {
   IConfiguration,
@@ -41,13 +30,8 @@ const lifecycleFeaturePath = path.join(
   "lifecycle.feature",
 );
 
-// Options for a `cucumberRun` call, supplied by the browser runner: the feature
-// to run (`id`), which test-run hooks to fire (`withHook`), whether to stream
-// each finished scenario back as a `testCaseFinished` task (`dispatchTestCaseFinished`
-// — only the real run does), optional Cucumber runtime overrides (e.g. the
-// dry-run plan), and the optional line filter. Passing them in one object keeps
-// any `undefined` out of the positional command args (Vitest's command RPC
-// drops a middle `undefined`).
+// Options for a `cucumberRun` call. One object keeps `undefined` out of
+// positional command args (Vitest's RPC drops a middle `undefined`).
 export type RunOptions = {
   id: string;
   dispatchTestCaseFinished: boolean;
@@ -75,8 +59,7 @@ export interface CucumberCommands {
   }>;
 }
 
-// One channel + in-flight run per browser session (test file). The run promise
-// resolves to the feature name + scenario results (surfaced by `cucumberEnd`).
+// One channel + run promise per browser session.
 const channels = new Map<string, BrowserChannel>();
 const runs = new Map<
   string,
@@ -87,13 +70,10 @@ type SharedSupport = {
   support: ISupportCodeLibrary;
   testStepErrors: Map<string, SerializedError>;
 };
-// The Node support library (the step/hook/param-type proxies) is identical for
-// every browser feature file in a project — they all load the same support glob
-// — so it is built ONCE and shared across sessions. Per-session rebuilds are
-// impossible anyway: Cucumber's loadSupport imports `loadSupport.ts` for its
-// registration side effects, and ESM evaluates a module only once, so only the
-// first build would register anything. A promise (not the value) is cached so
-// concurrent sessions await the same build instead of racing it.
+// Support is built once for the whole project: step definitions register as
+// Node proxies that dispatch their bodies to the browser. Per-session rebuilds
+// are impossible (ESM evaluates a module once) so a promise is cached to
+// prevent concurrent sessions from racing the initial build.
 let sharedSupport: Promise<SharedSupport> | undefined;
 const getOrCreateChannel = (sessionId: string): BrowserChannel => {
   let channel = channels.get(sessionId);
@@ -105,19 +85,15 @@ const getOrCreateChannel = (sessionId: string): BrowserChannel => {
 };
 
 export const createCucumberCommands = (config: Partial<IConfiguration>) => {
-  // Builds the native support library once for the whole project: fetches the
-  // browser's step/hook/param-type registry, then loads `loadSupport`, which
-  // registers a Node proxy per definition that dispatches its body back to the
-  // browser (over whichever session's channel is active for the run).
-  const buildSharedSupport = async (): Promise<SharedSupport> => {
+    // Fetch the browser registry, build the run config, then load native support
+    // (registering a Node proxy per browser-defined step/hook/param-type).
+    const buildSharedSupport = async (): Promise<SharedSupport> => {
     const testStepErrors = new Map<string, SerializedError>();
     // Ask the browser for the full registry in one round-trip.
     const { steps, hooks, testRunHooks, parameterTypes, defaultTimeout } =
       await dispatchGetRegistry();
 
-    // Resolve the run config (plugin config + CUCUMBER_OPTIONS + profiles) once
-    // for the whole project — the dry-run plan and the real run share it (notably
-    // the pinned `order: random` seed, so scenario indices line up).
+    // Run config is resolved once: dry-run and real run share the pinned seed.
     const { runConfiguration } = await resolveRunConfiguration({
       config,
       loadSupportPath,
@@ -137,22 +113,11 @@ export const createCucumberCommands = (config: Partial<IConfiguration>) => {
     return { runConfiguration, support, testStepErrors };
   };
 
-  // The shared support library, built once for the whole project. BeforeAll/
-  // AfterAll firing is decided in the browser realm (see runner.ts) so it self-
-  // adjusts with `isolate`, so the command no longer tracks per-feature state.
   const ensureSupport = (): Promise<SharedSupport> =>
     (sharedSupport ??= buildSharedSupport());
 
-  // Single driver for every run a session makes — the dry-run plan, the real
-  // feature run, and the AfterAll teardown (which the browser drives by passing
-  // the lifecycle feature as `id` with `withHook: "after"`). The shared support
-  // library is built once and reused; the browser realm decides when BeforeAll/
-  // AfterAll fire (via `withHook`), so it self-adjusts with `isolate`.
-  // When `dispatchTestCaseFinished` is set (the real run), each finished
-  // scenario streams back as a `testCaseFinished` task so its test resolves
-  // progressively; the dry-run plan leaves it off and reads the returned
-  // `results` instead. Always resolves to { featureName, results }; the channel
-  // is always finished so the browser pull loop terminates.
+  // Single driver for every run a session makes (dry-run, real run, AfterAll).
+  // Always finishes the channel so the browser pull loop terminates.
   const run = async (
     channel: BrowserChannel,
     options: RunOptions,
@@ -167,9 +132,7 @@ export const createCucumberCommands = (config: Partial<IConfiguration>) => {
 
       const cached = await ensureSupport();
 
-      // Collect + persist envelopes for `--publish` on real runs (and the
-      // AfterAll lifecycle run), never the dry-run plan. `writeEnvelopes` reads
-      // the run dir from the env and is a no-op when publishing is off.
+      // Collect envelopes for `--publish` on real runs; no-op when publishing is off.
       const publish = !runtime?.dryRun && isPublishEnabled();
 
       const { featureName, results, envelopes, startedAt } = await runCucumber({
@@ -199,17 +162,12 @@ export const createCucumberCommands = (config: Partial<IConfiguration>) => {
     }
   };
 
-  // Kicks off a run and returns immediately so the browser's pull loop (which
-  // shares the per-session command queue) isn't starved. The browser pumps the
-  // channel, then awaits `cucumberEnd` for the results and any runtime/hook
-  // error.
+  // Kicks off a run immediately so the browser pull loop isn't starved.
   const cucumberRun: BrowserCommand<[RunOptions], void> = (ctx, options) => {
     const channel = getOrCreateChannel(ctx.sessionId);
 
-    // `ctx.project?.name` is the decorated project name (e.g. "browser
-    // (chromium)"), available here on the Node command host — no browser
-    // round-trip needed. It matches the name the globalSetup teardown sees.
-    // (Optional-chained for the in-Node bridge harness, whose ctx has no project.)
+    // `ctx.project?.name` matches the globalSetup teardown's project name.
+    // Optional-chained for the in-Node bridge harness (ctx has no project).
     runs.set(
       ctx.sessionId,
       runWithChannel(channel, () => run(channel, options, ctx.project?.name)),
@@ -230,16 +188,13 @@ export const createCucumberCommands = (config: Partial<IConfiguration>) => {
     );
   };
 
-  // Cucumber facts the page can't compute (Node-only): the installed runtime
-  // version (mirrored into the shim) and the lifecycle feature path (used as the
-  // AfterAll teardown's feature id). Fetched once before the run.
+  // Node-only facts the page can't compute: runtime version and lifecycle path.
   const cucumberMetadata: BrowserCommand<
     [],
     { version: string; lifecycleFeaturePath: string }
   > = () => ({ version: cucumberVersion, lifecycleFeaturePath });
 
-  // Awaits the in-flight run to surface its feature name + scenario results and
-  // any Cucumber runtime/hook error, then cleans up the session's channel.
+  // Awaits the in-flight run, surfaces results, then cleans up the session.
   const cucumberEnd: BrowserCommand<
     [],
     { featureName: string; results: ResultItem[] }

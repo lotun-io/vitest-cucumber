@@ -5,7 +5,7 @@ export type TestAPI = ReturnType<typeof createBaseTest>;
 export const createBaseTest = ({
   onCleanup: cleanupFn,
 }: {
-  onCleanup: () => void;
+  onCleanup: () => void | Promise<void>;
 }) => {
   return baseTest.extend(
     "hooks",

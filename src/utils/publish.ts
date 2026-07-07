@@ -18,10 +18,8 @@ const publishDir = (): string | undefined => process.env[PUBLISH_DIR_ENV];
 // Whether `--publish` is active (the run folder has been provisioned).
 export const isPublishEnabled = (): boolean => Boolean(publishDir());
 
-// Provisions the run's publish directory on first call (idempotent): creates a
-// temp dir keyed by pid and stores it in the env so every worker and the
-// globalSetup teardown all use the same path. Returns the dir path, or
-// undefined when publishing is off.
+// Provisions the publish dir on first call (idempotent) and stores it in the
+// env so all workers and the globalSetup teardown use the same path.
 export const ensurePublishDir = (
   publish: boolean | undefined,
 ): string | undefined => {
@@ -34,23 +32,15 @@ export const ensurePublishDir = (
   return process.env[PUBLISH_DIR_ENV];
 };
 
-// A filesystem-safe subdir name for a project: hash the (possibly decorated,
-// space/paren-laden) name so it can't break `mkdir`. Each project writes into
-// its own subdir of the run base dir, so the teardown can publish one report
-// per project instead of merging every project into one.
+// SHA-1 of the project name for a filesystem-safe subdir per project.
 const projectDirName = (projectName?: string): string =>
   crypto
     .createHash("sha1")
     .update(projectName || "default")
     .digest("hex");
 
-// Worker side: append a feature's collected envelopes as a JSONL file in this
-// project's subdir of the run's publish dir (created lazily). `projectName` is
-// supplied by the caller from its own realm (node: the worker's
-// `ctx.projectName`; browser: the command's `ctx.project.name`) and matches the
-// name the globalSetup teardown publishes by. The cucumber start timestamp is
-// encoded as a filename prefix so `publishReport` can replay the runs in
-// chronological order. No-op when not publishing or nothing to write.
+// Appends a feature's envelopes as a JSONL file in the project's subdir.
+// `projectName` comes from the caller's realm (worker ctx or command ctx).
 export const writeEnvelopes = async ({
   envelopes,
   startedAt,
@@ -66,9 +56,7 @@ export const writeEnvelopes = async ({
   }
   const dir = path.join(base, projectDirName(projectName));
   await fs.promises.mkdir(dir, { recursive: true });
-  // Encode the cucumber start time as an ISO 8601 prefix (with `:`/`.` swapped
-  // for `-` to stay filesystem-safe). ISO 8601 sorts lexicographically in
-  // chronological order, so a plain `.sort()` replays runs oldest-first.
+  // ISO 8601 prefix with `:` and `.` replaced for filesystem safety; sorts chronologically.
   const prefix = startedAt.toISOString().replace(/[:.]/g, "-");
   await fs.promises.writeFile(
     path.join(dir, `${prefix}-${crypto.randomUUID()}.jsonl`),
@@ -78,12 +66,8 @@ export const writeEnvelopes = async ({
 
 type Envelope = Record<string, unknown>;
 
-// Every run emits its own `testRunStarted` (unique id), and its body envelopes
-// back-reference it via `testRunStartedId` — `testRunHookStarted` (our
-// BeforeAll/AfterAll), `testCase`, `attachment` and `testRunFinished`. We keep
-// only the FIRST `testRunStarted`, so rewrite every back-reference to its id;
-// otherwise runs 2..N dangle at a dropped start. The field is always a direct
-// property of the single message under the wrapper, so one level suffices.
+// Rewrites `testRunStartedId` back-references in envelope bodies to the
+// canonical id, so later runs don't dangle when their start envelope is dropped.
 const rewriteRunStartedId = ({
   envelope,
   canonicalId,
@@ -105,13 +89,8 @@ const rewriteRunStartedId = ({
   }
 };
 
-// Every per-feature run (plus the lifecycle AfterAll run) emits its own
-// `testRunFinished`, each reporting only its own slice. Synthesize ONE that
-// describes the whole execution from just two tracked finishes:
-// - `success`: true only when no run failed (`firstFailure` is undefined);
-// - `message`/`exception`: from the FIRST failing run (the failure to show);
-// - `timestamp`: from the LAST run (the true end of the whole execution);
-// - `testRunStartedId`: the surviving (first) `testRunStarted`'s id.
+// Synthesizes a single testRunFinished from all per-run finishes:
+// success = no failure, message/exception from the first failure, timestamp from the last.
 const synthesizeRunFinished = ({
   lastFinish,
   firstFailure,
@@ -137,10 +116,7 @@ const synthesizeRunFinished = ({
   };
 };
 
-// Parse every per-feature JSONL file into a stream of envelope objects, one
-// file after another. Uses stream-chain's JSONL parser stream so no file is
-// ever fully buffered — it emits `{ key, value }` per line; we yield the
-// `value`.
+// Streams JSONL files as envelope objects; no file is fully buffered.
 async function* parseEnvelopeFiles(
   dir: string,
   files: string[],
@@ -153,12 +129,9 @@ async function* parseEnvelopeFiles(
   }
 }
 
-// Fold the concatenated per-run envelope streams into one coherent run in a
-// single pass. The first `meta` and `testRunStarted` (which lead each run) pass
-// through and fix the canonical id; later ones are dropped; bodies are
-// rewritten and forwarded; every `testRunFinished` is accumulated and replaced
-// by one synthesized finish at the end. Nothing but the small run brackets is
-// ever held in memory.
+// Folds N per-run envelope streams into one coherent run in a single pass:
+// keeps first meta/testRunStarted, rewrites back-references, drops later starts,
+// accumulates and replaces all testRunFinished with one synthesized finish.
 export async function* mergeEnvelopeStream(
   dir: string,
   files: string[],
@@ -207,9 +180,7 @@ export async function* mergeEnvelopeStream(
   }
 }
 
-// The Cucumber Reports service returns a pre-formatted console banner that
-// includes ANSI escapes. Mirror cucumber-js: strip them when stderr doesn't
-// support colour (e.g. piped/CI), otherwise pass them through verbatim.
+// Strip ANSI when stderr doesn't support colour (e.g. CI).
 const sanitisePublishOutput = (raw: string): string =>
   process.stderr.isTTY && process.stderr.hasColors?.()
     ? raw
@@ -230,16 +201,13 @@ const printReportBanner = ({
   process.stderr.write(`${sanitisePublishOutput(banner)}`);
 };
 
-// Merge one project's subdir (all its per-feature JSONL files) into a single
-// report and upload it. Streams merge → JSONL → gzip → disk → PUT, so nothing is
-// ever fully buffered. Returns without uploading when the subdir has no files.
+// Merges a project's per-feature JSONL files and uploads the report.
+// Streams merge → JSONL → gzip → disk → PUT for constant memory.
 const publishProjectReport = async (
   dir: string,
   projectName?: string,
 ): Promise<void> => {
-  // Replay the per-feature files in chronological order. Their names are
-  // prefixed with the ISO 8601 cucumber start timestamp, so a plain lexicographic
-  // sort puts the earliest `testRunStarted` first and the latest finished last.
+  // ISO-prefixed filenames sort chronologically, so the earliest start is first.
   const files = (await fs.promises.readdir(dir))
     .filter((f) => f.endsWith(".jsonl"))
     .sort();
@@ -293,8 +261,7 @@ const publishProjectReport = async (
         "Content-Encoding": "gzip",
         "Content-Length": String(gzSize),
       },
-      // Stream the gzip straight from disk so memory stays constant regardless
-      // of report size (half-duplex: send the body, then read).
+      // Stream the gzip from disk (half-duplex) to avoid buffering the full report.
       body: fs.createReadStream(gzPath),
       duplex: "half",
     });

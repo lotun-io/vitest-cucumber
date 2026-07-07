@@ -1,18 +1,5 @@
-/**
- * The one rule for values crossing the Node↔page channel.
- *
- * Most values structured-clone fine; the exceptions each get a tagged marker so
- * there is a single encode/decode contract instead of per-type ad-hoc handling:
- *
- * - **DataTable** — built by native Cucumber on Node; encoded to `{__vc:"dataTable"}`
- *   and rebuilt as a real `DataTable` in the page.
- * - **handle** — a page-resident value (e.g. a parameter-type transform result, a
- *   class instance) that must survive a Node round-trip: it's held in the page
- *   and only an opaque id crosses, swapped back when the step runs.
- *
- * Add a non-cloneable type here once; callers stay untouched.
- */
-
+// Node↔page serialization for non-cloneable values.
+// DataTable → `{__vc:"dataTable", rows}` marker; non-serializable values → opaque handle id.
 import { DataTable } from "./dataTable.ts";
 
 type DataTableWire = { __vc: "dataTable"; rows: string[][] };
@@ -25,9 +12,7 @@ const isWire = (value: unknown): value is Wire =>
 // Page-resident handles (transform results); only the id crosses the wire.
 const handles = new Map<string, unknown>();
 
-// Node → wire is inline at the proxy (it has the real Cucumber DataTable);
-// this module owns the marker format + the page side. Page → wire: park a
-// non-serializable value, return its marker.
+// Park a non-serializable value; return an opaque handle id to cross the wire.
 export const hold = (value: unknown): HandleWire => {
   const id = crypto.randomUUID();
   handles.set(id, value);

@@ -17,7 +17,7 @@ export const createError = ({
       result.error?.expected !== undefined);
 
   if (isDiffError) {
-    // Avoid double diff: cucumberError already contains a formatted diff; use the bare message so Vitest renders it once.
+    // Replace message to avoid rendering the diff twice (Vitest would render it again).
     Object.assign(err, result.error);
   }
 

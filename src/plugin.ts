@@ -93,9 +93,7 @@ const browserCucumber = (config?: VitestCucumberOptions): Plugin => {
       };
     },
     resolveId(source, _importer, options) {
-      // In the BROWSER realm, "@cucumber/cucumber" → registry shim so step bodies
-      // (and all their browser-only imports) run there. Step files are never
-      // loaded in Node, so nothing to redirect on the Node (ssr) side.
+      // Redirect to the browser shim in the page realm only (not ssr/Node).
       if (source === "@cucumber/cucumber" && !options?.ssr) {
         return browserCucumberShimPath;
       }

@@ -1,15 +1,6 @@
-/**
- * Browser-side `DataTable`, copied verbatim from @cucumber/cucumber
- * (src/models/data_table.ts). It's browser-safe because its only import is
- * type-only (erased at build time) and the body is pure string manipulation.
- *
- * The real `DataTable` is built on Node by native Cucumber, but a class instance
- * can't cross the Vitest command channel intact — so the Node side serializes it
- * to its raw `string[][]` form wrapped in a marker, and the browser rebuilds a
- * real `DataTable` from it here (so `dataTable instanceof DataTable` holds and
- * the full API works in step bodies).
- */
-
+// Browser-side DataTable ported from @cucumber/cucumber src/models/data_table.ts.
+// Class instances can't cross the command channel, so Node serializes to raw rows
+// and the browser rebuilds a real instance (so `instanceof DataTable` holds).
 import type * as messages from "@cucumber/messages";
 
 export class DataTable {

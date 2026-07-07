@@ -12,6 +12,6 @@
     "@cucumber/cucumber": "^13.0.0",
     "@lotun/vitest-cucumber": "^0.4.3",
     "@playwright/test": "^1.61.1",
-    "vitest": "^4.1.9"
+    "vitest": "^4.1.10"
   }
 }

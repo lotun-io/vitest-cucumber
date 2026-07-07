@@ -1,14 +1,3 @@
-/**
- * Browser-realm shim for "@cucumber/cucumber".
- *
- * When step/support files are loaded IN THE BROWSER, their
- * `import { Given } from "@cucumber/cucumber"` resolves here. Instead of a real
- * Cucumber runtime, definitions are stored in a registry keyed by their
- * pattern, and the World is kept as browser-side module state so it persists
- * across steps. The Node side invokes these bodies by key via the Vitest
- * command channel (no browser-provider API).
- */
-
 import { globalRef } from "../utils/globals.ts";
 import type { SerializedError } from "../utils/serializeError.ts";
 import { serializeError } from "../utils/serializeError.ts";
@@ -209,14 +198,10 @@ export class World {
   }
 }
 
-// World.attach/log/link buffer their attachments here during a body; runStep/
-// runHook flush them onto the BodyResult so Node replays them in scope.
+// Buffered during a body; runStep/runHook flush them onto the BodyResult.
 let attachmentBuffer: BrowserAttachment[] = [];
 
-// attach is fire-and-forget (buffered). Strings are forwarded verbatim — Cucumber
-// stores them as-is (IDENTITY, or BASE64 if the media type is `base64:`-prefixed,
-// the pattern for binary like screenshots). log/link delegate with Cucumber's
-// conventional media types.
+// attach buffers data verbatim (IDENTITY or base64 for binary like screenshots).
 const attach: AttachFn = (data, mediaTypeOrOptions) => {
   attachmentBuffer.push({ data, mediaTypeOrOptions });
 };
@@ -274,8 +259,7 @@ const define = (
   };
 };
 
-// Cucumber hooks are (code) | (tags, code) | (options, code): the body is always
-// the last arg; the optional leading arg is the tag string or the options object.
+// Hook args: (fn) | (tags, fn) | (options, fn) — body is always the last arg.
 const defineHook =
   (list: HookEntry[]) =>
   (...args: unknown[]): void => {
@@ -317,11 +301,8 @@ export const setDefinitionFunctionWrapper = (
 // the serial runtime never invokes a parallelCanAssign validator — same as node.
 export const setParallelCanAssign = (): void => {};
 
-// Cucumber's `world` export (v10.8+): a live handle to the active World so
-// arrow-function steps/hooks — which don't bind `this` — can still read and write
-// World state. A Proxy forwards EVERY trap (get/set/has/ownKeys/getPrototypeOf/…)
-// to whichever World is active for the running body — full reflection parity with
-// native Cucumber. Throws when accessed outside a step or hook.
+// `world` (v10.8+): Proxy forwarding every Reflect trap to the active World.
+// Allows arrow-function steps to access World state without `this`.
 const NO_WORLD = Symbol("vitest-cucumber:no-world");
 let activeWorld: unknown = NO_WORLD;
 
@@ -332,9 +313,7 @@ const requireWorld = (): object => {
   return activeWorld as object;
 };
 
-// Runs a body with `activeWorld` bound so the `world` export resolves to it.
-// Bodies run sequentially; save/restore keeps any nested context (e.g. a
-// parameter-type transform) correct and clears it once the body settles.
+// Binds `activeWorld` for the body's duration; save/restore handles nesting.
 const bindWorld = async (
   nextWorld: unknown,
   fn: () => unknown,
@@ -348,15 +327,11 @@ const bindWorld = async (
   }
 };
 
-// Each Proxy trap shares its name/argument order with the matching Reflect
-// method (just `target` first), so every trap maps to `Reflect[trap](world, …)`.
 const reflect = Reflect as Record<
   PropertyKey,
   (target: object, ...args: unknown[]) => unknown
 >;
 
-// Build the handler by enumerating Reflect's methods and forwarding each one to
-// the active World — one rule covers all traps.
 export const world = new Proxy<Record<string, unknown>>(
   {},
   Object.fromEntries(
@@ -369,9 +344,7 @@ export const world = new Proxy<Record<string, unknown>>(
   ),
 );
 
-// Cucumber's `context` export (v11+): the run-scoped sibling of `world` — a live
-// handle to the shared run context, available ONLY in BeforeAll/AfterAll (throws
-// elsewhere). Default shape is `{ parameters }`, created fresh per test-run hook.
+// `context` (v11+): run-scoped Proxy, available only in BeforeAll/AfterAll.
 const NO_CONTEXT = Symbol("vitest-cucumber:no-context");
 let activeContext: unknown = NO_CONTEXT;
 
@@ -384,8 +357,7 @@ const requireContext = (): object => {
   return activeContext as object;
 };
 
-// Runs a test-run-hook body with `activeContext` bound so the `context` export
-// resolves to it; restored once the body settles (bodies run sequentially).
+// Binds `activeContext` for the body's duration.
 const bindContext = async (
   nextContext: unknown,
   fn: () => unknown,
@@ -411,9 +383,7 @@ export const context = new Proxy<Record<string, unknown>>(
   ),
 );
 
-// Stores a custom parameter type. The regexp is reduced to its source string(s)
-// so Node can re-create it natively; the transformer stays in the page and is
-// invoked via the bridge (runTransform).
+// Reduces regexp to source string(s) for cross-realm serialization.
 const toRegexpSource = (
   regexp: RegExp | string | readonly (RegExp | string)[],
 ): string | string[] =>
@@ -439,8 +409,7 @@ export const defineParameterType = (options: {
   });
 };
 
-// Copied from @cucumber/cucumber (src/time.ts), using the page's own timers
-// (the upstream `methods` indirection only exists for Node fake-timer support).
+// Ported from @cucumber/cucumber src/time.ts; uses page timers (no fake-timer indirection).
 export async function wrapPromiseWithTimeout<T>(
   promise: Promise<T>,
   timeoutInMilliseconds: number,
@@ -461,7 +430,7 @@ export async function wrapPromiseWithTimeout<T>(
   });
 }
 
-// Invoked from the browser pull-loop on behalf of the Node command.
+// Invoked by the browser pull-loop.
 const hookList = (kind: HookKind): HookEntry[] => {
   switch (kind) {
     case "before":
@@ -475,11 +444,8 @@ const hookList = (kind: HookKind): HookEntry[] => {
   }
 };
 
-// Runs a definition body, honouring Cucumber's callback interface: when the body
-// declares one more parameter than we pass, that trailing param is an
-// (err, res) callback we append and turn into the promise runBody awaits. A
-// setDefinitionFunctionWrapper, if registered, wraps the body first — the
-// callback decision still uses the ORIGINAL arity (the wrapper changes length).
+// Runs a body honouring Cucumber's callback interface. `setDefinitionFunctionWrapper`
+// wraps the body first; callback detection uses the ORIGINAL arity.
 const invoke = (
   fn: StepFn,
   thisArg: unknown,

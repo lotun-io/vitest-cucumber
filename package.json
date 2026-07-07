@@ -65,9 +65,9 @@
     "@cucumber/query": "^15.0.1",
     "@tsconfig/node24": "^24.0.4",
     "@types/node": "^24.13.2",
-    "@vitest/browser-playwright": "^4.1.9",
-    "@vitest/coverage-v8": "^4.1.9",
-    "@vitest/ui": "^4.1.9",
+    "@vitest/browser-playwright": "^4.1.10",
+    "@vitest/coverage-v8": "^4.1.10",
+    "@vitest/ui": "^4.1.10",
     "eslint": "^10.6.0",
     "eslint-plugin-n": "^18.2.1",
     "jiti": "^2.7.0",
@@ -76,7 +76,7 @@
     "tsdown": "^0.22.3",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.62.1",
-    "vitest": "^4.1.9"
+    "vitest": "^4.1.10"
   },
   "packageManager": "pnpm@11.5.2+sha512.71c631e382066efc25625d5cf029075de07b61b37f6e27350fbd84b1bda5864c8c1967adc280776b45c30a715c0359a3be08fef42d5bb09e2b99029979692916"
 }

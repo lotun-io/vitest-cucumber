@@ -1,17 +1,3 @@
-/**
- * Browser-realm runner — the symmetric counterpart of the Node `runner.ts`.
- *
- * Runs inside the browser test realm (real DOM, real step imports, the World).
- * `runFeatureFile` is invoked by the transformed `.feature` (the plugin emits a
- * thin wrapper). It asks the Node-side commands (see `commands.ts`) for the
- * scenario plan (a dry run), registers one Vitest test per scenario via the
- * shared `registerFeatureTests`, then drives a single pull loop for the whole
- * feature: Node orchestrates the native Cucumber runtime and dispatches each
- * step/hook body back here to execute in the page, while streaming each
- * scenario's finished result back as a `testCaseFinished` task — the browser
- * analogue of the Node runner's `onTestCaseFinished`.
- */
-
 import { commands } from "vitest/browser";
 import { createBaseTest } from "../utils/createBaseTest.ts";
 import { globalRef } from "../utils/globals.ts";
@@ -33,16 +19,11 @@ const worker = globalRef.__vitest_worker__;
 const bridge = () =>
   globalRef.__vitest_cucumber_browser__?.bridge as BrowserBridge;
 
-// Whether this realm has already loaded support (and fired BeforeAll). Module-
-// scoped, so it resets with the realm (isolate: true → per feature file) or
-// persists across features (isolate: false → once per worker) — matching where
-// the support and the World/lifecycle state load, exactly like the node runner
-// self-adjusts. Mirrors node/runner.ts's `cached`/`isCached`.
+// Module-scoped: resets with the realm (isolate: true) or persists across
+// features (isolate: false) — mirrors node/runner.ts `cached`/`isCached`.
 let cached: { lifecycleFeaturePath: string } | null = null;
 
-// Execute a task in the page. Step/hook/testRunHook bodies are run by the shim,
-// which catches internally and resolves with a { value | error } object — it
-// never rejects, so a failing body can't leak as an unhandled rejection.
+// Always resolves (never rejects) so a failing body can't leak as an unhandled rejection.
 const runTask = async (
   task: ChannelTask,
 ): Promise<{
@@ -82,11 +63,8 @@ const runTask = async (
   }
 };
 
-// Pull tasks from the channel and execute each in the page until the channel
-// finishes. `testCaseFinished` tasks carry a finished scenario's result (handed
-// to `onTestCaseFinished` so its test resolves at once); all other tasks run
-// their step/hook body, replay any attachments it produced, and report the
-// value back to Node.
+// Pull tasks until the channel finishes. `testCaseFinished` resolves the test;
+// all other tasks run the body and report back to Node.
 const pump = async (
   onTestCaseFinished?: (finished: ResultItem) => void,
 ): Promise<void> => {
@@ -100,21 +78,15 @@ const pump = async (
       await cucumber.cucumberReportTask({ taskId: task.id });
       continue;
     }
-    // Run the body WITHOUT blocking the loop. Cucumber dispatches serially — it
-    // doesn't queue the next task until this one reports — so the next
-    // `cucumberNextTask()` normally parks on an empty queue and the loop stays
-    // effectively serial (one body at a time). The exception is a step Cucumber
-    // has TIMED OUT: it moves on and dispatches the next task while this body is
-    // still running, and a blocking `await` here would stall the whole feature.
-    // Fire-and-forget lets the loop service that next task, so Cucumber's native
-    // step timeout takes effect in the browser. The orphaned timed-out body keeps
-    // running (JS can't cancel it); its late report is keyed by id and harmless.
+    // Fire-and-forget: Cucumber is normally serial (no next task until this
+    // reports), but a timed-out step dispatches the next task while the body is
+    // still running. Blocking here would stall the feature; fire-and-forget lets
+    // the loop service it. The late report from the orphaned body is harmless.
     const current = task;
     void (async () => {
       const outcome = await runTask(current);
-      // Step/hook bodies report the whole BodyResult so the Node proxy can, in
-      // scope, replay attachments via its real World and re-apply hook mutations.
-      // Every other kind (queries / newWorld / transform) just returns its value.
+    // Bodies report the whole BodyResult so Node can replay attachments and
+    // re-apply hook mutations in scope. Other tasks just return their value.
       const isBody = current.kind === "step" || current.kind === "hook";
       await cucumber.cucumberReportTask({
         taskId: current.id,
@@ -194,8 +166,7 @@ export const runFeatureFile = async ({
     test,
   });
 
-  // First feature of the realm keeps BeforeAll; later ones skip it.
-  const withHook = isCached ? "none" : "before";
+  const withHook = isCached ? "none" : "before"; // first feature keeps BeforeAll
 
   const runPromise = (async () => {
     await cucumber.cucumberRun({

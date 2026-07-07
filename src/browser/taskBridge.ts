@@ -1,11 +1,4 @@
-/**
- * Node-side dispatch helpers used by the bridged step/hook proxies.
- *
- * They publish a task onto the currently-bound `BrowserChannel`; the browser
- * pull-loop executes it in the page and reports the result back. The active
- * channel is set per run by the `cucumberRun` command.
- */
-
+// Node-side dispatch helpers for bridged step/hook proxies.
 import { AsyncLocalStorage } from "node:async_hooks";
 import { globalRef } from "../utils/globals.ts";
 import type { BrowserChannel } from "./channel.ts";
@@ -17,12 +10,8 @@ import type {
   TestRunHooksInfo,
 } from "./cucumberShim.ts";
 
-// The active run's channel is carried in an AsyncLocalStorage context, not a
-// single global slot: several Cucumber runs can be in flight at once (e.g. every
-// isolated feature file fires its AfterAll teardown at worker cleanup), and a
-// shared slot would let them clobber each other's binding. The ALS instance
-// lives on globalThis because the command and loadSupport are evaluated through
-// different module runners, so a module-level variable would not be shared.
+// ALS instance lives on globalThis so both module runners (command + loadSupport)
+// share the same instance across their separate module scopes.
 const getRunContext = (): AsyncLocalStorage<BrowserChannel> => {
   globalRef.__vitest_cucumber_browser__ ??= {};
   return (globalRef.__vitest_cucumber_browser__.runContext ??=

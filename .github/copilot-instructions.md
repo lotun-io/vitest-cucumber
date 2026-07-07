@@ -26,15 +26,17 @@ src/
 │   ├── commands.ts       — Node-side Vitest commands (cucumberMetadata/Run/NextTask/ReportTask/End)
 │   ├── runner.ts         — browser-realm runFeatureFile(): dry-run plan → register tests → pull loop
 │   ├── channel.ts        — BrowserChannel: FIFO async task queue between Node command and browser pull loop
-│   ├── taskBridge.ts     — Node-side dispatch* helpers + currentNodeWorld capture
+│   ├── taskBridge.ts     — Node-side dispatch* helpers; channel bound per-run via AsyncLocalStorage
 │   ├── cucumberShim.ts   — browser-realm "@cucumber/cucumber" replacement (registry + bridge + World/world/context)
 │   ├── loadSupport.ts    — registers browser-reported steps/hooks/param-types as native Node proxies
-│   ├── dataTable.ts      — verbatim DataTable port + serialization marker
+│   ├── wire.ts           — Node↔page serialization: DataTable marker + opaque handle for non-cloneable values
+│   ├── dataTable.ts      — verbatim DataTable port (browser-safe, pure string manipulation)
 │   └── status.ts         — browser-safe TestStepResultStatus constant copy
 └── utils/                — SHARED (node + browser)
     ├── runCucumber.ts    — Cucumber runtime invocation; emits a results Map; supportWithHook() strips test-run hooks
     ├── registerFeatureTests.ts — registers the results Map as Vitest describe/test blocks (Rule grouping); surfaces attachments as test annotations
     ├── config.ts         — cliArgs() parses CUCUMBER_OPTIONS via ArgvParser (incl. --profile/--config); mergeConfig() resolves the effective config (profile-aware); resolveRunConfiguration() builds the IRunConfiguration; resolveSupportGlobs() returns the profile-resolved step globs as ONE flat string[] (import+require merged, default fallback) for the browser plugin AND node/loadSupport
+    ├── createBaseTest.ts — wraps vitest's test.extend to register a worker-scoped auto-fixture that calls onCleanup at worker teardown
     ├── publish.ts         — --publish: writeEnvelopes() (per-project subdir), mergeEnvelopeStream() (fold N runs → 1 report), publishReport(projectName) (merge→gzip→PUT, best-effort)
     ├── publishGlobalSetup.ts — Vitest globalSetup: setup(project) → teardown publishes THIS project's report
     ├── serializeError.ts — serializeError(): plain, structured-clone-safe error for the Vitest/command boundary
@@ -113,7 +115,7 @@ Key browser-mode mechanisms:
 - **World / `parameters`** — the base `World` is ported into the shim; `WorldCtor` defaults to it. `newWorld(parameters)` builds `new WorldCtor({ attach, log, link, parameters })`. `parameters` is plumbed Node→browser: the Node `Before(resetWorld)` hook's `this` is Node's real World, so it forwards `this.parameters`.
 - **`world`/`context`** — Proxies whose handler is built by enumerating `Reflect` and forwarding every trap to `requireWorld()`/`requireContext()` (an `activeWorld`/`activeContext` bound by `bindWorld`/`bindContext` for the body's duration). `world` is bound in steps/case-hooks; `context` only in `BeforeAll`/`AfterAll`. Each throws outside its scope.
 - **`attach`/`log`/`link`** — buffered during a body and flushed onto the `BodyResult`, which step/hook bodies report **whole** over `cucumberReportTask`; the Node proxy replays each via its bound `this` (the real World) right after the dispatch resolves, so the envelope lands within the step scope. No separate command or `currentNodeWorld` global. Strings only (base64 strings for binary, the screenshot pattern).
-- **`DataTable`** — native Cucumber builds it on Node; the proxy serializes it to a `{ [DATA_TABLE_MARKER]: raw }` marker, and the shim rebuilds a real `DataTable` (verbatim port) in the page.
+- **`DataTable`** — native Cucumber builds it on Node; `wire.ts` serializes it to `{ __vc: "dataTable", rows }` and the shim rebuilds a real `DataTable` (verbatim port) in the page. Non-cloneable transform results are held in the page as opaque handles (`{ __vc: "handle", id }`) via `wire.ts` `hold`/`decode`.
 
 ## Shared `runCucumber` (`utils/runCucumber.ts`)
 

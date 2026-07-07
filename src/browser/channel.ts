@@ -1,15 +1,4 @@
-/**
- * FIFO async channel between the Node command and the browser pull-loop.
- *
- * The Node side `dispatch`es tasks; the browser pulls them in order via the
- * `cucumberNextTask` command, runs each in the page, and posts the result back
- * via `cucumberReportTask`. Step/hook/registry tasks are dispatched and awaited
- * one at a time; the real run additionally streams `testCaseFinished` events
- * (fire-and-forget from Node) so the browser resolves each test the moment its
- * scenario finishes — so the channel is a queue, not a single slot. No browser-
- * provider API is used — only Vitest commands — so this works with any provider.
- */
-
+// FIFO async task queue between the Node command and the browser pull-loop.
 import type { ResultItem } from "../utils/runCucumber.ts";
 import type { SerializedError } from "../utils/serializeError.ts";
 import type {
@@ -78,7 +67,7 @@ export class BrowserChannel {
     const resolvers = Promise.withResolvers<unknown>();
     this.pending.set(task.id, resolvers);
     if (this.waitingPull) {
-      // A pull is parked and the queue is empty: hand the task over directly.
+      // Hand the task directly to the waiting pull.
       this.waitingPull.resolve(task);
       this.waitingPull = undefined;
     } else {

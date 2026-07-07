@@ -53,10 +53,8 @@ const ensureCache = async ({
     loadSupportPath,
   });
 
-  // We load support code using the Vitest module loader so that imports
-  // inside step definitions go through Vitest's module resolution pipeline.
-  // The step globs come from `merged` (the profile-resolved import/require), not
-  // from our overridden loader path above.
+  // Load support via the Vitest module loader so step-file imports go through
+  // Vitest's resolution pipeline.
   const testStepErrors = new Map<string, SerializedError>();
   globalRef.__vitest_cucumber_node__ ??= {};
   globalRef.__vitest_cucumber_node__.support = {
@@ -171,8 +169,7 @@ export const runFeatureFile = async ({
     test,
   });
 
-  // First feature of the worker keeps BeforeAll; later ones skip it.
-  const withHook = isCached ? "none" : "before";
+  const withHook = isCached ? "none" : "before"; // first feature keeps BeforeAll
 
   const runCucumberPromise = run({
     id,
@@ -193,7 +190,7 @@ export const runFeatureFile = async ({
   });
 
   test.afterAll(async () => {
-    // Collect the real run's envelopes for the --publish report.
+    // Collect the real run's envelopes for --publish.
     const { envelopes, startedAt } = await runCucumberPromise;
     const projectName = worker?.ctx?.projectName;
     await writeEnvelopes({ envelopes, startedAt, projectName });

@@ -19,9 +19,8 @@ export type VitestWorker = {
 export type VitestCucumberBrowser = {
   registry?: BrowserRegistry;
   bridge?: BrowserBridge;
-  // The active Cucumber run's channel, carried per-run via AsyncLocalStorage so
-  // concurrent sessions never clobber each other's binding. Stored on the global
-  // so both module runners (command + loadSupport) share one ALS instance.
+  // Active run's channel in ALS so concurrent sessions don't clobber each other.
+  // On globalThis so command and loadSupport module runners share one instance.
   runContext?: AsyncLocalStorage<BrowserChannel>;
   support?: BrowserSupport;
 };

@@ -15,8 +15,8 @@ export const DEFAULT_IMPORT_GLOB = "features/**/*.{js,ts,cjs,cts,mjs,mts}";
 const require = createRequire(import.meta.url);
 const { ArgvParser } = require("@cucumber/cucumber/lib/configuration/index");
 
-// config.ts lives in utils/, so the silent formatter is a sibling. Resolved with
-// the running file's extension so it works in src/ (dev) and dist/ (published).
+// config.ts lives in utils/, resolved with the running file's extension so it
+// works in both src/ (dev) and dist/ (published).
 const silentFormatterPath = path.join(
   import.meta.dirname,
   `silentFormatter${path.extname(import.meta.filename)}`,
@@ -31,10 +31,8 @@ export type CliArgs = {
   file?: string;
 };
 
-// Parses a CUCUMBER_OPTIONS string (Cucumber CLI syntax) via Cucumber's own
-// ArgvParser. `profile`/`config` come out in ArgvParser's `options` bucket (they
-// drive the configuration LOADER, not the configuration itself); everything else
-// is the ad-hoc `configuration`.
+// Parses CUCUMBER_OPTIONS (Cucumber CLI syntax) via Cucumber's own ArgvParser.
+// `profile`/`config` go to the loader bucket; everything else is ad-hoc `configuration`.
 export const cliArgs = (stringArgs?: string): CliArgs => {
   if (!stringArgs) {
     return { configuration: {} };
@@ -125,8 +123,7 @@ type TestRunHookDefinitions = {
   afterTestRunHookDefinitions: readonly unknown[];
 };
 
-// Clones the support library keeping only the requested test-run hooks, so
-// BeforeAll/AfterAll don't fire on every per-feature `runCucumber` call.
+// Shallow-clones the support library keeping only the requested test-run hooks.
 const prepareSupport = ({
   support,
   withHook,
