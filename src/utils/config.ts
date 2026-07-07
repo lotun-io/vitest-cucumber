@@ -113,7 +113,10 @@ export const resolveSupportGlobs = async (
     ...(mergedConfig.require ?? []),
   ];
 
-  return supportGlobs.length ? supportGlobs : [DEFAULT_IMPORT_GLOB];
+  const globs = supportGlobs.length ? supportGlobs : [DEFAULT_IMPORT_GLOB];
+  return process.platform === "win32"
+    ? globs.map((p) => p.replaceAll("\\", "/"))
+    : globs;
 };
 
 export type WithHook = "before" | "after" | "none";
