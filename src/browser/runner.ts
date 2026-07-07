@@ -85,8 +85,8 @@ const pump = async (
     const current = task;
     void (async () => {
       const outcome = await runTask(current);
-    // Bodies report the whole BodyResult so Node can replay attachments and
-    // re-apply hook mutations in scope. Other tasks just return their value.
+      // Bodies report the whole BodyResult so Node can replay attachments and
+      // re-apply hook mutations in scope. Other tasks just return their value.
       const isBody = current.kind === "step" || current.kind === "hook";
       await cucumber.cucumberReportTask({
         taskId: current.id,

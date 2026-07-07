@@ -48,9 +48,9 @@
     "ci:publish": "pnpm build && pnpm publish --provenance --access public --no-git-checks"
   },
   "dependencies": {
-    "glob": "^13.0.6",
     "stream-chain": "^4.2.5",
-    "string-argv": "^0.3.2"
+    "string-argv": "^0.3.2",
+    "tinyglobby": "^0.2.17"
   },
   "peerDependencies": {
     "@cucumber/cucumber": "12.x || 13.x",

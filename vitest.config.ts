@@ -2,11 +2,15 @@ import { playwright } from "@vitest/browser-playwright";
 import { defineConfig, TestUserConfig } from "vitest/config";
 import { cucumber } from "./src/index.ts";
 
-const createCucumberPlugin = (options: { type: "node" | "browser" }) => {
+const createCucumberPlugin = (options: {
+  type: "node" | "browser";
+  worldParameters?: Record<string, any>;
+}) => {
+  const tags = options.type === "node" ? "not @notNode" : "not @notBrowser";
   return cucumber({
     import: ["features/support/**/*.ts", "features/steps/**/*.ts"],
-    worldParameters: { greeting: "hello" },
-    tags: options.type === "node" ? "not @notNode" : "not @notBrowser",
+    worldParameters: options.worldParameters,
+    tags,
     retry: 1,
     retryTagFilter: "@retry",
   });
@@ -21,6 +25,9 @@ const createBrowserConfig = (): TestUserConfig["browser"] => ({
 });
 
 const include = ["features/**/*.feature"];
+const exclude = ({ shared }: { shared: boolean }) => {
+  return [`features/**/*-shared-${!shared}.feature`];
+};
 
 export default defineConfig({
   test: {
@@ -46,37 +53,61 @@ export default defineConfig({
         },
       },
       {
-        plugins: [createCucumberPlugin({ type: "node" })],
+        plugins: [
+          createCucumberPlugin({
+            type: "node",
+            worldParameters: { greeting: "hello", shared: false },
+          }),
+        ],
         test: {
-          name: "node-isolate",
+          name: "node",
           sequence: { groupOrder: 1 },
           include,
+          exclude: exclude({ shared: false }),
         },
       },
       {
-        plugins: [createCucumberPlugin({ type: "node" })],
+        plugins: [
+          createCucumberPlugin({
+            type: "node",
+            worldParameters: { greeting: "hello", shared: true },
+          }),
+        ],
         test: {
-          name: "node",
+          name: "node-shared",
           sequence: { groupOrder: 2 },
           include,
+          exclude: exclude({ shared: true }),
           isolate: false,
         },
       },
       {
-        plugins: [createCucumberPlugin({ type: "browser" })],
+        plugins: [
+          createCucumberPlugin({
+            type: "browser",
+            worldParameters: { greeting: "hello", shared: false },
+          }),
+        ],
         test: {
-          name: "browser-isolate",
+          name: "browser",
           sequence: { groupOrder: 3 },
           include,
+          exclude: exclude({ shared: false }),
           browser: createBrowserConfig(),
         },
       },
       {
-        plugins: [createCucumberPlugin({ type: "browser" })],
+        plugins: [
+          createCucumberPlugin({
+            type: "browser",
+            worldParameters: { greeting: "hello", shared: true },
+          }),
+        ],
         test: {
-          name: "browser",
+          name: "browser-shared",
           sequence: { groupOrder: 4 },
           include,
+          exclude: exclude({ shared: true }),
           browser: createBrowserConfig(),
           isolate: false,
         },

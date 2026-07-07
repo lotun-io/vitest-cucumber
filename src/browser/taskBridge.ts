@@ -23,6 +23,10 @@ const getRunContext = (): AsyncLocalStorage<BrowserChannel> => {
 export const runWithChannel = <T>(channel: BrowserChannel, fn: () => T): T =>
   getRunContext().run(channel, fn);
 
+// Returns the channel bound to the current async context, or undefined outside a run.
+export const getCurrentChannel = (): BrowserChannel | undefined =>
+  getRunContext().getStore();
+
 const channel = (): BrowserChannel => {
   const current = getRunContext().getStore();
   if (!current) {

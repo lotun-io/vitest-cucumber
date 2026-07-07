@@ -5,7 +5,11 @@ import type {
   ISupportCodeLibrary,
 } from "@cucumber/cucumber/api";
 import { loadSupport } from "@cucumber/cucumber/api";
+import type { ResolveFnOutput } from "node:module";
+// eslint-disable-next-line n/no-unsupported-features/node-builtins
+import { registerHooks } from "node:module";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import type { BrowserCommand } from "vitest/node";
 import type { WithHook } from "../utils/config.ts";
 import {
@@ -23,6 +27,21 @@ import { dispatchGetRegistry, runWithChannel } from "./taskBridge.ts";
 
 const ext = path.extname(import.meta.filename);
 const loadSupportPath = path.join(import.meta.dirname, `loadSupport${ext}`);
+const loadSupportUrl = pathToFileURL(loadSupportPath).toString();
+
+// Appends ?p=uuid to every loadSupport import so each browser project gets
+// a fresh module evaluation and an independent step/hook library.
+registerHooks({
+  resolve(specifier, context, nextResolve) {
+    const result = nextResolve(specifier, context);
+    const uniquify = (r: ResolveFnOutput) =>
+      r.url.split("?")[0] === loadSupportUrl
+        ? { ...r, url: `${loadSupportUrl}?p=${crypto.randomUUID()}` }
+        : r;
+    return uniquify(result);
+  },
+});
+
 const lifecycleFeaturePath = path.join(
   import.meta.dirname,
   "..",
@@ -68,13 +87,7 @@ const runs = new Map<
 type SharedSupport = {
   runConfiguration: IRunConfiguration;
   support: ISupportCodeLibrary;
-  testStepErrors: Map<string, SerializedError>;
 };
-// Support is built once for the whole project: step definitions register as
-// Node proxies that dispatch their bodies to the browser. Per-session rebuilds
-// are impossible (ESM evaluates a module once) so a promise is cached to
-// prevent concurrent sessions from racing the initial build.
-let sharedSupport: Promise<SharedSupport> | undefined;
 const getOrCreateChannel = (sessionId: string): BrowserChannel => {
   let channel = channels.get(sessionId);
   if (!channel) {
@@ -84,33 +97,44 @@ const getOrCreateChannel = (sessionId: string): BrowserChannel => {
   return channel;
 };
 
-export const createCucumberCommands = (config: Partial<IConfiguration>) => {
-    // Fetch the browser registry, build the run config, then load native support
-    // (registering a Node proxy per browser-defined step/hook/param-type).
-    const buildSharedSupport = async (): Promise<SharedSupport> => {
-    const testStepErrors = new Map<string, SerializedError>();
-    // Ask the browser for the full registry in one round-trip.
-    const { steps, hooks, testRunHooks, parameterTypes, defaultTimeout } =
-      await dispatchGetRegistry();
+// Serializes concurrent buildSharedSupport calls across projects so that
+// globalRef.support and supportCodeLibraryBuilder (both global singletons) are
+// never accessed by two projects at the same time.
+const buildQueue = (() => {
+  let chain: Promise<unknown> = Promise.resolve();
+  return {
+    add<T>(fn: () => Promise<T>): Promise<T> {
+      const p = chain.then(fn);
+      chain = p.catch(() => {});
+      return p;
+    },
+  };
+})();
 
-    // Run config is resolved once: dry-run and real run share the pinned seed.
-    const { runConfiguration } = await resolveRunConfiguration({
-      config,
-      loadSupportPath,
+export const createCucumberCommands = (config: Partial<IConfiguration>) => {
+  // Per-project cache: the ESM resolve hook gives each call a unique URL so
+  // loadSupport.ts re-evaluates per project, building an independent library.
+  let sharedSupport: Promise<SharedSupport> | undefined;
+  // Fetch the browser registry, build the run config, then load native support
+  // (registering a Node proxy per browser-defined step/hook/param-type).
+  const buildSharedSupport = async (): Promise<SharedSupport> => {
+    // Independent work: run in parallel before entering the critical section.
+    const [registry, { runConfiguration }] = await Promise.all([
+      dispatchGetRegistry(),
+      resolveRunConfiguration({ config, loadSupportPath }),
+    ]);
+
+    // Critical section: globalRef.support write + loadSupport (builder singleton).
+    return buildQueue.add(async () => {
+      globalRef.__vitest_cucumber_browser__ ??= {};
+      globalRef.__vitest_cucumber_browser__.support = {
+        ...registry,
+      };
+      const support = await loadSupport(runConfiguration).finally(() => {
+        delete globalRef.__vitest_cucumber_browser__?.support;
+      });
+      return { runConfiguration, support };
     });
-    globalRef.__vitest_cucumber_browser__ ??= {};
-    globalRef.__vitest_cucumber_browser__.support = {
-      steps,
-      hooks,
-      testRunHooks,
-      parameterTypes,
-      defaultTimeout,
-      testStepErrors,
-    };
-    const support = await loadSupport(runConfiguration).finally(() => {
-      delete globalRef.__vitest_cucumber_browser__?.support;
-    });
-    return { runConfiguration, support, testStepErrors };
   };
 
   const ensureSupport = (): Promise<SharedSupport> =>
@@ -145,7 +169,7 @@ export const createCucumberCommands = (config: Partial<IConfiguration>) => {
           runtime,
           testLocations,
         }),
-        testStepErrors: cached.testStepErrors,
+        testStepErrors: channel.testStepErrors,
         publish,
         onTestCaseFinished: dispatchTestCaseFinished
           ? (result) => {

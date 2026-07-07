@@ -56,7 +56,7 @@ pnpm lint           # tsc + prettier check + eslint
 pnpm format         # prettier write + eslint --fix
 ```
 
-- **Vitest projects**: `unit`, `node(isolate:true)`, `node(isolate:false)`, `browser(isolate:true)`, `browser(isolate:false)` (chromium via Playwright).
+- **Vitest projects**: `unit`, `node(isolate:true)`, `node-shared(isolate:false)`, `browser(isolate:true)`, `browser-shared(isolate:false)` (chromium via Playwright). The `*-shared` projects pass `worldParameters: { ..., shared: true }` and run `features/world-shared-true.feature` (excluded from non-shared projects via `test.exclude`); non-shared projects run `features/world-shared-false.feature`. This arrangement verifies that each browser project receives its own independent `runConfiguration` even when projects run concurrently — if a project leaked another's config, the world-parameter assertion would fail.
 - **Unit tests**: `src/**/__tests__/**/*.test.ts` — includes the in-Node **bridge harness** (`src/browser/__tests__/bridge.test.ts`) and `taskBridge.test.ts`, which drive the browser-mode Node-side host (`commands`/`channel`/`taskBridge`/`loadSupport`) under the Node v8 provider.
 - **Functional tests**: `features/**/*.feature` — ONE shared, realm-agnostic feature/step set run by every cucumber project; browser-only scenarios are tagged `@notNode`, node-only `@notBrowser`.
 - **Coverage**: thresholds are 90/80/90/90 and `pnpm test` **passes** (≈92.8/82.5/93.1/92.9). Browser-realm files (`cucumberShim.ts`, `browser/runner.ts`, `dataTable.ts`, `status.ts`) are instrumented by the browser project's page coverage; the browser Node-side host files are instrumented by the in-Node bridge harness + unit tests. Remaining gaps are intentional (defensive throws, `plugin.ts` browser hooks, the `setDefaultTimeout` setter).
@@ -94,8 +94,17 @@ Node runs the native Cucumber runtime; each step/hook/transform body + the World
 
 - **`cucumberShim.ts`** (browser realm) is the `"@cucumber/cucumber"` replacement: `Given/Before/...` store definitions in a `BrowserRegistry`; a `BrowserBridge` (on `globalThis.__vitest_cucumber_browser__`) exposes `runStep`/`runHook`/`runTransform`/`runTestRunHook`/`newWorld`/`get*`. Bodies are invoked by key.
 - **`commands.ts`** (Node) hosts the run: `cucumberMetadata` (version + lifecycle feature path), `cucumberRun` (whole-feature run; dry-run plan or real run; streams each scenario back as a `testCaseFinished` channel task), `cucumberNextTask`/`cucumberReportTask` (the pull loop), `cucumberEnd`. Every command takes either nothing or a single options object — no positional `undefined` for the RPC to drop.
-- **`channel.ts`** is a FIFO queue: Node `dispatch`es step/hook tasks; the browser `runner.ts` pulls them (`cucumberNextTask`), runs the body via the shim, and reports (`cucumberReportTask`). `testCaseFinished` events are streamed fire-and-forget, so a queue (not a single slot) is required.
-- **`loadSupport.ts`** (Node, the Cucumber support import) registers a native proxy per browser-reported step/hook/param-type; each proxy `dispatch`es its body to the browser by key. Step files never load in Node.
+- **`channel.ts`** is a FIFO queue: Node `dispatch`es step/hook tasks; the browser `runner.ts` pulls them (`cucumberNextTask`), runs the body via the shim, and reports (`cucumberReportTask`). `testCaseFinished` events are streamed fire-and-forget, so a queue (not a single slot) is required. `BrowserChannel` also owns `testStepErrors: Map<string, SerializedError>` — a per-page map for capturing rich step errors from `AfterStep` (scoped here because Vitest defaults to `floor(cpuCount/2)` concurrent browser pages, and a single shared map would race).
+- **`loadSupport.ts`** (Node, the Cucumber support import) registers a native proxy per browser-reported step/hook/param-type; each proxy `dispatch`es its body to the browser by key. Step files never load in Node. `AfterStep` writes failed step errors to `getCurrentChannel()?.testStepErrors` (the ALS-bound per-page map) rather than a shared global.
+
+### Multi-project browser isolation (`commands.ts`)
+
+All browser projects share the same Node main process (the Vite server). `createCucumberCommands` is called once per project; four mechanisms ensure each project gets independent state:
+
+1. **`registerHooks`** (module-level, runs once): intercepts every `loadSupport.ts` import and appends `?p=uuid` to the resolved URL. Node's ESM cache treats each unique URL as a separate module, so `loadSupport.ts` re-evaluates per project and registers its step proxies into the fresh `supportCodeLibraryBuilder` context.
+2. **`sharedSupport`** (closure-level, per `createCucumberCommands` call): caches `{ runConfiguration, support }` per project. `ensureSupport()` uses `??=` so concurrent sessions within the same project share one build.
+3. **`buildQueue`** (module-level FIFO): serializes concurrent `buildSharedSupport` calls across projects. The critical section (writing `globalRef.support` + calling `loadSupport`) is enqueued; the independent work (`dispatchGetRegistry` + `resolveRunConfiguration`) runs in parallel beforehand via `Promise.all`.
+4. **`channel.testStepErrors`** (per `BrowserChannel` instance = per page): each concurrent page's `AfterStep` writes to its own map, read by `runCucumber` via the ALS-bound channel (`getCurrentChannel()`). The `testStepErrors.clear()` in `runCucumber.ts` is a no-op on the correct per-page map and correctly resets it between retries within the same run.
 
 ### Cucumber API supported in browser mode
 
@@ -175,7 +184,7 @@ Caveats: `--publish` + `--coverage` in THIS repo triggers a one-time browser opt
 - `@cucumber/cucumber` — runtime, API, ArgvParser (internal `lib/configuration`)
 - `@cucumber/messages` — envelope types, `getWorstTestStepResult`
 - `@cucumber/query` — `Query` helper for envelope lookups
-- `glob` — support-file globbing in `node/loadSupport.ts`
+- `tinyglobby` — support-file globbing in `node/loadSupport.ts`
 - `string-argv` — parses `CUCUMBER_OPTIONS` into argv
 - `stream-chain` — `jsonl/parserStream` + `jsonl/stringerStream` for the streamed `--publish` JSONL merge
 

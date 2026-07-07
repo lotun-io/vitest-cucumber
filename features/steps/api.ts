@@ -66,9 +66,9 @@ Given("attachments are recorded", function record(this: TestWorld) {
 });
 
 Then(
-  "the world parameter greeting should be {string}",
-  function greeting(this: TestWorld, expected: string) {
-    expect((this.parameters as { greeting?: string }).greeting).toBe(expected);
+  "the world parameter {word} should be {string}",
+  function worldParam(this: TestWorld, key: string, expected: string) {
+    expect(String(this.parameters[key])).toBe(expected);
   },
 );
 

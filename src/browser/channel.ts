@@ -54,6 +54,7 @@ export type ChannelTask = {
 }[TaskKind];
 
 export class BrowserChannel {
+  readonly testStepErrors = new Map<string, SerializedError>();
   private queue: ChannelTask[] = [];
   private pending = new Map<string, PromiseWithResolvers<unknown>>();
   private waitingPull: PromiseWithResolvers<ChannelTask | null> | undefined;

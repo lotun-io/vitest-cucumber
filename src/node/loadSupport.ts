@@ -1,6 +1,6 @@
 import type { IConfiguration } from "@cucumber/cucumber";
 import { AfterStep } from "@cucumber/cucumber";
-import { glob } from "glob";
+import { glob } from "tinyglobby";
 import { resolveSupportGlobs } from "../utils/config.ts";
 import { globalRef } from "../utils/globals.ts";
 import type { SerializedError } from "../utils/serializeError.ts";
@@ -32,12 +32,10 @@ AfterStep(function ({ testStepId, error }) {
 
 const cwd = process.cwd();
 
-const globOpts = { absolute: true, windowsPathsNoEscape: true, cwd };
+const globOpts = { absolute: true, cwd };
 
 const supportGlobs = await resolveSupportGlobs(support.config);
-const resolvedImportPaths = await Promise.all(
-  supportGlobs.map((pattern) => glob(pattern, globOpts)),
-).then((r) => r.flat());
+const resolvedImportPaths = await glob(supportGlobs, globOpts);
 
 for (const path of resolvedImportPaths) {
   await support.moduleLoader(path);

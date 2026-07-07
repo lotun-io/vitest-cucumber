@@ -30,6 +30,7 @@ import {
   dispatchStep,
   dispatchTestRunHook,
   dispatchTransform,
+  getCurrentChannel,
 } from "./taskBridge.ts";
 
 export type BrowserSupport = {
@@ -38,7 +39,6 @@ export type BrowserSupport = {
   testRunHooks: TestRunHooksInfo;
   parameterTypes: ParameterTypeInfo[];
   defaultTimeout?: number;
-  testStepErrors: Map<string, SerializedError>;
 };
 
 const support = globalRef.__vitest_cucumber_browser__?.support;
@@ -62,7 +62,7 @@ Before(async function resetWorld(this: { parameters: unknown }) {
 // Capture failed step errors so runCucumber can attach them to the Vitest result.
 AfterStep(function ({ testStepId, error }) {
   if (error) {
-    support.testStepErrors.set(testStepId, serializeError(error));
+    getCurrentChannel()?.testStepErrors.set(testStepId, serializeError(error));
   }
 });
 
@@ -167,8 +167,8 @@ const bridgeHook = (kind: HookInfo["kind"], index: number) =>
 
 const bridgeTestRunHook = (kind: "beforeAll" | "afterAll", index: number) =>
   async function bridgedTestRunHook(this: { parameters: unknown }) {
-  // `this` is Cucumber's run context; forward parameters so the `context` export resolves.
-  return dispatchTestRunHook(kind, index, this.parameters);
+    // `this` is Cucumber's run context; forward parameters so the `context` export resolves.
+    return dispatchTestRunHook(kind, index, this.parameters);
   };
 
 // One lookup replaces the 4×3-arm registrar map. Cucumber evaluates tag
