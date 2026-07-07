@@ -1,5 +1,12 @@
 # @lotun/vitest-cucumber
 
+## 0.4.4
+
+### Patch Changes
+
+- d7fcc9c: Replace glob with tinyglobby in node support loading
+- d7fcc9c: Browser mode multi-project isolation
+
 ## 0.4.3
 
 ### Patch Changes
