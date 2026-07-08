@@ -101,8 +101,7 @@ There is **one Node process** (the Vitest server) running the Cucumber runtime f
 **all** browser sessions. Each `.feature` file is a session with its own task
 channel; step/hook bodies are dispatched to the page and executed there, then the
 result is reported back. No Node worker threads are used — the Node side is
-orchestration only. Browser-level parallelism is handled by the provider; all
-browser projects in a run share one Cucumber config / step set.
+orchestration only. Browser-level parallelism is handled by the provider; all browser projects share the same Vite server process, but each gets its own independent Cucumber config and support library.
 
 ### Cucumber API support
 
