@@ -1,5 +1,11 @@
 # @lotun/vitest-cucumber
 
+## 0.5.0
+
+### Minor Changes
+
+- 6424706: Export `runCucumber` from `@lotun/vitest-cucumber/browser` — runs a feature file on demand from browser-realm code (e.g. Storybook play functions)
+
 ## 0.4.4
 
 ### Patch Changes
