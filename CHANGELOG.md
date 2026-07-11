@@ -1,5 +1,11 @@
 # @lotun/vitest-cucumber
 
+## 0.5.1
+
+### Patch Changes
+
+- 8e12431: Fix importGlobs to load as virtual module
+
 ## 0.5.0
 
 ### Minor Changes
