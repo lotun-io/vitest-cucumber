@@ -22,11 +22,6 @@ const browserCucumberShimPath = path.join(
   "browser",
   `cucumberShim${ext}`,
 );
-const browserImportGlobsPath = path.posix.join(
-  import.meta.dirname.replaceAll("\\", "/"),
-  "browser",
-  `importGlobs${ext}`,
-);
 
 export type VitestCucumberOptions = Partial<IConfiguration>;
 
@@ -102,10 +97,17 @@ const browserCucumber = (config?: VitestCucumberOptions): Plugin => {
       if (source === "@cucumber/cucumber" && !options?.ssr) {
         return browserCucumberShimPath;
       }
+      // Virtual module: never pre-bundled by Vite, so the load hook always fires.
+      if (
+        source === "virtual:@lotun/vitest-cucumber/importGlobs" &&
+        !options?.ssr
+      ) {
+        return "\0virtual:@lotun/vitest-cucumber/importGlobs";
+      }
       return null;
     },
     async load(id) {
-      if (!id.startsWith(browserImportGlobsPath)) {
+      if (id !== "\0virtual:@lotun/vitest-cucumber/importGlobs") {
         return null;
       }
       const globs = await resolveGlobs();

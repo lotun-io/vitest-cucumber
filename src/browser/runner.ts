@@ -118,7 +118,9 @@ export const ensureCache = async () => {
 
   setVersion(version);
 
-  await import("./importGlobs.ts");
+  // @ts-expect-error virtual module
+  // eslint-disable-next-line
+  await import("virtual:@lotun/vitest-cucumber/importGlobs");
 
   cached = {
     lifecycleFeaturePath,
