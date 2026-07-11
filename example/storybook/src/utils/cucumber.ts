@@ -12,10 +12,11 @@ const storyContextRegistry = new Map<string, StoryContext>();
 if (isVitest) {
   const { Before } = await import("@cucumber/cucumber");
   Before(function (this: StoryWorld) {
-    const key = this.parameters.storyContextKey;
-    if (key) {
-      this.ctx = storyContextRegistry.get(key)!;
-      storyContextRegistry.delete(key);
+    const key = this.parameters.storyContextKey ?? "";
+    const ctx = storyContextRegistry.get(key);
+    storyContextRegistry.delete(key);
+    if (ctx) {
+      this.ctx = ctx;
     }
   });
 }
@@ -36,7 +37,7 @@ export const cucumberStory = ({
       return;
     }
 
-    const { runCucumber } = await import("../../../../src/browser/index.ts");
+    const { runCucumber } = await import("@lotun/vitest-cucumber/browser");
     const scenarioName = ctx.name;
     const key = crypto.randomUUID();
     storyContextRegistry.set(key, ctx);

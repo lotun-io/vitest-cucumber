@@ -14,8 +14,8 @@ importers:
         specifier: ^13.0.0
         version: 13.0.0
       '@lotun/vitest-cucumber':
-        specifier: ^0.4.4
-        version: 0.4.4(@cucumber/cucumber@13.0.0)(@cucumber/messages@32.3.1)(@cucumber/query@15.0.1(@cucumber/messages@32.3.1))(vitest@4.1.10)
+        specifier: ^0.5.1
+        version: 0.5.1(@cucumber/cucumber@13.0.0)(@cucumber/messages@32.3.1)(@cucumber/query@15.0.1(@cucumber/messages@32.3.1))(vitest@4.1.10)
       '@vitest/browser':
         specifier: ^4.1.10
         version: 4.1.10(vite@8.1.4(esbuild@0.28.1)(yaml@2.9.0))(vitest@4.1.10)
@@ -32,8 +32,8 @@ importers:
         specifier: ^13.0.0
         version: 13.0.0
       '@lotun/vitest-cucumber':
-        specifier: ^0.4.4
-        version: 0.4.4(@cucumber/cucumber@13.0.0)(@cucumber/messages@32.3.1)(@cucumber/query@15.0.1(@cucumber/messages@32.3.1))(vitest@4.1.10)
+        specifier: ^0.5.1
+        version: 0.5.1(@cucumber/cucumber@13.0.0)(@cucumber/messages@32.3.1)(@cucumber/query@15.0.1(@cucumber/messages@32.3.1))(vitest@4.1.10)
       vitest:
         specifier: ^4.1.10
         version: 4.1.10(@vitest/browser-playwright@4.1.10)(@vitest/coverage-v8@4.1.10)(vite@8.1.4(esbuild@0.28.1)(yaml@2.9.0))
@@ -44,8 +44,8 @@ importers:
         specifier: ^13.0.0
         version: 13.0.0
       '@lotun/vitest-cucumber':
-        specifier: ^0.4.4
-        version: 0.4.4(@cucumber/cucumber@13.0.0)(@cucumber/messages@32.3.1)(@cucumber/query@15.0.1(@cucumber/messages@32.3.1))(vitest@4.1.10)
+        specifier: ^0.5.1
+        version: 0.5.1(@cucumber/cucumber@13.0.0)(@cucumber/messages@32.3.1)(@cucumber/query@15.0.1(@cucumber/messages@32.3.1))(vitest@4.1.10)
       '@playwright/test':
         specifier: ^1.61.1
         version: 1.61.1
@@ -55,6 +55,9 @@ importers:
 
   storybook:
     dependencies:
+      '@lotun/vitest-cucumber':
+        specifier: ^0.5.1
+        version: 0.5.1(@cucumber/cucumber@13.0.0)(@cucumber/messages@32.3.1)(@cucumber/query@15.0.1(@cucumber/messages@32.3.1))(vitest@4.1.10)
       react:
         specifier: ^19.2.7
         version: 19.2.7
@@ -73,7 +76,7 @@ importers:
         version: 10.5.0(@vitest/browser-playwright@4.1.10)(@vitest/browser@4.1.10)(@vitest/runner@4.1.10)(react@19.2.7)(storybook@10.5.0(@types/react@19.2.17)(react@19.2.7))(vitest@4.1.10)
       '@storybook/react-vite':
         specifier: ^10.5.0
-        version: 10.5.0(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(esbuild@0.28.1)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(storybook@10.5.0(@types/react@19.2.17)(react@19.2.7))(typescript@5.9.3)(vite@8.1.4(esbuild@0.28.1)(yaml@2.9.0))
+        version: 10.5.0(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(esbuild@0.28.1)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(storybook@10.5.0(@types/react@19.2.17)(react@19.2.7))(supports-color@10.2.2)(typescript@5.9.3)(vite@8.1.4(esbuild@0.28.1)(yaml@2.9.0))
       '@types/react':
         specifier: ^19.2.17
         version: 19.2.17
@@ -448,8 +451,8 @@ packages:
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
 
-  '@lotun/vitest-cucumber@0.4.4':
-    resolution: {integrity: sha512-edolo53wTT6wYh15OcGw68BWz65cztSRjg9zFWPPX9PhDjHP/VnVLLkz4hvexN0HVUofD8AZ0MlQU/MIDrdnJg==}
+  '@lotun/vitest-cucumber@0.5.1':
+    resolution: {integrity: sha512-EHJcHn2ZBA60U8fr4JW/73VMJjoRziCiyT+4NAaJ6k5Pkp7eu6D3I5ZMkLgWSU/5lzofxRsxNixznE/1MUs2Qg==}
     engines: {node: '>=22.0.0'}
     peerDependencies:
       '@cucumber/cucumber': 12.x || 13.x
@@ -2018,12 +2021,12 @@ snapshots:
 
   '@babel/compat-data@7.29.7': {}
 
-  '@babel/core@7.29.7':
+  '@babel/core@7.29.7(supports-color@10.2.2)':
     dependencies:
       '@babel/code-frame': 7.29.7
       '@babel/generator': 7.29.7
       '@babel/helper-compilation-targets': 7.29.7
-      '@babel/helper-module-transforms': 7.29.7(@babel/core@7.29.7)
+      '@babel/helper-module-transforms': 7.29.7(@babel/core@7.29.7(supports-color@10.2.2))
       '@babel/helpers': 7.29.7
       '@babel/parser': 7.29.7
       '@babel/template': 7.29.7
@@ -2063,9 +2066,9 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@babel/helper-module-transforms@7.29.7(@babel/core@7.29.7)':
+  '@babel/helper-module-transforms@7.29.7(@babel/core@7.29.7(supports-color@10.2.2))':
     dependencies:
-      '@babel/core': 7.29.7
+      '@babel/core': 7.29.7(supports-color@10.2.2)
       '@babel/helper-module-imports': 7.29.7
       '@babel/helper-validator-identifier': 7.29.7
       '@babel/traverse': 7.29.7
@@ -2359,7 +2362,7 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
 
-  '@lotun/vitest-cucumber@0.4.4(@cucumber/cucumber@13.0.0)(@cucumber/messages@32.3.1)(@cucumber/query@15.0.1(@cucumber/messages@32.3.1))(vitest@4.1.10)':
+  '@lotun/vitest-cucumber@0.5.1(@cucumber/cucumber@13.0.0)(@cucumber/messages@32.3.1)(@cucumber/query@15.0.1(@cucumber/messages@32.3.1))(vitest@4.1.10)':
     dependencies:
       '@cucumber/cucumber': 13.0.0
       '@cucumber/messages': 32.3.1
@@ -2624,7 +2627,7 @@ snapshots:
       '@types/react': 19.2.17
       '@types/react-dom': 19.2.3(@types/react@19.2.17)
 
-  '@storybook/react-vite@10.5.0(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(esbuild@0.28.1)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(storybook@10.5.0(@types/react@19.2.17)(react@19.2.7))(typescript@5.9.3)(vite@8.1.4(esbuild@0.28.1)(yaml@2.9.0))':
+  '@storybook/react-vite@10.5.0(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(esbuild@0.28.1)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(storybook@10.5.0(@types/react@19.2.17)(react@19.2.7))(supports-color@10.2.2)(typescript@5.9.3)(vite@8.1.4(esbuild@0.28.1)(yaml@2.9.0))':
     dependencies:
       '@joshwooding/vite-plugin-react-docgen-typescript': 0.7.0(typescript@5.9.3)(vite@8.1.4(esbuild@0.28.1)(yaml@2.9.0))
       '@rollup/pluginutils': 5.4.0
@@ -2633,7 +2636,7 @@ snapshots:
       empathic: 2.0.1
       magic-string: 0.30.21
       react: 19.2.7
-      react-docgen: 8.0.3
+      react-docgen: 8.0.3(supports-color@10.2.2)
       react-dom: 19.2.7(react@19.2.7)
       resolve: 1.22.12
       storybook: 10.5.0(@types/react@19.2.17)(react@19.2.7)
@@ -2654,7 +2657,7 @@ snapshots:
       '@storybook/global': 5.0.0
       '@storybook/react-dom-shim': 10.5.0(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(storybook@10.5.0(@types/react@19.2.17)(react@19.2.7))
       react: 19.2.7
-      react-docgen: 8.0.3
+      react-docgen: 8.0.3(supports-color@10.2.2)
       react-docgen-typescript: 2.4.0(typescript@5.9.3)
       react-dom: 19.2.7(react@19.2.7)
       storybook: 10.5.0(@types/react@19.2.17)(react@19.2.7)
@@ -3355,9 +3358,9 @@ snapshots:
     dependencies:
       typescript: 5.9.3
 
-  react-docgen@8.0.3:
+  react-docgen@8.0.3(supports-color@10.2.2):
     dependencies:
-      '@babel/core': 7.29.7
+      '@babel/core': 7.29.7(supports-color@10.2.2)
       '@babel/traverse': 7.29.7
       '@babel/types': 7.29.7
       '@types/babel__core': 7.20.5

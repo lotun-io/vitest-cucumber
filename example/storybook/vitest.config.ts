@@ -1,7 +1,7 @@
+import { cucumber } from "@lotun/vitest-cucumber";
 import { storybookTest } from "@storybook/addon-vitest/vitest-plugin";
 import { playwright } from "@vitest/browser-playwright";
 import { defineConfig } from "vitest/config";
-import { cucumber } from "../../src/index.ts";
 
 export default defineConfig({
   test: {
