@@ -150,7 +150,10 @@ export type PrepareRunConfigurationOptions = {
   support: ISupportCodeLibrary;
   withHook: WithHook;
   testLocations?: number[];
-  runtime?: Partial<Pick<IRunConfiguration["runtime"], "dryRun" | "retry">>;
+  provided?: Pick<
+    Partial<IConfiguration>,
+    "name" | "dryRun" | "retry" | "worldParameters"
+  >;
 };
 
 export const prepareRunConfiguration = ({
@@ -159,17 +162,23 @@ export const prepareRunConfiguration = ({
   support,
   withHook,
   testLocations,
-  runtime,
+  provided,
 }: PrepareRunConfigurationOptions): IRunConfiguration => {
   return {
     ...runConfiguration,
     runtime: {
       ...runConfiguration.runtime,
-      ...runtime,
+      ...(provided?.dryRun !== undefined && { dryRun: provided.dryRun }),
+      ...(provided?.retry !== undefined && { retry: provided.retry }),
+      worldParameters: {
+        ...runConfiguration.runtime.worldParameters,
+        ...provided?.worldParameters,
+      },
     },
     sources: {
       ...runConfiguration.sources,
       paths: [testLocations?.length ? `${id}:${testLocations.join(":")}` : id],
+      ...(provided?.name?.length && { names: provided.name }),
     },
     support: prepareSupport({ support, withHook }),
   };

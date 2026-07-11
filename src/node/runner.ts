@@ -5,15 +5,18 @@ import type {
 } from "@cucumber/cucumber/api";
 import { loadSupport } from "@cucumber/cucumber/api";
 import path from "node:path";
+import { test } from "vitest";
 import type { WithHook } from "../utils/config.ts";
 import {
   prepareRunConfiguration,
   resolveRunConfiguration,
 } from "../utils/config.ts";
-import { createBaseTest } from "../utils/createBaseTest.ts";
 import { globalRef } from "../utils/globals.ts";
 import { isPublishEnabled, writeEnvelopes } from "../utils/publish.ts";
-import { registerFeatureTests } from "../utils/registerFeatureTests.ts";
+import {
+  registerFeatureTests,
+  registerWorkerCleanup,
+} from "../utils/registerFeatureTests.ts";
 import type { ResultItem } from "../utils/runCucumber.ts";
 import { runCucumber } from "../utils/runCucumber.ts";
 import type { SerializedError } from "../utils/serializeError.ts";
@@ -74,7 +77,7 @@ const ensureCache = async ({
 type RunOptions = {
   id: string;
   withHook: WithHook;
-  runtime?: Partial<Pick<IRunConfiguration["runtime"], "dryRun" | "retry">>;
+  provided?: Partial<Pick<IRunConfiguration["runtime"], "dryRun" | "retry">>;
   testLocations?: number[];
   onTestCaseFinished?: (result: ResultItem) => void;
 };
@@ -83,14 +86,14 @@ const run = async ({
   id,
   withHook,
   testLocations,
-  runtime,
+  provided,
   onTestCaseFinished,
 }: RunOptions) => {
   if (!cached) {
     throw new Error("ensureCache was not called");
   }
 
-  const publish = !runtime?.dryRun && isPublishEnabled();
+  const publish = !provided?.dryRun && isPublishEnabled();
 
   return runCucumber({
     id,
@@ -100,7 +103,7 @@ const run = async ({
       support: cached.support,
       withHook,
       testLocations,
-      runtime,
+      provided,
     }),
     testStepErrors: cached.testStepErrors,
     publish,
@@ -108,7 +111,7 @@ const run = async ({
   });
 };
 
-const test = createBaseTest({
+registerWorkerCleanup({
   onCleanup: async () => {
     const { envelopes, startedAt } = await run({
       id: lifecycleFeaturePath,
@@ -148,7 +151,7 @@ export const runFeatureFile = async ({
     id,
     withHook: "none",
     testLocations,
-    runtime: { dryRun: true },
+    provided: { dryRun: true },
   });
 
   const results = new Map<string, ResultItem>(
@@ -166,12 +169,11 @@ export const runFeatureFile = async ({
     id,
     featureName,
     results,
-    test,
   });
 
   const withHook = isCached ? "none" : "before"; // first feature keeps BeforeAll
 
-  const runCucumberPromise = run({
+  const runPromise = run({
     id,
     withHook,
     testLocations,
@@ -191,7 +193,7 @@ export const runFeatureFile = async ({
 
   test.afterAll(async () => {
     // Collect the real run's envelopes for --publish.
-    const { envelopes, startedAt } = await runCucumberPromise;
+    const { envelopes, startedAt } = await runPromise;
     const projectName = worker?.ctx?.projectName;
     await writeEnvelopes({ envelopes, startedAt, projectName });
   });

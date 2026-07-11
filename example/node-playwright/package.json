@@ -1,0 +1,14 @@
+{
+  "name": "example-node-playwright",
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@cucumber/cucumber": "^13.0.0",
+    "@lotun/vitest-cucumber": "^0.4.4",
+    "@playwright/test": "^1.61.1",
+    "vitest": "^4.1.10"
+  }
+}

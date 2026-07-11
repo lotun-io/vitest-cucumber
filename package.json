@@ -23,6 +23,9 @@
   "exports": {
     ".": {
       "import": "./src/index.ts"
+    },
+    "./browser": {
+      "import": "./src/browser/index.ts"
     }
   },
   "publishConfig": {
@@ -30,6 +33,10 @@
       ".": {
         "import": "./dist/index.mjs",
         "types": "./dist/index.d.mts"
+      },
+      "./browser": {
+        "import": "./dist/browser/index.mjs",
+        "types": "./dist/browser/index.d.mts"
       }
     }
   },
@@ -64,16 +71,16 @@
     "@cucumber/messages": "^32.3.1",
     "@cucumber/query": "^15.0.1",
     "@tsconfig/node24": "^24.0.4",
-    "@types/node": "^24.13.2",
+    "@types/node": "^24.13.3",
     "@vitest/browser-playwright": "^4.1.10",
     "@vitest/coverage-v8": "^4.1.10",
     "@vitest/ui": "^4.1.10",
     "eslint": "^10.6.0",
     "eslint-plugin-n": "^18.2.1",
     "jiti": "^2.7.0",
-    "prettier": "^3.9.4",
+    "prettier": "^3.9.5",
     "prettier-plugin-organize-imports": "^4.3.0",
-    "tsdown": "^0.22.3",
+    "tsdown": "^0.22.4",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.63.0",
     "vitest": "^4.1.10"

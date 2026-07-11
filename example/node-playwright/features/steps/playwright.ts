@@ -22,7 +22,7 @@ Given(
   },
 );
 
-Then(
+Given(
   "the page title should be {string}",
   async function checkTitle(this: PlaywrightWorld, title: string) {
     await expect(this.page).toHaveTitle(title);

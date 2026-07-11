@@ -248,7 +248,7 @@ describe("browser bridge (driven in Node)", () => {
       id: harnessFeature,
       dispatchTestCaseFinished: false,
       withHook: "none",
-      runtime: { dryRun: true },
+      provided: { dryRun: true },
     });
     await pump();
     const plan = await cmds.cucumberEnd(ctx);

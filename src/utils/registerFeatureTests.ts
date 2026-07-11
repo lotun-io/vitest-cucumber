@@ -1,6 +1,5 @@
 import type { TestContext } from "vitest";
-import { describe, TestRunner } from "vitest";
-import type { TestAPI } from "./createBaseTest.ts";
+import { describe, test, TestRunner } from "vitest";
 import { createError } from "./createError.ts";
 import type { ResultItem, Results } from "./runCucumber.ts";
 
@@ -40,15 +39,7 @@ export const annotateAttachments = async (
   }
 };
 
-const registerTests = ({
-  id,
-  group,
-  test,
-}: {
-  id: string;
-  group: ScenarioGroup;
-  test: TestAPI;
-}) => {
+const registerTests = ({ id, group }: { id: string; group: ScenarioGroup }) => {
   for (const result of group.items) {
     test(
       result.name ?? "Unknown",
@@ -77,14 +68,27 @@ export type RegisterFeatureTestsParams = {
   id: string;
   featureName: string;
   results: Results;
-  test: TestAPI;
+};
+
+export const registerWorkerCleanup = ({
+  onCleanup: cleanupFn,
+}: {
+  onCleanup: () => void | Promise<void>;
+}) => {
+  const cleanupTest = test.extend(
+    "hooks",
+    { scope: "worker", auto: true },
+    ({}, { onCleanup }) => {
+      onCleanup(cleanupFn);
+    },
+  );
+  cleanupTest.afterAll(() => null);
 };
 
 export const registerFeatureTests = ({
   id,
   featureName,
   results,
-  test,
 }: RegisterFeatureTestsParams): void => {
   if (results.size === 0) {
     test(featureName, ({ skip }) => {
@@ -140,10 +144,10 @@ export const registerFeatureTests = ({
                 TestRunner.getCurrentSuite().suite ?? {},
                 group.scenarioLine,
               );
-              registerTests({ id, group, test });
+              registerTests({ id, group });
             });
           } else {
-            registerTests({ id, group, test });
+            registerTests({ id, group });
           }
         }
       };

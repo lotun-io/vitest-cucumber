@@ -36,7 +36,7 @@ export default defineConfig({
       provider: "v8",
       reportsDirectory: "coverage",
       include: ["src/**/*.ts"],
-      exclude: ["src/**/__tests__/**", "src/index.ts"],
+      exclude: ["src/**/__*__/**", "src/index.ts"],
       thresholds: {
         statements: 90,
         branches: 80,
@@ -110,6 +110,20 @@ export default defineConfig({
           exclude: exclude({ shared: true }),
           browser: createBrowserConfig(),
           isolate: false,
+        },
+      },
+      {
+        plugins: [
+          createCucumberPlugin({
+            type: "browser",
+            worldParameters: { greeting: "hello", shared: false },
+          }),
+        ],
+        test: {
+          name: "browser-api",
+          sequence: { groupOrder: 5 },
+          include: ["src/**/__browser__/**/*.test.ts"],
+          browser: createBrowserConfig(),
         },
       },
     ],

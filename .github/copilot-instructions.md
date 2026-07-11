@@ -23,8 +23,9 @@ src/
 │   ├── runner.ts         — runFeatureFile(): per-feature orchestrator, worker support cache, BeforeAll/AfterAll lifecycle
 │   └── loadSupport.ts    — globs & imports step/support files via Vitest's moduleLoader; AfterStep error capture
 ├── browser/              — BROWSER-MODE runtime
+│   ├── index.ts          — public browser API: runCucumber() for on-demand feature execution from browser-realm code
 │   ├── commands.ts       — Node-side Vitest commands (cucumberMetadata/Run/NextTask/ReportTask/End)
-│   ├── runner.ts         — browser-realm runFeatureFile(): dry-run plan → register tests → pull loop
+│   ├── runner.ts         — browser-realm: run() primitive (cucumberRun→pump→cucumberEnd); runFeatureFile() (dry-run plan → register tests → pull loop); ensureCache(); registerWorkerCleanup for AfterAll
 │   ├── channel.ts        — BrowserChannel: FIFO async task queue between Node command and browser pull loop
 │   ├── taskBridge.ts     — Node-side dispatch* helpers; channel bound per-run via AsyncLocalStorage
 │   ├── cucumberShim.ts   — browser-realm "@cucumber/cucumber" replacement (registry + bridge + World/world/context)
@@ -34,9 +35,8 @@ src/
 │   └── status.ts         — browser-safe TestStepResultStatus constant copy
 └── utils/                — SHARED (node + browser)
     ├── runCucumber.ts    — Cucumber runtime invocation; emits a results Map; supportWithHook() strips test-run hooks
-    ├── registerFeatureTests.ts — registers the results Map as Vitest describe/test blocks (Rule grouping); surfaces attachments as test annotations
+    ├── registerFeatureTests.ts — registers the results Map as Vitest describe/test blocks (Rule grouping); surfaces attachments as test annotations; also exports registerWorkerCleanup() which uses test.extend to register a worker-scoped auto-fixture that fires an onCleanup callback at worker teardown (used by both runners for AfterAll)
     ├── config.ts         — cliArgs() parses CUCUMBER_OPTIONS via ArgvParser (incl. --profile/--config); mergeConfig() resolves the effective config (profile-aware); resolveRunConfiguration() builds the IRunConfiguration; resolveSupportGlobs() returns the profile-resolved step globs as ONE flat string[] (import+require merged, default fallback) for the browser plugin AND node/loadSupport
-    ├── createBaseTest.ts — wraps vitest's test.extend to register a worker-scoped auto-fixture that calls onCleanup at worker teardown
     ├── publish.ts         — --publish: writeEnvelopes() (per-project subdir), mergeEnvelopeStream() (fold N runs → 1 report), publishReport(projectName) (merge→gzip→PUT, best-effort)
     ├── publishGlobalSetup.ts — Vitest globalSetup: setup(project) → teardown publishes THIS project's report
     ├── serializeError.ts — serializeError(): plain, structured-clone-safe error for the Vitest/command boundary
@@ -56,10 +56,11 @@ pnpm lint           # tsc + prettier check + eslint
 pnpm format         # prettier write + eslint --fix
 ```
 
-- **Vitest projects**: `unit`, `node(isolate:true)`, `node-shared(isolate:false)`, `browser(isolate:true)`, `browser-shared(isolate:false)` (chromium via Playwright). The `*-shared` projects pass `worldParameters: { ..., shared: true }` and run `features/world-shared-true.feature` (excluded from non-shared projects via `test.exclude`); non-shared projects run `features/world-shared-false.feature`. This arrangement verifies that each browser project receives its own independent `runConfiguration` even when projects run concurrently — if a project leaked another's config, the world-parameter assertion would fail.
+- **Vitest projects**: `unit`, `node(isolate:true)`, `node-shared(isolate:false)`, `browser(isolate:true)`, `browser-shared(isolate:false)` (chromium via Playwright), `browser-api`. The `*-shared` projects pass `worldParameters: { ..., shared: true }` and run `features/world-shared-true.feature` (excluded from non-shared projects via `test.exclude`); non-shared projects run `features/world-shared-false.feature`. This arrangement verifies that each browser project receives its own independent `runConfiguration` even when projects run concurrently — if a project leaked another's config, the world-parameter assertion would fail.
 - **Unit tests**: `src/**/__tests__/**/*.test.ts` — includes the in-Node **bridge harness** (`src/browser/__tests__/bridge.test.ts`) and `taskBridge.test.ts`, which drive the browser-mode Node-side host (`commands`/`channel`/`taskBridge`/`loadSupport`) under the Node v8 provider.
+- **Browser API tests**: `src/**/__browser__/**/*.test.ts` — plain `.ts` tests run in a real Chromium browser (the `browser-api` project). Used for end-to-end tests of `browser/index.ts` `runCucumber`. `__browser__/` is the counterpart to `__tests__/` for tests that require live `vitest/browser` commands.
 - **Functional tests**: `features/**/*.feature` — ONE shared, realm-agnostic feature/step set run by every cucumber project; browser-only scenarios are tagged `@notNode`, node-only `@notBrowser`.
-- **Coverage**: thresholds are 90/80/90/90 and `pnpm test` **passes** (≈92.8/82.5/93.1/92.9). Browser-realm files (`cucumberShim.ts`, `browser/runner.ts`, `dataTable.ts`, `status.ts`) are instrumented by the browser project's page coverage; the browser Node-side host files are instrumented by the in-Node bridge harness + unit tests. Remaining gaps are intentional (defensive throws, `plugin.ts` browser hooks, the `setDefaultTimeout` setter).
+- **Coverage**: thresholds are 90/80/90/90 and `pnpm test` **passes** (≈93.2/84.4/92.6/93.6). Browser-realm files (`cucumberShim.ts`, `browser/runner.ts`, `dataTable.ts`, `status.ts`) are instrumented by the browser project's page coverage; the browser Node-side host files are instrumented by the in-Node bridge harness + unit tests. `browser/index.ts` is covered by the `browser-api` project. Remaining gaps are intentional (defensive throws, `plugin.ts` browser hooks, the `setDefaultTimeout` setter).
 
 ## Mode selection & the plugin
 
@@ -88,9 +89,21 @@ Both modes converge on **dry-run plan → register tests → real run streamed v
 
 Frequency is **self-adjusting** with the user's `isolate` setting (never forced): `isolate: false` → BeforeAll once on the first feature, AfterAll once at worker stop; `isolate: true` → both per feature. The browser runner mirrors this exactly (its own cache + `onCleanup` + `cucumberAfterAll`).
 
-## Browser mode flow (the bridge)
+## Browser mode flow (`browser/runner.ts` + `browser/index.ts`)
 
-Node runs the native Cucumber runtime; each step/hook/transform body + the World run in the **browser** realm. The bridge is **Vitest Commands only** (provider-agnostic — playwright/webdriverio/preview).
+`browser/runner.ts` has three exported primitives that mirror `node/runner.ts`:
+
+- **`run(options)`** — the core triplet: `cucumberRun(options)` → `pump(onTestCaseFinished?)` → `cucumberEnd()`. Used internally by `runFeatureFile` and externally by `browser/index.ts`.
+- **`ensureCache()`** — first-call loads `cucumberMetadata` (version + lifecycle path) and imports `importGlobs.ts`; subsequent calls return `{ isCached: true }`. Exported so `browser/index.ts` can call it before `run()`.
+- **`runFeatureFile({ id })`** — full Vitest integration: dry-run plan → `registerFeatureTests` → real run with `test.afterAll`.
+
+`browser/index.ts` exposes the public on-demand API:
+
+- **`runCucumber({ id, config })`** — calls `ensureCache()`, determines `withHook` (`isCached ? "none" : "before"`), calls `run()`, and maps raw `ResultItem[]` to `{ id, status, error }[]` (error is `undefined` for PASSED/SKIPPED, a `createError`-shaped object otherwise). Intended for browser-realm callers such as Storybook play functions or Vitest browser tests that need to run Cucumber scenarios on demand rather than via the `.feature` file transform.
+
+## Browser mode bridge
+
+The bridge is **Vitest Commands only** (provider-agnostic — playwright/webdriverio/preview).
 
 - **`cucumberShim.ts`** (browser realm) is the `"@cucumber/cucumber"` replacement: `Given/Before/...` store definitions in a `BrowserRegistry`; a `BrowserBridge` (on `globalThis.__vitest_cucumber_browser__`) exposes `runStep`/`runHook`/`runTransform`/`runTestRunHook`/`newWorld`/`get*`. Bodies are invoked by key.
 - **`commands.ts`** (Node) hosts the run: `cucumberMetadata` (version + lifecycle feature path), `cucumberRun` (whole-feature run; dry-run plan or real run; streams each scenario back as a `testCaseFinished` channel task), `cucumberNextTask`/`cucumberReportTask` (the pull loop), `cucumberEnd`. Every command takes either nothing or a single options object — no positional `undefined` for the RPC to drop.
@@ -168,8 +181,9 @@ Caveats: `--publish` + `--coverage` in THIS repo triggers a one-time browser opt
 
 - All source files use ESM (`import`/`export`), `.ts` extensions in import paths.
 - `path.extname(import.meta.filename)` resolves sibling/relative paths so the same code works in both `src/` (dev) and `dist/` (published).
-- No barrel files other than `src/index.ts`.
-- Tests live in `__tests__/` folders co-located with source; excluded from the build via `!**/__*__/**`.
+- No barrel files other than `src/index.ts` and `src/browser/index.ts`.
+- Tests live in `__tests__/` folders co-located with source (Node unit tests); excluded from the build via `!**/__*__/**`.
+- Browser integration tests live in `__browser__/` folders co-located with source; also excluded from the build. Run in the `browser-api` Vitest project (Chromium).
 - The `globalThis` bridge is typed once in `utils/globals.ts` (`globalRef`); never re-`declare global` elsewhere.
 
 ## Cucumber version compatibility

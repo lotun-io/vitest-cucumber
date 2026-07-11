@@ -1,2 +1,11 @@
+packages:
+  - "node"
+  - "node-playwright"
+  - "browser"
+  - "storybook"
+
+allowBuilds:
+  esbuild: true
+
 minimumReleaseAgeExclude:
   - "@lotun/vitest-cucumber"

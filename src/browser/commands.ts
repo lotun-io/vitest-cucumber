@@ -55,8 +55,11 @@ export type RunOptions = {
   id: string;
   dispatchTestCaseFinished: boolean;
   withHook: WithHook;
-  runtime?: Partial<Pick<IRunConfiguration["runtime"], "dryRun" | "retry">>;
   testLocations?: number[];
+  provided?: Pick<
+    Partial<IConfiguration>,
+    "name" | "dryRun" | "retry" | "worldParameters"
+  >;
 };
 
 // The command surface the browser-side `runFeatureFile` calls.
@@ -151,13 +154,18 @@ export const createCucumberCommands = (config: Partial<IConfiguration>) => {
     results: ResultItem[];
   }> => {
     try {
-      const { id, dispatchTestCaseFinished, withHook, runtime, testLocations } =
-        options;
+      const {
+        id,
+        dispatchTestCaseFinished,
+        withHook,
+        testLocations,
+        provided,
+      } = options;
 
       const cached = await ensureSupport();
 
       // Collect envelopes for `--publish` on real runs; no-op when publishing is off.
-      const publish = !runtime?.dryRun && isPublishEnabled();
+      const publish = !provided?.dryRun && isPublishEnabled();
 
       const { featureName, results, envelopes, startedAt } = await runCucumber({
         id,
@@ -166,7 +174,7 @@ export const createCucumberCommands = (config: Partial<IConfiguration>) => {
           runConfiguration: cached.runConfiguration,
           support: cached.support,
           withHook,
-          runtime,
+          provided,
           testLocations,
         }),
         testStepErrors: channel.testStepErrors,

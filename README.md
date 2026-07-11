@@ -182,7 +182,14 @@ Then(
 );
 ```
 
-A fully working example project is available in the [`example`](https://github.com/lotun-io/vitest-cucumber/tree/main/example) folder, demonstrating feature files, step definitions, hooks, and a custom world.
+Fully working example projects are available in the [`example`](https://github.com/lotun-io/vitest-cucumber/tree/main/example) folder:
+
+| Example                                                                                                    | Description                                                                    |
+| ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| [`example/node`](https://github.com/lotun-io/vitest-cucumber/tree/main/example/node)                       | Node.js mode — feature files, step definitions, hooks, custom world            |
+| [`example/node-playwright`](https://github.com/lotun-io/vitest-cucumber/tree/main/example/node-playwright) | Node.js mode with Playwright — browser automation from step definitions        |
+| [`example/browser`](https://github.com/lotun-io/vitest-cucumber/tree/main/example/browser)                 | Browser mode — DOM interactions via Playwright/Chromium                        |
+| [`example/storybook`](https://github.com/lotun-io/vitest-cucumber/tree/main/example/storybook)             | Storybook integration — run Cucumber scenarios inside Storybook play functions |
 
 ## Usage
 

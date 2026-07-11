@@ -1,12 +1,15 @@
+import { test } from "vitest";
 import { commands } from "vitest/browser";
-import { createBaseTest } from "../utils/createBaseTest.ts";
 import { globalRef } from "../utils/globals.ts";
-import { registerFeatureTests } from "../utils/registerFeatureTests.ts";
+import {
+  registerFeatureTests,
+  registerWorkerCleanup,
+} from "../utils/registerFeatureTests.ts";
 import type { ResultItem } from "../utils/runCucumber.ts";
 import type { SerializedError } from "../utils/serializeError.ts";
 import { serializeError } from "../utils/serializeError.ts";
 import type { ChannelTask } from "./channel.ts";
-import type { CucumberCommands } from "./commands.ts";
+import type { CucumberCommands, RunOptions } from "./commands.ts";
 import type { BrowserAttachment, BrowserBridge } from "./cucumberShim.ts";
 import { setVersion } from "./cucumberShim.ts";
 
@@ -97,7 +100,16 @@ const pump = async (
   }
 };
 
-const ensureCache = async () => {
+export const run = async (
+  options: RunOptions & { onTestCaseFinished?: (finished: ResultItem) => void },
+) => {
+  const { onTestCaseFinished, ...runOptions } = options;
+  await cucumber.cucumberRun(runOptions);
+  await pump(onTestCaseFinished);
+  return cucumber.cucumberEnd();
+};
+
+export const ensureCache = async () => {
   if (cached) {
     return { isCached: true };
   }
@@ -106,6 +118,8 @@ const ensureCache = async () => {
 
   setVersion(version);
 
+  await import("./importGlobs.ts");
+
   cached = {
     lifecycleFeaturePath,
   };
@@ -113,44 +127,33 @@ const ensureCache = async () => {
   return { isCached: false };
 };
 
-const test = createBaseTest({
+registerWorkerCleanup({
   onCleanup: async () => {
     if (!cached) {
       throw new Error("ensureCache was not called");
     }
-    await cucumber.cucumberRun({
+    await run({
       id: cached.lifecycleFeaturePath,
       dispatchTestCaseFinished: false,
       withHook: "after",
     });
-    await pump();
-    await cucumber.cucumberEnd();
   },
 });
 
-export const runFeatureFile = async ({
-  id,
-}: {
-  id: string;
-  // Eager glob of step/support modules — imported for their registration side
-  // effects by the plugin wrapper; nothing to consume here.
-  steps?: Record<string, unknown>;
-}): Promise<void> => {
+export const runFeatureFile = async ({ id }: { id: string }): Promise<void> => {
   const testLocations = worker?.ctx?.files?.find(
     (file) => file?.filepath === id,
   )?.testLocations;
 
   const { isCached } = await ensureCache();
 
-  await cucumber.cucumberRun({
+  const { featureName, results: planResults } = await run({
     id,
     dispatchTestCaseFinished: false,
     withHook: "none",
-    runtime: { dryRun: true },
+    provided: { dryRun: true },
     testLocations,
   });
-  await pump();
-  const { featureName, results: planResults } = await cucumber.cucumberEnd();
 
   const results = new Map<string, ResultItem>(
     planResults.map((result) => [
@@ -163,27 +166,23 @@ export const runFeatureFile = async ({
     id,
     featureName,
     results,
-    test,
   });
 
   const withHook = isCached ? "none" : "before"; // first feature keeps BeforeAll
 
-  const runPromise = (async () => {
-    await cucumber.cucumberRun({
-      id,
-      dispatchTestCaseFinished: true,
-      withHook,
-      testLocations,
-    });
-    await pump((finished) => {
+  const runPromise = run({
+    id,
+    dispatchTestCaseFinished: true,
+    withHook,
+    testLocations,
+    onTestCaseFinished: (finished) => {
       const result = results.get(finished.id);
       if (result) {
         Object.assign(result, finished);
         result.resolvers?.resolve(null);
       }
-    });
-    await cucumber.cucumberEnd();
-  })().finally(() => {
+    },
+  }).finally(() => {
     for (const result of results.values()) {
       result.resolvers?.resolve(null);
     }

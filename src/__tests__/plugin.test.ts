@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import type { Plugin } from "vitest/config";
 import { cucumber } from "../plugin.ts";
-import { DEFAULT_IMPORT_GLOB } from "../utils/config.ts";
 import { PUBLISH_DIR_ENV } from "../utils/publish.ts";
 
 const nodePlugin = (config?: Parameters<typeof cucumber>[0]) =>
@@ -215,12 +214,6 @@ describe("cucumber plugin", () => {
           code: string;
         };
         expect(result.code).toContain("/path/to/my.feature");
-      });
-
-      it("includes import.meta.glob with the resolved step globs", async () => {
-        const result = (await call("", "my.feature")) as { code: string };
-        expect(result.code).toContain("import.meta.glob");
-        expect(result.code).toContain(DEFAULT_IMPORT_GLOB);
       });
     });
   });
