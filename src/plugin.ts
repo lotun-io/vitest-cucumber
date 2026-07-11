@@ -22,8 +22,8 @@ const browserCucumberShimPath = path.join(
   "browser",
   `cucumberShim${ext}`,
 );
-const browserImportGlobsPath = path.join(
-  import.meta.dirname,
+const browserImportGlobsPath = path.posix.join(
+  import.meta.dirname.replaceAll("\\", "/"),
   "browser",
   `importGlobs${ext}`,
 );
@@ -105,11 +105,11 @@ const browserCucumber = (config?: VitestCucumberOptions): Plugin => {
       return null;
     },
     async load(id) {
-      if (id === browserImportGlobsPath) {
-        const globs = await resolveGlobs();
-        return `import.meta.glob(${JSON.stringify(globs)}, { eager: true });`;
+      if (!id.startsWith(browserImportGlobsPath)) {
+        return null;
       }
-      return null;
+      const globs = await resolveGlobs();
+      return `import.meta.glob(${JSON.stringify(globs)}, { eager: true });`;
     },
     async transform(code, id) {
       if (!id.endsWith(".feature")) {

@@ -53,10 +53,10 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
       - run: pnpm pack
-      - name: Install packed tarball into example
+      - name: Install packed tarball into example workspaces
         working-directory: example
-        run: pnpm add "../lotun-vitest-cucumber-$(node -p "require('../package.json').version").tgz"
+        run: pnpm -r add "../../lotun-vitest-cucumber-$(node -p "require('../package.json').version").tgz"
       - working-directory: example
-        run: pnpm exec playwright install --with-deps chromium
+        run: pnpm -F ./browser exec playwright install --with-deps chromium
       - working-directory: example
         run: pnpm test
