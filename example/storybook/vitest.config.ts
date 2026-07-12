@@ -13,11 +13,6 @@ export default defineConfig({
     projects: [
       // Storybook component tests
       {
-        define: {
-          // Inject project root as a constant so browser code can resolve
-          // feature file paths to absolute filesystem paths.
-          __POC_ROOT__: JSON.stringify(process.cwd()),
-        },
         plugins: [
           storybookTest({
             configDir: ".storybook",
