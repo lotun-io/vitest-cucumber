@@ -1,8 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { cucumberStory } from "../utils/cucumber.ts";
+import { cucumberPlay } from "../utils/cucumber.ts";
 import { Counter } from "./Counter.tsx";
-
-const { play } = cucumberStory();
 
 const meta: Meta<typeof Counter> = {
   component: Counter,
@@ -29,11 +27,11 @@ export const StartAtTen: Story = {
 export const IncrementThreeTimes: Story = {
   name: "Increment three times",
   args: { initialValue: 0, step: 1 },
-  play,
+  play: cucumberPlay(),
 };
 
 export const ResetAfterIncrement: Story = {
   name: "Reset after increment",
   args: { initialValue: 0, step: 1 },
-  play,
+  play: cucumberPlay(),
 };

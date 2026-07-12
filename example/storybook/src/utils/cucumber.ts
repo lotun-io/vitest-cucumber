@@ -1,4 +1,4 @@
-import type { StoryContext, StoryObj } from "@storybook/react-vite";
+import type { StoryContext } from "@storybook/react-vite";
 import type {
   StoryWorld,
   WorldParameters,
@@ -21,24 +21,25 @@ if (isVitest) {
   });
 }
 
-export const cucumberStory = ({
-  featurePath,
-}: { featurePath?: string } = {}) => {
+export const cucumberPlay = (
+  options: { featurePath?: string; scenarioName?: string } = {},
+) => {
+  let { featurePath } = options;
   if (!featurePath) {
     const callerLine = new Error().stack
       ?.split("\n")
       .find((l) => l.includes(".stories.tsx"));
     const name = callerLine?.match(/\/([^/?]+)\.stories\.tsx/)?.[1];
-    featurePath = `features/${name}.stories.feature`;
+    featurePath ??= `features/${name}.stories.feature`;
   }
 
-  const play: NonNullable<StoryObj["play"]> = async (ctx) => {
+  return async (ctx: StoryContext<any>) => {
     if (!isVitest) {
       return;
     }
 
     const { runCucumber } = await import("@lotun/vitest-cucumber/browser");
-    const scenarioName = ctx.name;
+    const scenarioName = options.scenarioName ?? ctx.name;
     const key = crypto.randomUUID();
     storyContextRegistry.set(key, ctx);
 
@@ -61,9 +62,5 @@ export const cucumberStory = ({
     if (failedResult) {
       throw failedResult.error;
     }
-  };
-
-  return {
-    play,
   };
 };
