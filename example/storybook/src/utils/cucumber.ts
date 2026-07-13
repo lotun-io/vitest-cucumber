@@ -26,11 +26,20 @@ export const cucumberPlay = (
 ) => {
   let { featurePath } = options;
   if (!featurePath) {
-    const callerLine = new Error().stack
+    const storyUrl = new Error().stack
       ?.split("\n")
-      .find((l) => l.includes(".stories.tsx"));
-    const name = callerLine?.match(/\/([^/?]+)\.stories\.tsx/)?.[1];
-    featurePath ??= `features/${name}.stories.feature`;
+      .find((l) => l.includes(".stories.ts"))
+      ?.match(/https?:\/\/.+/)
+      ?.at(0);
+
+    if (!storyUrl) {
+      throw new Error(
+        "Could not determine the story URL from the stack trace. Please provide a featurePath in the options.",
+      );
+    }
+
+    const pathname = new URL(storyUrl).pathname;
+    featurePath = pathname.replace(/\.[^.]+$/, ".feature");
   }
 
   return async (ctx: StoryContext<any>) => {

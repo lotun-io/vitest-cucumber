@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { cucumberPlay } from "../utils/cucumber.ts";
 import { Button } from "./Button.tsx";
 
 const meta: Meta<typeof Button> = {
@@ -20,6 +21,7 @@ export const Primary: Story = {
     variant: "primary",
     size: "md",
   },
+  play: cucumberPlay(),
 };
 
 export const Secondary: Story = {
@@ -36,6 +38,7 @@ export const Large: Story = {
     variant: "primary",
     size: "lg",
   },
+  play: cucumberPlay(),
 };
 
 export const Disabled: Story = {

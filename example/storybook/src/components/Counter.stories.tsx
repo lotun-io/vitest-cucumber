@@ -2,6 +2,8 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { cucumberPlay } from "../utils/cucumber.ts";
 import { Counter } from "./Counter.tsx";
 
+const featurePath = "features/Counter.stories.feature";
+
 const meta: Meta<typeof Counter> = {
   component: Counter,
   tags: ["test"],
@@ -27,11 +29,15 @@ export const StartAtTen: Story = {
 export const IncrementThreeTimes: Story = {
   name: "Increment three times",
   args: { initialValue: 0, step: 1 },
-  play: cucumberPlay(),
+  play: cucumberPlay({
+    featurePath,
+  }),
 };
 
 export const ResetAfterIncrement: Story = {
   name: "Reset after increment",
   args: { initialValue: 0, step: 1 },
-  play: cucumberPlay(),
+  play: cucumberPlay({
+    featurePath,
+  }),
 };
