@@ -1,10 +1,6 @@
 import type { StoryContext } from "@storybook/react-vite";
-import type {
-  StoryWorld,
-  WorldParameters,
-} from "../../features/support/world.ts";
+import type { StoryWorld } from "../../features/support/world.ts";
 
-// eslint-disable-next-line
 const isVitest = (import.meta as any).env?.VITEST_STORYBOOK;
 
 const storyContextRegistry = new Map<string, StoryContext>();
@@ -21,26 +17,42 @@ if (isVitest) {
   });
 }
 
-export const cucumberPlay = (
-  options: { featurePath?: string; scenarioName?: string } = {},
-) => {
-  let { featurePath } = options;
-  if (!featurePath) {
-    const storyUrl = new Error().stack
-      ?.split("\n")
-      .find((l) => l.includes(".stories.ts"))
-      ?.match(/https?:\/\/.+/)
-      ?.at(0);
-
-    if (!storyUrl) {
-      throw new Error(
-        "Could not determine the story URL from the stack trace. Please provide a featurePath in the options.",
-      );
-    }
-
-    const pathname = new URL(storyUrl).pathname;
-    featurePath = pathname.replace(/\.[^.]+$/, ".feature");
+const getFeaturePath = async ({ storyUrl }: { storyUrl?: string }) => {
+  if (!storyUrl) {
+    throw new Error("Could not determine the story URL from the stack trace.");
   }
+
+  const { commands } = await import("vitest/browser");
+
+  const pathname = new URL(storyUrl).pathname;
+  const storyPath = pathname.replace(/\.[^.]+$/, ".feature");
+  const featurePath = storyPath.replace("/src/", "/features/");
+
+  const id =
+    (await commands
+      .readFile(storyPath)
+      .then(() => storyPath)
+      .catch(() => null)) ??
+    (await commands
+      .readFile(featurePath)
+      .then(() => featurePath)
+      .catch(() => null));
+
+  if (!id) {
+    throw new Error(
+      `Feature file not found. Tried:\n  ${storyPath}\n  ${featurePath}`,
+    );
+  }
+
+  return id;
+};
+
+export const cucumberPlay = () => {
+  const storyUrl = new Error().stack
+    ?.split("\n")
+    .find((line) => line.includes(".stories.ts"))
+    ?.match(/https?:\/\/.+/)
+    ?.at(0);
 
   return async (ctx: StoryContext<any>) => {
     if (!isVitest) {
@@ -48,7 +60,8 @@ export const cucumberPlay = (
     }
 
     const { runCucumber } = await import("@lotun/vitest-cucumber/browser");
-    const scenarioName = options.scenarioName ?? ctx.name;
+    const featurePath = await getFeaturePath({ storyUrl });
+    const scenarioName = ctx.name;
     const key = crypto.randomUUID();
     storyContextRegistry.set(key, ctx);
 
@@ -56,7 +69,7 @@ export const cucumberPlay = (
       id: featurePath,
       config: {
         name: [`^${RegExp.escape(scenarioName)}$`],
-        worldParameters: { storyContextKey: key } satisfies WorldParameters,
+        worldParameters: { storyContextKey: key },
       },
     });
 
