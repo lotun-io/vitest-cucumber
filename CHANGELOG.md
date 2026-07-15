@@ -1,5 +1,11 @@
 # @lotun/vitest-cucumber
 
+## 0.5.2
+
+### Patch Changes
+
+- 54be580: Use Cucumber's mergeConfigurations instead of overwriting plugin config with CUCUMBER_OPTIONS
+
 ## 0.5.1
 
 ### Patch Changes
