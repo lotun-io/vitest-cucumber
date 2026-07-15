@@ -223,7 +223,7 @@ npx vitest run features/outline.feature:10
 
 ## Environment CLI Options
 
-Use the `CUCUMBER_OPTIONS` environment variable to pass Cucumber CLI options at runtime. These options will overwrite the corresponding values in the config passed to the `cucumber()` plugin.
+Use the `CUCUMBER_OPTIONS` environment variable to pass Cucumber CLI options at runtime. These options are merged with the config passed to the `cucumber()` plugin using Cucumber's own merge strategy.
 
 ```bash
 CUCUMBER_OPTIONS="--tags @smoke" npx vitest run

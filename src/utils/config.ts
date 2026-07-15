@@ -13,7 +13,10 @@ import { parseArgsStringToArgv } from "string-argv";
 export const DEFAULT_IMPORT_GLOB = "features/**/*.{js,ts,cjs,cts,mjs,mts}";
 
 const require = createRequire(import.meta.url);
-const { ArgvParser } = require("@cucumber/cucumber/lib/configuration/index");
+const {
+  ArgvParser,
+  mergeConfigurations,
+} = require("@cucumber/cucumber/lib/configuration/index");
 
 // config.ts lives in utils/, resolved with the running file's extension so it
 // works in both src/ (dev) and dist/ (published).
@@ -59,7 +62,7 @@ export const mergeConfig = async (
   const { useConfiguration } = await loadConfiguration({
     file,
     profiles,
-    provided: { ...config, ...configuration, paths: [] },
+    provided: mergeConfigurations(config, configuration),
   });
 
   return useConfiguration;

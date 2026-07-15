@@ -89,10 +89,10 @@ describe("mergeConfig", () => {
     });
   });
 
-  it("lets CUCUMBER_OPTIONS override the base config", async () => {
+  it("lets CUCUMBER_OPTIONS merge with the base config", async () => {
     process.env.CUCUMBER_OPTIONS = "--tags @wip";
     await expect(mergeConfig({ tags: "@smoke" })).resolves.toMatchObject({
-      tags: "(@wip)",
+      tags: "(@smoke) and (@wip)",
     });
   });
 

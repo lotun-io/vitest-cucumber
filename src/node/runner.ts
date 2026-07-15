@@ -171,7 +171,7 @@ export const runFeatureFile = async ({
     results,
   });
 
-  const withHook = isCached ? "none" : "before"; // first feature keeps BeforeAll
+  const withHook = isCached ? "none" : "before";
 
   const runPromise = run({
     id,
