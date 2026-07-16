@@ -6,8 +6,8 @@
     "test": "vitest run"
   },
   "devDependencies": {
-    "@cucumber/cucumber": "^13.0.0",
-    "@lotun/vitest-cucumber": "^0.5.1",
+    "@cucumber/cucumber": "^13.1.1",
+    "@lotun/vitest-cucumber": "^0.5.2",
     "vitest": "^4.1.10"
   }
 }

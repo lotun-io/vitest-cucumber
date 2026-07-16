@@ -9,3 +9,5 @@ allowBuilds:
 
 minimumReleaseAgeExclude:
   - "@lotun/vitest-cucumber"
+  - '@cucumber/cucumber'
+  - vitest

@@ -1,4 +1,3 @@
-// Mirrors @cucumber/messages TestStepResultStatus (browser-safe constant copy).
 export const Status = {
   UNKNOWN: "UNKNOWN",
   PASSED: "PASSED",

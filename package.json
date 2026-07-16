@@ -55,19 +55,19 @@
     "ci:publish": "pnpm build && pnpm publish --provenance --access public --no-git-checks"
   },
   "dependencies": {
+    "@cucumber/messages": "^34.1.0",
+    "@cucumber/query": "^16.0.1",
     "stream-chain": "^4.2.5",
     "string-argv": "^0.3.2",
     "tinyglobby": "^0.2.17"
   },
   "peerDependencies": {
     "@cucumber/cucumber": "12.x || 13.x",
-    "@cucumber/messages": "32.x",
-    "@cucumber/query": "15.x",
     "vitest": "4.x"
   },
   "devDependencies": {
-    "@changesets/cli": "^2.31.0",
-    "@cucumber/cucumber": "^13.0.0",
+    "@changesets/cli": "^2.31.1",
+    "@cucumber/cucumber": "^13.1.1",
     "@cucumber/messages": "^32.3.1",
     "@cucumber/query": "^15.0.1",
     "@tsconfig/node24": "^24.0.4",
@@ -79,10 +79,11 @@
     "eslint-plugin-n": "^18.2.2",
     "jiti": "^2.7.0",
     "prettier": "^3.9.5",
+    "prettier-plugin-gherkin": "^4.0.0",
     "prettier-plugin-organize-imports": "^4.3.0",
-    "tsdown": "^0.22.4",
+    "tsdown": "^0.22.8",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.63.0",
+    "typescript-eslint": "^8.64.0",
     "vitest": "^4.1.10"
   },
   "packageManager": "pnpm@11.5.2+sha512.71c631e382066efc25625d5cf029075de07b61b37f6e27350fbd84b1bda5864c8c1967adc280776b45c30a715c0359a3be08fef42d5bb09e2b99029979692916"
