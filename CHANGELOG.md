@@ -1,5 +1,11 @@
 # @lotun/vitest-cucumber
 
+## 0.5.3
+
+### Patch Changes
+
+- 957e3e2: Update @cucumber deps
+
 ## 0.5.2
 
 ### Patch Changes
