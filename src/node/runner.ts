@@ -191,6 +191,8 @@ export const runFeatureFile = async ({
     }
   });
 
+  runPromise.catch(() => null)
+
   test.afterAll(async () => {
     // Collect the real run's envelopes for --publish.
     const { envelopes, startedAt } = await runPromise;
