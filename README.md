@@ -15,7 +15,7 @@ A [Vitest](https://vitest.dev/) plugin that lets you run [Cucumber](https://cucu
 ## Requirements
 
 - Node.js >= 22.0.0
-- Vitest ^4.x
+- Vitest ^4.x || ^5.x
 - @cucumber/cucumber ^12.x || ^13.x
 
 ## Installation
