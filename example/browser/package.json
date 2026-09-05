@@ -7,7 +7,7 @@
   },
   "devDependencies": {
     "@cucumber/cucumber": "^13.2.1",
-    "@lotun/vitest-cucumber": "^0.5.3",
+    "@lotun/vitest-cucumber": "^0.5.4",
     "@vitest/browser": "^5.0.0",
     "@vitest/browser-playwright": "^5.0.0",
     "vitest": "^5.0.0"
