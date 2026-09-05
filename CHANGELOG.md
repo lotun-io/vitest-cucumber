@@ -1,5 +1,11 @@
 # @lotun/vitest-cucumber
 
+## 0.5.4
+
+### Patch Changes
+
+- 19d960b: Add support for vitest 5
+
 ## 0.5.3
 
 ### Patch Changes
