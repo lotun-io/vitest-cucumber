@@ -1,3 +1,4 @@
 minimumReleaseAgeExclude:
   - '@cucumber/cucumber'
   - vitest
+  - eslint@10.10.0

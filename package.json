@@ -68,14 +68,12 @@
   "devDependencies": {
     "@changesets/cli": "^2.31.1",
     "@cucumber/cucumber": "^13.2.1",
-    "@cucumber/messages": "^32.3.1",
-    "@cucumber/query": "^15.0.1",
     "@tsconfig/node24": "^24.0.5",
-    "@types/node": "^24.13.3",
+    "@types/node": "^26.4.1",
     "@vitest/browser-playwright": "^5.0.0",
     "@vitest/coverage-v8": "^5.0.0",
     "@vitest/ui": "^5.0.0",
-    "eslint": "^10.9.1",
+    "eslint": "^10.10.0",
     "eslint-plugin-n": "^18.3.0",
     "jiti": "^2.7.0",
     "prettier": "^3.9.6",
@@ -86,5 +84,5 @@
     "typescript-eslint": "^8.69.0",
     "vitest": "^5.0.0"
   },
-  "packageManager": "pnpm@11.5.2+sha512.71c631e382066efc25625d5cf029075de07b61b37f6e27350fbd84b1bda5864c8c1967adc280776b45c30a715c0359a3be08fef42d5bb09e2b99029979692916"
+  "packageManager": "pnpm@11.25.0"
 }
