@@ -23,6 +23,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
             <Navbar
               logo={<Logo />}
               projectLink="https://github.com/lotun-io/vitest-cucumber"
+              chatLink="https://discord.gg/dfJUkmEtAP"
             />
           }
           pageMap={await getPageMap()}

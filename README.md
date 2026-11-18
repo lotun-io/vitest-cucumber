@@ -6,6 +6,8 @@ You write Gherkin and step definitions with `@cucumber/cucumber`'s API. Every sc
 
 **Documentation: https://lotun-io.github.io/vitest-cucumber/**
 
+Questions and ideas: [Discord](https://discord.gg/dfJUkmEtAP)
+
 ## Install
 
 ```bash

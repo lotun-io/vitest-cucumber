@@ -5,4 +5,5 @@ export default {
   guides: "Guides",
   reference: "Reference",
   examples: "Examples",
+  community: "Community",
 };
