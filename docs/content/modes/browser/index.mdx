@@ -11,22 +11,28 @@ real browser page, where they can render, click and read the DOM. It's the same 
 <Tabs items={["pnpm", "npm", "yarn"]}>
   <Tabs.Tab>
     ```bash
-    pnpm add -D @lotun/vitest-cucumber @cucumber/cucumber vitest @vitest/browser-playwright playwright
+    pnpm add -D @lotun/vitest-cucumber@beta @cucumber/cucumber vitest @vitest/browser-playwright playwright
     ```
   </Tabs.Tab>
   <Tabs.Tab>
     ```bash
-    npm install -D @lotun/vitest-cucumber @cucumber/cucumber vitest @vitest/browser-playwright playwright
+    npm install -D @lotun/vitest-cucumber@beta @cucumber/cucumber vitest @vitest/browser-playwright playwright
     ```
   </Tabs.Tab>
   <Tabs.Tab>
     ```bash
-    yarn add -D @lotun/vitest-cucumber @cucumber/cucumber vitest @vitest/browser-playwright playwright
+    yarn add -D @lotun/vitest-cucumber@beta @cucumber/cucumber vitest @vitest/browser-playwright playwright
     ```
   </Tabs.Tab>
 </Tabs>
 
-Install the browsers once: `npx playwright install chromium`.
+Install the browser once: `npx playwright install chromium`, or `npx playwright install` for
+Chromium, Firefox and WebKit. On CI, or a Linux machine that never ran a browser, add `--with-deps`:
+it also installs the system libraries the browsers need.
+
+The rest of the setup is Vitest's own: its
+[Playwright provider page](https://vitest.dev/config/browser/playwright) covers the provider's
+options (how the browser is launched, its context, timeouts).
 
 ## Configure
 

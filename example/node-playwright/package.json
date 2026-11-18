@@ -9,6 +9,7 @@
     "@cucumber/cucumber": "catalog:",
     "@lotun/vitest-cucumber": "catalog:",
     "@playwright/test": "catalog:",
+    "playwright": "catalog:",
     "vitest": "catalog:"
   }
 }
