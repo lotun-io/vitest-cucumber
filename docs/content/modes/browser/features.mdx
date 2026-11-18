@@ -1,10 +1,20 @@
-import { Callout } from "nextra/components";
+import { Callout, FileTree } from "nextra/components";
 
 # Writing features
 
 A feature file and its steps, as in the other modes, with the page at hand: `document`, and Vitest's
 `page` and `userEvent` from `vitest/browser`. The rest is `@cucumber/cucumber`'s API:
 [Support code](/guides/support-code).
+
+<FileTree>
+  <FileTree.Folder name="features" defaultOpen>
+    <FileTree.Folder name="steps" defaultOpen>
+      <FileTree.File name="greeting.ts" />
+    </FileTree.Folder>
+    <FileTree.File name="greeting.feature" />
+  </FileTree.Folder>
+  <FileTree.File name="vitest.config.ts" />
+</FileTree>
 
 ## Steps against the page
 

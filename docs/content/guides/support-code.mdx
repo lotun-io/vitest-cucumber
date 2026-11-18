@@ -4,25 +4,33 @@ import { Callout } from "nextra/components";
 
 Your step definitions, hooks, World and parameter types use `@cucumber/cucumber`'s API, unchanged.
 The plugin loads the files the [`import`](/reference/options#import) option lists, in every mode.
+They can be TypeScript (or TSX): Vite transforms them, with no loader or `requireModule` to set up.
 
 ## What works
 
-The whole support code API, in node mode, browser mode and Storybook:
+| Cucumber API | Node | Browser | Storybook |
+| --- | :-: | :-: | :-: |
+| `Given` / `When` / `Then` / `defineStep` (Cucumber expressions, regular expressions) | ✅ | ✅ | ✅ |
+| `Before` / `After` / `BeforeStep` / `AfterStep` (tags, names, timeouts) | ✅ | ✅ | ✅ |
+| `BeforeAll` / `AfterAll` | ✅ | ✅ | ✅ |
+| `setWorldConstructor` / `World` | ✅ | ✅ | ✅ |
+| `world` / `context` / `version` | ✅ | ✅ | ✅ |
+| `defineParameterType` (incl. async transformers) | ✅ | ✅ | ✅ |
+| `DataTable` / doc strings / `Status` | ✅ | ✅ | ✅ |
+| Async, promise-returning and callback (`done`) steps and hooks | ✅ | ✅ | ✅ |
+| `return "pending"` / `return "skipped"` | ✅ | ✅ | ✅ |
+| A definition's `{ timeout }` | ✅ | ✅ | ✅ |
+| `wrapPromiseWithTimeout` | ✅ | ✅ | ✅ |
+| `setDefinitionFunctionWrapper` | ✅ | ✅ | ✅ |
+| `this.attach` / `this.log` / `this.link` | ✅ | ⚠️ | ⚠️ |
+| `@cucumber/cucumber/api`, formatter classes | ✅ | ❌ | ❌ |
+| `setDefaultTimeout` | ❌ | ❌ | ❌ |
+| `setParallelCanAssign` | ❌ | ❌ | ❌ |
+| `BeforeAll` / `AfterAll` with `on: "COORDINATOR"` | ❌ | ❌ | ❌ |
 
-- `Given`, `When`, `Then`, `defineStep`, with Cucumber expressions (`{int}`, `{float}`, `{word}`,
-  `{string}`, `{}`, `{biginteger}`, optional text, alternatives) and regular expressions
-- `Before`, `After`, `BeforeStep`, `AfterStep` (with tags, names and timeouts), `BeforeAll`,
-  `AfterAll`
-- `setWorldConstructor`, `World`, `world`, `context`, `worldParameters`
-- `defineParameterType` (its transformer's `this` is the World; async transformers are awaited)
-- `DataTable` (`raw`, `rows`, `hashes`, `rowsHash`, `transpose`) and doc strings
-- a definition's `timeout`, `setDefinitionFunctionWrapper`
-- async, promise-returning and callback (`done`) steps and hooks
-- `return "pending"`, `return "skipped"`
-- `this.attach`, `this.log`, `this.link`
-- `Status`, `version`, `wrapPromiseWithTimeout`
-
-What doesn't: [Limitations](/reference/limitations).
+- ⚠️ **Attachments in a page** are strings only: [Attachments](#attachments).
+- ❌ **What isn't supported** fails where it's used, with the plugin's error, and has a Vitest
+  equivalent: [Limitations](/reference/limitations).
 
 ## World
 

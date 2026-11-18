@@ -52,6 +52,11 @@ Feature: Arithmetic
 Scenarios with the same name are separate tests, each running its own steps. A Feature with no name
 is named by its file's path.
 
+All of Gherkin works, as Cucumber parses it: `Background`, `Rule`, a `Scenario Outline` with one or
+more `Examples` (and tags on them), data tables, doc strings, a `# language:` header (or the
+[`language`](/reference/options) option) and
+[Markdown feature files](/guides/projects#markdown-feature-files).
+
 <Callout type="warning">
   A feature file with no scenarios fails with Vitest's `No test found in suite`.
 </Callout>

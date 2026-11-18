@@ -1,28 +1,79 @@
-# @lotun/vitest-cucumber
+# <img src="https://raw.githubusercontent.com/lotun-io/vitest-cucumber/main/docs/app/icon.svg" alt="" width="42" height="42" align="absmiddle"> @lotun/vitest-cucumber
 
-Run [Cucumber](https://cucumber.io/) feature files as [Vitest](https://vitest.dev/) tests: in Node, in a real browser, or as [Storybook](https://storybook.js.org/) stories.
+Run [Cucumber](https://cucumber.io/) feature files as [Vitest](https://vitest.dev/) tests.
 
-You write Gherkin and step definitions with `@cucumber/cucumber`'s API. Every scenario, and every row of a Scenario Outline, is a Vitest test: Vitest finds, filters, retries, runs and reports them, and your steps run with Cucumber's semantics (step matching, hooks, World, timeouts, statuses).
+[![npm version](https://img.shields.io/npm/v/@lotun/vitest-cucumber/beta)](https://www.npmjs.com/package/@lotun/vitest-cucumber)
 
-**Documentation: https://lotun-io.github.io/vitest-cucumber/**
-
-Questions and ideas: [Discord](https://discord.gg/dfJUkmEtAP)
+[Documentation](https://lotun-io.github.io/vitest-cucumber/) | [Getting Started](https://lotun-io.github.io/vitest-cucumber/getting-started) | [Examples](https://lotun-io.github.io/vitest-cucumber/examples) | [Discord](https://discord.gg/dfJUkmEtAP)
 
 ## Install
 
 ```bash
-npm install -D @lotun/vitest-cucumber @cucumber/cucumber vitest
+npm install -D @lotun/vitest-cucumber@beta @cucumber/cucumber vitest
 ```
 
-Requires Node.js 24 or 26, Vitest 5 and `@cucumber/cucumber` 13.3 or a later 13.x. The package is ESM only: your Vitest config must load as an ES module (`"type": "module"` in the nearest `package.json`, or a `vitest.config.mts`).
-
-Then [Getting started](https://lotun-io.github.io/vitest-cucumber/getting-started): the config, a first feature and its steps.
+> Requires Node.js 24 or 26, Vitest 5 and `@cucumber/cucumber` 13.3 or a later 13.x. ESM only.
 
 ## Modes
 
-- **[Node mode](https://lotun-io.github.io/vitest-cucumber/modes/node)**: steps run in Vitest's workers. For logic, APIs, or driving a browser yourself with Playwright.
-- **[Browser mode](https://lotun-io.github.io/vitest-cucumber/modes/browser)**: enable Vitest's [browser mode](https://vitest.dev/guide/browser/) (`test.browser`, with `@vitest/browser-playwright`), and the same steps run in a real page, where they can use the DOM.
-- **[Storybook](https://lotun-io.github.io/vitest-cucumber/modes/storybook)**: feature files listed in Storybook's `stories` are stories files of their own, each scenario a story on the stories file next to it (`Login.feature` and `Login.stories.ts`), on the story its step names (`Given the LogIn story`). They play in Vitest with Storybook's Vitest addon, in Storybook's UI and in static builds. Every framework the Vitest addon supports (Storybook's Vite frameworks: React, Next.js, Vue, Svelte, SvelteKit, Angular, Preact, Solid, Web Components, HTML, …).
+- [Node mode](https://lotun-io.github.io/vitest-cucumber/modes/node): steps run in Vitest's workers. For logic, APIs, or driving a browser with Playwright.
+- [Browser mode](https://lotun-io.github.io/vitest-cucumber/modes/browser): the same steps run in a real page, with Vitest's browser mode.
+- [Storybook](https://lotun-io.github.io/vitest-cucumber/modes/storybook): each scenario is a story on the stories file next to its feature (`Login.feature` and `Login.stories.ts`).
+
+## Features
+
+- [Uses the official `@cucumber/cucumber` package](https://lotun-io.github.io/vitest-cucumber/guides/support-code#what-works): your steps, hooks and World import from it, with Cucumber's API unchanged
+- [Every scenario, and every row of a Scenario Outline, is a Vitest test](https://lotun-io.github.io/vitest-cucumber/guides/running#how-scenarios-become-tests)
+- [Scenarios as Storybook stories](https://lotun-io.github.io/vitest-cucumber/modes/storybook): played in Vitest, in Storybook's UI and in static builds, with [a stories file's features on its docs page](https://lotun-io.github.io/vitest-cucumber/modes/storybook/docs)
+- [Cucumber runs inside the browser page](https://lotun-io.github.io/vitest-cucumber/modes/browser): your steps, hooks and World in Chromium, Firefox or WebKit, with Vitest's browser mode
+- [Run one scenario by its Gherkin line, by tag or by name](https://lotun-io.github.io/vitest-cucumber/guides/running#filtering)
+- [Failures at the step's line in the feature file](https://lotun-io.github.io/vitest-cucumber/guides/results#a-failing-step), and [Cucumber's snippets for undefined steps](https://lotun-io.github.io/vitest-cucumber/guides/results#undefined-pending-and-ambiguous-steps)
+- Vitest's [watch mode](https://lotun-io.github.io/vitest-cucumber/guides/running#watch-mode), [parallel runs](https://lotun-io.github.io/vitest-cucumber/guides/running#parallel-runs), [retries](https://lotun-io.github.io/vitest-cucumber/guides/running#retries), [coverage](https://lotun-io.github.io/vitest-cucumber/guides/running#coverage) and reporters
+
+## Example
+
+```ts
+// vitest.config.ts
+import { cucumber } from "@lotun/vitest-cucumber";
+import { defineConfig } from "vitest/config";
+
+export default defineConfig({
+  plugins: [cucumber({ import: ["features/**/*.ts"] })],
+  test: { include: ["features/**/*.feature"] },
+});
+```
+
+```gherkin
+# features/greeting.feature
+Feature: Greeting
+
+  Scenario: Saying hello
+    Given a visitor named "Ada"
+    When they are greeted
+    Then the greeting is "Hello, Ada!"
+```
+
+```ts
+// features/steps/greeting.ts
+import { Given, Then, When } from "@cucumber/cucumber";
+import { expect } from "vitest";
+
+Given("a visitor named {string}", function (name: string) {
+  this.name = name;
+});
+
+When("they are greeted", function () {
+  this.greeting = `Hello, ${this.name}!`;
+});
+
+Then("the greeting is {string}", function (text: string) {
+  expect(this.greeting).toBe(text);
+});
+```
+
+```bash
+$ npx vitest
+```
 
 ## License
 
