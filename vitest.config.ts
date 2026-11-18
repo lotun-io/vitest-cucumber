@@ -24,13 +24,13 @@ const partial = process.argv
 // The e2e and compatibility projects' workers (`isolate: true`: a process per feature file, the
 // native memory its Vitests leave behind given back as it ends): each keeps a Vitest per mode for the
 // default config (`e2e/support/kept.ts`), runs any other in a new Vitest closed after it
-// (`e2e/support/runVitest.ts`), one scenario's at a time. GitHub's runner: 16 GB, 4 CPUs.
+// (`e2e/support/runVitest.ts`), one scenario's at a time. A worker takes about 2 GB and a CPU:
+// too many overload a machine (workers fail to start, imports fail, steps time out).
 // `E2E_WORKERS` (a number) sets them, e.g. `E2E_WORKERS=2 pnpm test` on a smaller machine.
+// Without it, Vitest's default. CI doesn't run these two projects (`.github/workflows/ci.yml`).
 const e2eWorkers = process.env.E2E_WORKERS
   ? Number(process.env.E2E_WORKERS)
-  : process.env.CI
-    ? 6
-    : undefined;
+  : undefined;
 
 export default defineConfig({
   // `src/`'s coverage as Node runs it (see `./vitest.nodeSources.ts`).

@@ -1,4 +1,4 @@
-import { Given, Then } from "@cucumber/cucumber";
+import { Given } from "@cucumber/cucumber";
 import { expect } from "@playwright/test";
 import type { PlaywrightWorld } from "../support/world.ts";
 

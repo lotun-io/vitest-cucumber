@@ -35,8 +35,12 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm exec playwright install --with-deps chromium firefox webkit
-      - run: pnpm test
+      - run: pnpm exec playwright install --with-deps chromium
+      # The unit tests and the root features in each mode. Not the e2e and compatibility
+      # projects: too heavy for the runners (they run locally, `pnpm test`). Naming projects
+      # also turns the coverage thresholds off (`vitest.config.ts`'s `partial`): they are the
+      # whole suite's.
+      - run: pnpm test --project unit --project node --project browser --project storybook
 
   smoke:
     name: "smoke (pack + example)"
@@ -54,7 +58,10 @@ jobs:
       - name: Install packed tarball into example workspaces
         working-directory: example
         run: pnpm -r add "../../lotun-vitest-cucumber-$(node -p "require('../package.json').version").tgz"
-      - working-directory: example
+      # One browser build for every example: they share one Playwright version (the examples'
+      # catalog, `example/pnpm-workspace.yaml`: `playwright` and `@playwright/test`).
+      - name: Install the examples' browser
+        working-directory: example
         run: pnpm -F ./browser exec playwright install --with-deps chromium
       - working-directory: example
         run: pnpm test

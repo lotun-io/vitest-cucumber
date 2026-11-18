@@ -7,8 +7,8 @@ Storybook's docs are React in every framework, so a block reads them with a hook
 `useSyncExternalStore` takes. In `storybook dev` an open docs page then follows the feature files as
 you save them: a feature's new text, a feature added or deleted.
 
-Both examples need Storybook's docs addon, `@storybook/addon-docs`, in `.storybook/main.ts`'s
-`addons`: the docs pages and their blocks (`Source`, `Heading`, `useOf`) are its own. The first
+Both examples need [Storybook's docs addon](https://storybook.js.org/docs/writing-docs/autodocs),
+`@storybook/addon-docs`, in `.storybook/main.ts`'s `addons`: the docs pages and their blocks (`Source`, `Heading`, `useOf`) are its own. The first
 shows on autodocs pages, the ones of stories files tagged `autodocs` (here every one, with the
 preview's `tags`). `featuresOf()` and `onFeaturesChange()` themselves don't depend on the addon.
 

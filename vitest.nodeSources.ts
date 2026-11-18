@@ -8,6 +8,7 @@
 // the report keys a function by its start and end), so each function counted twice, once uncovered.
 // The stripping is `amaro`'s, the library Node strips types with (`stripTypeScriptTypes` of
 // `node:module` is the same, but experimental: it warns as it's first called).
+import { slash } from "@vitest/utils/helpers";
 import { transformSync } from "amaro";
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
@@ -17,14 +18,20 @@ import type { Plugin } from "vitest/config";
 const stripTypeScriptTypes = (code: string) =>
   transformSync(code, { mode: "strip-only" }).code;
 
-/** `url`'s file: without its query, a `file:` URL's path. */
+/** `url`'s file, with `/` (as Vite's ids): without its query, a `file:` URL's path. */
 const fileOf = (url: string) => {
   const [pathname = ""] = url.split("?");
-  return pathname.startsWith("file://") ? fileURLToPath(pathname) : pathname;
+  return slash(
+    pathname.startsWith("file://") ? fileURLToPath(pathname) : pathname,
+  );
 };
 
 export const nodeSources = (directory: string): Plugin => {
-  const sources = new RegExp(`^${RegExp.escape(directory)}.*\\.[cm]?ts$`);
+  // With `/`, as Vite's ids: on Windows a directory made with `node:path` has `\\`, and matched
+  // no module (a page then got Vite's transform, its functions and branches counted twice).
+  const sources = new RegExp(
+    `^${RegExp.escape(slash(directory))}.*\\.[cm]?ts$`,
+  );
   /** Whether `file` is one of the plugin's TypeScript modules. */
   const isSource = (file: string) => sources.test(file);
   return {
