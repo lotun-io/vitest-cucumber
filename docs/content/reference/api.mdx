@@ -1,0 +1,73 @@
+# API
+
+## `@lotun/vitest-cucumber`
+
+### `cucumber()`
+
+```ts
+cucumber(options?: CucumberOptions): Plugin[]
+```
+
+The Vite plugin: feature files as Vitest tests. Its options: [Options](/reference/options).
+
+### `CucumberOptions`
+
+The type of `cucumber()`'s options.
+
+## `@lotun/vitest-cucumber/storybook`
+
+In `.storybook/main.ts`'s `addons`, the Storybook preset ([Storybook](/modes/storybook)). Its
+exports, for support code and docs:
+
+### `story()`
+
+```ts
+story<Context = unknown>(): Context
+```
+
+The running story's context, in a step of a scenario's story; `Context` is your framework's
+`StoryContext` (`canvas`, `userEvent`, `args`, `mount`, …). Throws outside a story.
+
+### `featuresOf()`
+
+```ts
+featuresOf(storiesFile: string): readonly FeatureSource[]
+```
+
+The feature files whose scenarios run on a stories file: next to it, or naming it in a stories file
+step. `storiesFile` is its path from the project's root, as Storybook's `parameters.fileName`
+(`./src/Header.stories.ts`). In story tests (Vitest), none. The same array until a stories file's
+features change. Example: [Features in docs](/modes/storybook/docs).
+
+```ts
+featuresOf("./src/Header.stories.ts");
+// [{ fileName: "./features/header/Session.feature", source: "Feature: Session\n…" },
+//  { fileName: "./src/Header.feature", source: "Feature: Header\n…" }]
+```
+
+### `onFeaturesChange()`
+
+```ts
+onFeaturesChange(listener: () => void): () => void
+```
+
+Calls `listener` each time a stories file's features change, until the function it returns is
+called. They change in `storybook dev` only: a feature file saved with another text, added, deleted,
+or running on another stories file. With `featuresOf()`, what React's `useSyncExternalStore` takes,
+so a docs block follows the feature files:
+
+```ts
+const useFeaturesOf = (storiesFile: string) =>
+  useSyncExternalStore(onFeaturesChange, () => featuresOf(storiesFile));
+```
+
+### `FeatureSource`
+
+```ts
+interface FeatureSource {
+  /** Its path from the project's root (`./src/Header.feature`). */
+  fileName: string;
+  /** Its Gherkin, as written. */
+  source: string;
+}
+```

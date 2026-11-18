@@ -49,30 +49,6 @@ Given("an arrow value of {int}", (n: number) => {
   (world as unknown as TestWorld).value = n;
 });
 
-// Callback interface: complete asynchronously via the appended callback.
-Given(
-  "a deferred value of {int}",
-  function deferred(
-    this: TestWorld,
-    n: number,
-    callback: (error?: unknown) => void,
-  ) {
-    setTimeout(() => {
-      this.value = n;
-      callback();
-    }, 0);
-  },
-);
-
-// Step definition options ({ timeout }) are forwarded to the runtime.
-Given(
-  "a value of {int} with a timeout",
-  { timeout: 5000 },
-  function withTimeout(this: TestWorld, n: number) {
-    this.value = n;
-  },
-);
-
 // A real DataTable instance (rebuilt in the browser from its serialized rows).
 Given(
   "the following values:",

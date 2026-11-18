@@ -1,0 +1,8 @@
+import { Meta, Source } from "@storybook/addon-docs/blocks";
+import * as LoginFeature from "./Login.feature";
+import login from "./Login.feature?raw";
+
+<Meta of={LoginFeature} name="Behavior" />
+
+{/* The feature file as written (Vite's `?raw`), highlighted as Gherkin. */}
+<Source code={login} language="gherkin" format={false} />

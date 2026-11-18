@@ -1,0 +1,41 @@
+# Running
+
+```bash
+npx vitest run --reporter=tree
+```
+
+```ansi
+ [32m✓[39m features/greeting.feature [2m([22m[2m4 tests[22m[2m)[22m[32m 72[2mms[22m[39m
+   [32m✓[39m Greeting [2m(4)[22m
+     [32m✓[39m Saying hello[32m 9[2mms[22m[39m
+     [32m✓[39m Greeting <name> [2m(2)[22m
+       [32m✓[39m Greeting Ada[32m 1[2mms[22m[39m
+       [32m✓[39m Greeting Grace[32m 0[2mms[22m[39m
+     [32m✓[39m A formal greeting[32m 1[2mms[22m[39m[0m
+```
+
+`npx vitest` watches instead: a saved feature file, step definition or module one imports reruns
+what depends on it.
+
+## Filters
+
+```bash
+npx vitest run features/greeting.feature      # one feature file
+npx vitest run features/greeting.feature:4    # the scenario at line 4
+npx vitest run --tagsFilter "@smoke"          # by Gherkin tag
+npx vitest run -t "Greeting > Saying hello"   # by name
+```
+
+More, with retries, bail, watch mode and coverage: [Running and filtering](/guides/running).
+
+## Specific to node mode
+
+- **`BeforeAll` and `AfterAll` run once per Vitest worker**: once per feature file with Vitest's
+  default `isolate: true`, once for all a worker's files with `isolate: false`. See
+  [BeforeAll and AfterAll](/guides/support-code#beforeall-and-afterall).
+- **[Worker variables](/guides/support-code#worker-variables)** are on `process.env`.
+- **[Attachments](/guides/support-code#attachments)** can be strings, `Buffer`s or readable streams
+  (with a media type).
+- **Cucumber's JavaScript API** (`@cucumber/cucumber/api`, e.g. `runCucumber`) works from a step, as
+  plain Cucumber.
+- **Pools**: `forks` (Vitest's default) and `threads`.

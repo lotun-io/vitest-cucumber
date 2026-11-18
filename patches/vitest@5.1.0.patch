@@ -1,0 +1,16 @@
+diff --git a/dist/chunks/index.Di8au7q4.js b/dist/chunks/index.Di8au7q4.js
+index 3344ca6f5ec1f94dc78f6764d474fafd24caa454..afe949212a8dbefbedc1dfd9746c9b6d953c0524 100644
+--- a/dist/chunks/index.Di8au7q4.js
++++ b/dist/chunks/index.Di8au7q4.js
+@@ -6191,6 +6191,11 @@ function createPool(ctx) {
+ 			const groupResults = await Promise.allSettled(promises);
+ 			results.push(...groupResults);
+ 		}
++		// @lotun/vitest-cucumber's dev patch (vitest-dev/vitest#11763): the stopping workers' teardown
++		// errors reach the state before the run reports (once each finished task's scheduler has
++		// queued its runner's stop).
++		await new Promise((resolve) => setImmediate(resolve));
++		await Promise.all(pool.exitPromises);
+ 		const errors = results.filter((result) => result.status === "rejected").map((result) => result.reason);
+ 		if (errors.length > 0) throw new AggregateError(errors, "Errors occurred while running tests. For more information, see serialized error.");
+ 	}

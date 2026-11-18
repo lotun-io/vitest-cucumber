@@ -1,13 +1,16 @@
+// The parameter types `../parameter-types.feature` uses: a transformer making a class's instance, a
+// transformer of several capture groups, a string regexp with options, alternatives without a
+// transformer, and a transformer reading its scenario's World (`this`).
 import { defineParameterType } from "@cucumber/cucumber";
+import type { TestWorld } from "./world.ts";
 
-// A non-serializable value (class instance). In browser mode the transform
-// round-trips to the page and the instance returns via a value-handle; in node
-// it's just the real value. Proves `defineParameterType` in both realms.
 export class Point {
-  constructor(
-    public x: number,
-    public y: number,
-  ) {}
+  x: number;
+  y: number;
+  constructor(x: number, y: number) {
+    this.x = x;
+    this.y = y;
+  }
 }
 
 defineParameterType({
@@ -16,9 +19,6 @@ defineParameterType({
   transformer: (x: string, y: string) => new Point(Number(x), Number(y)),
 });
 
-// A parameter type defined with a STRING regexp (not a RegExp literal) plus the
-// `useForSnippets`/`preferForRegexpMatch` options — exercises that metadata
-// round-tripping to Node in browser mode (regexp-as-source + the option flags).
 defineParameterType({
   name: "color",
   regexp: "red|green|blue",
@@ -27,10 +27,15 @@ defineParameterType({
   transformer: (value: string) => value.toUpperCase(),
 });
 
-// A parameter type defined with an ARRAY of RegExp alternatives and NO
-// transformer — exercises the array-source reduction (each element's `.source`)
-// and the default identity transformer (matched text passes through) in both realms.
 defineParameterType({
   name: "fruit",
   regexp: [/apple/, /banana/],
+});
+
+defineParameterType({
+  name: "scaled",
+  regexp: /\d+/,
+  transformer(this: TestWorld, value: string) {
+    return Number(value) * this.value;
+  },
 });

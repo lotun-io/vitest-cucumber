@@ -9,5 +9,12 @@ allowBuilds:
 
 minimumReleaseAgeExclude:
   - "@lotun/vitest-cucumber"
-  - '@cucumber/cucumber'
+  - "@cucumber/cucumber"
   - vitest
+  - '@vitest/mocker@5.1.0'
+  - '@vitest/spy@5.1.0'
+  - '@vitest/browser-playwright@5.1.0'
+  - '@vitest/browser@5.1.0'
+  - '@vitest/pretty-format@5.1.0'
+  - '@vitest/ui@5.1.0'
+  - '@vitest/utils@5.1.0'

@@ -1,0 +1,157 @@
+import { Callout, FileTree, Steps, Tabs } from "nextra/components";
+
+# Getting started
+
+## Requirements
+
+- Node.js 24 or 26
+- Vitest 5
+- `@cucumber/cucumber` 13.3 or later 13.x
+
+The package is ESM only: your Vitest config must load as an ES module (`"type": "module"` in the
+nearest `package.json`, or a `vitest.config.mts`).
+
+<Steps>
+
+### Install
+
+<Tabs items={["pnpm", "npm", "yarn"]}>
+  <Tabs.Tab>
+    ```bash
+    pnpm add -D @lotun/vitest-cucumber @cucumber/cucumber vitest
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```bash
+    npm install -D @lotun/vitest-cucumber @cucumber/cucumber vitest
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```bash
+    yarn add -D @lotun/vitest-cucumber @cucumber/cucumber vitest
+    ```
+  </Tabs.Tab>
+</Tabs>
+
+### Configure Vitest
+
+```ts filename="vitest.config.ts"
+import { cucumber } from "@lotun/vitest-cucumber";
+import { defineConfig } from "vitest/config";
+
+export default defineConfig({
+  plugins: [
+    cucumber({
+      // Your step definitions, hooks and World
+      import: ["features/**/*.ts"],
+    }),
+  ],
+  test: {
+    // Your feature files
+    include: ["features/**/*.feature"],
+  },
+});
+```
+
+<Callout type="warning">
+  Both are required. Without `test.include`, Vitest looks for its default `*.test.ts` files and finds
+  no feature files. Without `import`, no step definitions load: every step is undefined.
+</Callout>
+
+### Write a feature
+
+```gherkin filename="features/calculator.feature"
+Feature: Calculator
+  Scenario: Adding two numbers
+    Given the number 2
+    When I add 3
+    Then the result is 5
+```
+
+### Write its steps
+
+```ts filename="features/steps/calculator.ts"
+import { Given, Then, When } from "@cucumber/cucumber";
+import { expect } from "vitest";
+
+Given("the number {int}", function (n: number) {
+  this.result = n;
+});
+
+When("I add {int}", function (n: number) {
+  this.result += n;
+});
+
+Then("the result is {int}", function (expected: number) {
+  expect(this.result).toBe(expected);
+});
+```
+
+Use `function`s, not arrow functions: a step's `this` is the scenario's
+[World](/guides/support-code#world). Any assertion library works; Vitest's `expect` gives you its
+diffs.
+
+### Run
+
+```bash
+npx vitest        # watch mode
+npx vitest run    # once
+```
+
+```ansi
+ [32m✓[39m features/calculator.feature[2m:2[22m[2m > [22mCalculator[2m > [22mAdding two numbers[32m 6[2mms[22m[39m[0m
+```
+
+That's `npx vitest run --reporter=verbose`, which lists every scenario; the default reporter lists
+the feature files.
+
+</Steps>
+
+<FileTree>
+  <FileTree.Folder name="features" defaultOpen>
+    <FileTree.Folder name="steps" defaultOpen>
+      <FileTree.File name="calculator.ts" />
+    </FileTree.Folder>
+    <FileTree.File name="calculator.feature" />
+  </FileTree.Folder>
+  <FileTree.File name="package.json" />
+  <FileTree.File name="vitest.config.ts" />
+</FileTree>
+
+## A step you haven't written yet
+
+Add `And I see the result` to the scenario and run again: the test fails with Cucumber's summary
+and a snippet to start from.
+
+```ansi
+[41m[1m FAIL [22m[49m features/calculator.feature[2m:2[22m[2m > [22mCalculator[2m > [22mAdding two numbers
+[31m[1mError[22m: And I see the result
+
+[34mUndefined steps:[31m
+  [34m[1mAnd [22mI see the result[31m
+
+You can implement missing steps with the snippets below:
+
+Then('I see the result', function () {
+  // Write code here that turns the phrase above into concrete actions
+  return 'pending';
+});
+[39m
+[36m [2m❯[22m features/calculator.feature:[2m6:5[22m[39m
+    [90m  4|[39m     When I add 3
+    [90m  5|[39m     Then the result is 5
+    [90m  6|[39m     And I see the result
+    [90m   |[39m     [31m^[39m
+    [90m  7|[39m[0m
+```
+
+The failed test's header names the scenario's line (`:2`), and the code frame points at the step
+in the feature file.
+
+## Next
+
+- Pick your mode: [Node](/modes/node), [Browser](/modes/browser) or [Storybook](/modes/storybook).
+- [Running and filtering](/guides/running): run one scenario, a tag, watch mode, retries.
+- [Options](/reference/options): what `cucumber()` takes, and Vitest's equivalent of each Cucumber
+  CLI option.
+- [Troubleshooting](/guides/troubleshooting): a message you don't expect, and what to do about it.

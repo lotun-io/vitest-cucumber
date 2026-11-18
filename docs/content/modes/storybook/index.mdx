@@ -1,0 +1,182 @@
+import { Callout, Steps, Tabs } from "nextra/components";
+
+# Storybook
+
+List your feature files in Storybook's `stories`, and each one becomes a stories file of its own:
+every scenario, and every row of a Scenario Outline, is a story that renders a story of the
+stories file next to it, then plays the scenario's steps in its `play` function. They run wherever
+Storybook runs stories:
+
+- **in Vitest**, with [Storybook's Vitest addon](https://storybook.js.org/docs/writing-tests/integrations/vitest-addon):
+  every scenario is a story test;
+- **in Storybook's UI**: opening a scenario's story plays it, each Gherkin step a step in the
+  Interactions panel;
+- **in Storybook's UI, as tests**: the addon's testing widget runs the scenarios' story tests in
+  Vitest ("Run tests"), and its watch mode runs them again as you save a feature file, its stories
+  file or your support code;
+- **in a static build** (`storybook build`), with no server.
+
+Your stories files stay as they are: the plugin reads them, never changes them.
+
+Works with Storybook 10 and every framework its Vitest addon supports: see [Frameworks](#frameworks).
+
+## Install
+
+Start from a Storybook project with the Vitest addon
+([`npx storybook add @storybook/addon-vitest`](https://storybook.js.org/docs/writing-tests/integrations/vitest-addon)),
+then add the plugin and Cucumber:
+
+<Tabs items={["pnpm", "npm", "yarn"]}>
+  <Tabs.Tab>
+    ```bash
+    pnpm add -D @lotun/vitest-cucumber @cucumber/cucumber
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```bash
+    npm install -D @lotun/vitest-cucumber @cucumber/cucumber
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```bash
+    yarn add -D @lotun/vitest-cucumber @cucumber/cucumber
+    ```
+  </Tabs.Tab>
+</Tabs>
+
+## Configure
+
+<Steps>
+
+### Add the addon
+
+```ts filename=".storybook/main.ts"
+import type { StorybookConfig } from "@storybook/react-vite";
+
+const config: StorybookConfig = {
+  stories: [
+    "../src/**/*.mdx",
+    "../src/**/*.stories.@(js|jsx|mjs|ts|tsx)",
+    "../src/**/*.@(feature|feature.md)",
+  ],
+  addons: [
+    "@storybook/addon-vitest",
+    "@lotun/vitest-cucumber/storybook",
+  ],
+  framework: "@storybook/react-vite",
+};
+
+export default config;
+```
+
+List your feature files in `stories` (`.feature`, and `.feature.md` for Markdown ones): each is a
+stories file of its own. Story tests run what `stories` lists too.
+
+### Put the options in `.storybook/cucumber.ts`
+
+Storybook and Vitest share one set of options, in this file's default export:
+
+```ts filename=".storybook/cucumber.ts"
+import type { CucumberOptions } from "@lotun/vitest-cucumber";
+
+const options: CucumberOptions = {
+  import: ["features/**/*.ts"],
+};
+
+export default options;
+```
+
+Storybook won't start without it. Node loads it as it is (Node's own TypeScript support): import
+other files with their extension, and no `paths` aliases. `import` is resolved from the directory
+Storybook starts in, your project's root.
+
+### Add the plugin to the Storybook test project
+
+```ts filename="vite.config.ts"
+/// <reference types="vitest/config" />
+import { cucumber } from "@lotun/vitest-cucumber";
+import { storybookTest } from "@storybook/addon-vitest/vitest-plugin";
+import react from "@vitejs/plugin-react";
+import { playwright } from "@vitest/browser-playwright";
+import path from "node:path";
+import { defineConfig } from "vite";
+import options from "./.storybook/cucumber.ts";
+
+export default defineConfig({
+  plugins: [react()],
+  test: {
+    projects: [
+      {
+        extends: true,
+        plugins: [
+          storybookTest({ configDir: path.join(import.meta.dirname, ".storybook") }),
+          cucumber(options),
+        ],
+        test: {
+          name: "storybook",
+          browser: {
+            enabled: true,
+            headless: true,
+            provider: playwright(),
+            instances: [{ browser: "chromium" }],
+          },
+        },
+      },
+    ],
+  },
+});
+```
+
+### Keep a classic preview
+
+`.storybook/preview.ts(x)` exports a `Preview` object as usual. CSF factories (`definePreview`) are
+not supported on Storybook 10.
+
+</Steps>
+
+## Frameworks
+
+Storybook's Vitest addon runs story tests with Storybook's Vite builder only, and its setup accepts
+these frameworks. The plugin supports the same list.
+
+| Framework | Package |
+| --- | --- |
+| React | `@storybook/react-vite` |
+| Next.js | `@storybook/nextjs-vite` |
+| React Native Web | `@storybook/react-native-web-vite` |
+| TanStack React | `@storybook/tanstack-react` |
+| Preact | `@storybook/preact-vite` |
+| Vue 3 | `@storybook/vue3-vite` |
+| Svelte | `@storybook/svelte-vite` |
+| SvelteKit | `@storybook/sveltekit` |
+| Angular | `@storybook/angular-vite` |
+| Web Components | `@storybook/web-components-vite` |
+| HTML | `@storybook/html-vite` |
+| SolidJS | `storybook-solidjs-vite` (community) |
+
+<Callout type="info">
+  **SolidJS**: `vite-plugin-solid` sets Vitest's `environment` to `jsdom` unless you set one, and
+  Vitest stops with "Cannot find dependency 'jsdom'" if it isn't installed, even though story tests
+  run in the browser. Install `jsdom`, or set `test.environment` in the Storybook test project.
+</Callout>
+
+### Not supported
+
+- **Webpack frameworks** (`@storybook/nextjs`, `@storybook/angular`, `@storybook/react-webpack5`,
+  `@storybook/vue3-webpack5`, …): the plugin is a Vite plugin, and the Vitest addon needs Vite too.
+  Next.js and Angular have Vite frameworks: `@storybook/nextjs-vite`, `@storybook/angular-vite`.
+- **Vite frameworks the addon doesn't accept**, such as the community frameworks for Analog, Astro
+  and Nuxt: scenarios run as the addon's story tests, so a framework the addon doesn't support isn't
+  supported here either.
+- **React Native on a device** (`@storybook/react-native`): no Vite, no Vitest addon.
+
+## Next
+
+- [Writing features](/modes/storybook/features): which stories file a feature uses, the Storybook
+  steps, mounting, steps that use the story.
+- [Running](/modes/storybook/running): in Vitest, in Storybook's UI, filters, and what differs
+  between the two.
+- [Features in docs](/modes/storybook/docs): a stories file's features on its docs page.
+
+Full example:
+[`example/storybook`](https://github.com/lotun-io/vitest-cucumber/tree/main/example/storybook).

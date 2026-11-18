@@ -11,12 +11,14 @@ Feature: Scenario outline
       | 5     | 10     |
       | 7     | 14     |
 
-  Scenario Outline: Adding <n> to <base>
-    Given a value of <base>
-    When I add <n>
-    Then the value should be <result>
+  Rule: Rule
 
-    Examples:
-      | base | n | result |
-      | 0    | 5 | 5      |
-      | 10   | 4 | 14     |
+    Scenario Outline: Adding <n> to <base>
+      Given a value of <base>
+      When I add <n>
+      Then the value should be <result>
+
+      Examples:
+        | base | n | result |
+        | 0    | 5 | 5      |
+        | 10   | 4 | 14     |

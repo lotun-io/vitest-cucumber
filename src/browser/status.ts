@@ -1,9 +1,0 @@
-export const Status = {
-  UNKNOWN: "UNKNOWN",
-  PASSED: "PASSED",
-  SKIPPED: "SKIPPED",
-  PENDING: "PENDING",
-  UNDEFINED: "UNDEFINED",
-  AMBIGUOUS: "AMBIGUOUS",
-  FAILED: "FAILED",
-} as const;

@@ -10,7 +10,7 @@ on:
         type: choice
         options:
           - stable
-          - next
+          - beta
 
 permissions:
   contents: write
@@ -35,20 +35,21 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Create and publish versions
         if: inputs.type == 'stable'
-        uses: changesets/action@v1
+        uses: changesets/action@v2
         with:
-          commit: "chore: update versions"
-          title: "chore: update versions"
-          publish: pnpm ci:publish
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Publish next
-        if: inputs.type == 'next'
+          commit-message: "chore: update versions"
+          pr-title: "chore: update versions"
+          publish-script: pnpm ci:publish
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish beta
+        if: inputs.type == 'beta'
         run: |
-          pnpm changeset version
           if [[ ! -f .changeset/pre.json ]]; then
-            echo "Not in prerelease mode. Run 'pnpm changeset pre enter next' first."
+            echo "Not in prerelease mode. Run 'pnpm changeset pre enter beta' first."
             exit 1
           fi
+          # The version is made locally and committed (`pnpm changeset version`): nothing here
+          # commits one. With no new changesets this step changes nothing.
+          pnpm changeset version
           pnpm build
-          pnpm publish --access public --tag next --no-git-checks
+          pnpm publish --access public --tag beta --no-git-checks

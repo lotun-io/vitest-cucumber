@@ -1,4 +1,43 @@
-minimumReleaseAgeExclude:
-  - '@cucumber/cucumber'
-  - vitest
-  - eslint@10.10.0
+packages:
+  # The plugin itself, the root package: changesets versions only the packages listed here
+  # (without it: "Found changeset … for package @lotun/vitest-cucumber which is not in the workspace")
+  - "."
+  # Storybook's dependencies for the e2e's Storybook projects, and the repo's features as stories
+  # (the plugin from `src/`: `notes/storybook.md`)
+  - "storybook"
+  # The docs site (Nextra, a static export for GitHub Pages)
+  - "docs"
+
+# Dependencies more than one package has, one version each (`"catalog:"` in their `package.json`;
+# `pnpm publish` writes the version). Peer dependencies keep their own ranges.
+catalog:
+  "@cucumber/cucumber": ^13.3.0
+  "@cucumber/gherkin": ^42.0.1
+  "@cucumber/messages": ^34.2.1
+  "@types/node": ^26.6.6
+  "@types/react": ^19.3.0
+  "@types/react-dom": ^19.3.0
+  "@vitest/browser-playwright": 5.1.0
+  react: ^19.3.1
+  react-dom: ^19.3.1
+  storybook: ^10.6.7
+  typescript: ^6.0.3
+  vite: ^8.3.8
+  vitest: 5.1.0
+
+allowBuilds:
+  esbuild: true
+
+patchedDependencies:
+  vitest@5.1.0: patches/vitest@5.1.0.patch
+
+# Storybook 10.6.5 registers its TypeScript loader with Node's deprecated `module.register()`
+# (DEP0205, printed once per process loading a Storybook config): hidden in the scripts pnpm runs.
+# Drop it once Storybook uses `module.registerHooks()`.
+nodeOptions: "--disable-warning=DEP0205"
+
+# Nextra 4.6.1 (the docs) fails with zod 4.4 and later: its `Layout` checks its props without
+# `children` against a schema that requires them ("expected nonoptional").
+overrides:
+  "nextra>zod": 4.3.6
+  "nextra-theme-docs>zod": 4.3.6

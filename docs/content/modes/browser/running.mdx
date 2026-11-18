@@ -1,0 +1,53 @@
+import { Callout } from "nextra/components";
+
+# Running
+
+```bash
+npx vitest run --reporter=tree
+```
+
+```ansi
+ [32m✓[39m [30m[43m chromium [49m[39m features/greeting.feature [2m([22m[2m3 tests[22m[2m)[22m[32m 199[2mms[22m[39m
+   [32m✓[39m Greeting [2m(3)[22m
+     [32m✓[39m Saying hello[32m 88[2mms[22m[39m
+     [32m✓[39m Greeting <name> [2m(2)[22m
+       [32m✓[39m Greeting Ada[32m 48[2mms[22m[39m
+       [32m✓[39m Greeting Grace[32m 50[2mms[22m[39m[0m
+```
+
+## Filters
+
+```bash
+npx vitest run features/greeting.feature      # one feature file
+npx vitest run features/greeting.feature:4    # the scenario at line 4
+npx vitest run --tagsFilter "@smoke"          # by Gherkin tag
+npx vitest run -t "Greeting > Saying hello"   # by name
+```
+
+More, with retries, bail, watch mode and coverage: [Running and filtering](/guides/running).
+
+## Specific to browser mode
+
+- **Every browser instance runs every scenario**, each with its own `BeforeAll`, Worlds and
+  attachments. Add instances to run your features in several browsers:
+
+  ```ts
+  instances: [{ browser: "chromium" }, { browser: "firefox" }, { browser: "webkit" }],
+  ```
+
+- **`BeforeAll` and `AfterAll` run once per page**: once per feature file with Vitest's default
+  `isolate: true`. See [BeforeAll and AfterAll](/guides/support-code#beforeall-and-afterall).
+- **[Worker variables](/guides/support-code#worker-variables)** are on `import.meta.env`, not
+  `process.env`: `import.meta.env.CUCUMBER_WORKER_ID`. A page's `VITEST_WORKER_ID` and
+  `VITEST_POOL_ID` are its slot, shared by the pages that use it in turn.
+- **[Attachments](/guides/support-code#attachments) are strings only.** For binary data, attach
+  base64 with a `base64:` media type: `this.attach(base64, "base64:image/png")`.
+- **Not available in the page**: Cucumber's JavaScript API (`@cucumber/cucumber/api`) and its
+  formatter and runner classes. See [Limitations](/reference/limitations#in-a-page-browser-mode-and-storybook).
+- **A page that reloads or crashes** during a run fails its feature file instead of hanging.
+
+<Callout type="warning">
+  If a package your steps import makes Vite optimize new dependencies mid-run (the page reloads and
+  the run fails), add it to [`optimizeDeps.include`](https://vite.dev/config/dep-optimization-options)
+  in your config.
+</Callout>

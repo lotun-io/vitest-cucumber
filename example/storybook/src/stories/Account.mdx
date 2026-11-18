@@ -1,0 +1,14 @@
+import { Markdown, Meta } from "@storybook/addon-docs/blocks";
+import * as AccountFeature from "./Account.feature.md";
+import account from "./Account.feature.md?raw";
+
+<Meta of={AccountFeature} name="Behavior" />
+
+{/*
+  A Markdown feature is a document: rendered as Markdown, not shown as code. Raw HTML off: a
+  placeholder like `<button>` is text, not an element. Cucumber reads a table only indented (2 to 5
+  spaces), Markdown only unindented: the rows lose their indent here.
+*/}
+<Markdown options={{ disableParsingRawHTML: true }}>
+  {account.replace(/^ {2,5}\|/gm, "|")}
+</Markdown>

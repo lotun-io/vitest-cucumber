@@ -1,0 +1,72 @@
+# Options
+
+```ts
+import { cucumber, type CucumberOptions } from "@lotun/vitest-cucumber";
+
+cucumber(options?: CucumberOptions)
+```
+
+`CucumberOptions` is a subset of Cucumber's
+[configuration](https://github.com/cucumber/cucumber-js/blob/main/docs/configuration.md), with the
+same meaning:
+
+| Option            | Type       | Default | |
+| ----------------- | ---------- | ------- | - |
+| `import`          | `string[]` | none    | Support code: globs or folders, relative to the project's root |
+| `strict`          | `boolean`  | `true`  | `false`: a pending step skips its scenario instead of failing it |
+| `dryRun`          | `boolean`  | `false` | Match steps without running anything |
+| `backtrace`       | `boolean`  | `false` | Keep Cucumber's and the plugin's frames in errors |
+| `language`        | `string`   | `"en"`  | The default Gherkin language (`# language:` in a file wins) |
+| `worldParameters` | `object`   | `{}`    | Each World's `this.parameters`; must be JSON |
+
+## import
+
+Your step definitions, hooks, World and parameter types. A folder means every `.ts`, `.mts`, `.cts`,
+`.tsx`, `.js`, `.mjs`, `.cjs` and `.jsx` file in it. Files load once each, in order: each glob's
+matches sorted, globs in your order.
+
+There's no default: without `import` (or with globs matching no file), nothing loads and every step
+is undefined, with snippets.
+
+## strict
+
+With `strict: false`, a scenario with a pending step is a skipped test, its note
+`Pending step: When …`, and doesn't fail the run.
+
+## dryRun
+
+Every scenario is a skipped test and no step or hook runs. An undefined or ambiguous step is its
+test's note (`Undefined step: …`, `Ambiguous step: …`): a quick way to check every step is defined.
+
+## backtrace
+
+Errors hide frames from Cucumber and the plugin. `backtrace: true` keeps every frame.
+
+## worldParameters
+
+See [World parameters](/guides/support-code#world-parameters).
+
+## Not supported
+
+Every other Cucumber option is ignored, and so are Cucumber's configuration files (`cucumber.js`,
+`cucumber.mjs`, …) and profiles: configure per environment in your Vitest config instead. Cucumber's
+formatters (`format`, `formatOptions`), plugins and publishing aren't supported; Vitest's
+[reporters](https://vitest.dev/guide/reporters) report the run.
+
+## Cucumber CLI options in Vitest
+
+| Cucumber                  | Vitest                                                    |
+| ------------------------- | --------------------------------------------------------- |
+| `paths`                   | `test.include`, and files on the command line             |
+| `tags`                    | `--tagsFilter`                                            |
+| `name`                    | `-t` / `--testNamePattern`                                |
+| `retry`, `retryTagFilter` | `test.retry`, and `retry` in `test.tags`                  |
+| `parallel`                | `test.maxWorkers`                                         |
+| `failFast`                | `--bail`                                                  |
+| `format`                  | `test.reporters`                                          |
+| `require`, `import`       | the plugin's `import`                                     |
+| `requireModule`, `loader` | not needed: Vite transforms TypeScript                    |
+
+## Exports
+
+The package's exports: [API](/reference/api).

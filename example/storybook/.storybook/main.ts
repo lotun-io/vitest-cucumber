@@ -1,12 +1,23 @@
 import type { StorybookConfig } from "@storybook/react-vite";
 
 const config: StorybookConfig = {
-  stories: ["../src/**/*.stories.@(ts|tsx)"],
-  addons: ["@storybook/addon-vitest"],
-  framework: {
-    name: "@storybook/react-vite",
-    options: {},
-  },
+  // Feature files are stories files of their own: each scenario a story on the stories file next to
+  // it, or the one its stories file step names (`features/header/Session.feature`).
+  stories: [
+    "../src/**/*.mdx",
+    "../src/**/*.stories.@(js|jsx|mjs|ts|tsx)",
+    "../src/**/*.@(feature|feature.md)",
+    "../features/**/*.@(feature|feature.md)",
+  ],
+  addons: [
+    "@chromatic-com/storybook",
+    "@storybook/addon-vitest",
+    "@storybook/addon-a11y",
+    "@storybook/addon-docs",
+    "@storybook/addon-mcp",
+    // Feature files as stories, with the options in `./cucumber.ts`.
+    "@lotun/vitest-cucumber/storybook",
+  ],
+  framework: "@storybook/react-vite",
 };
-
 export default config;

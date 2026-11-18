@@ -21,14 +21,12 @@ jobs:
       - run: pnpm lint
 
   test:
-    name: "test ${{ matrix.os }} node${{ matrix.node-version }} cucumber${{ matrix.cucumber-version }} vitest${{ matrix.vitest-version }}"
+    name: "test ${{ matrix.os }} node${{ matrix.node-version }}"
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        node-version: [22, 24, 26]
-        cucumber-version: ["12", "13"]
-        vitest-version: ["4", "5"]
+        node-version: [24, 26]
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -37,8 +35,7 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm add -D @cucumber/cucumber@${{ matrix.cucumber-version }} vitest@${{ matrix.vitest-version }} @vitest/coverage-v8@${{ matrix.vitest-version }} @vitest/browser-playwright@${{ matrix.vitest-version }} @vitest/ui@${{ matrix.vitest-version }} --config.frozen-lockfile=false
-      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm exec playwright install --with-deps chromium firefox webkit
       - run: pnpm test
 
   smoke:

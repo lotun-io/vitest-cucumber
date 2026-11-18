@@ -1,0 +1,23 @@
+{
+  "name": "docs",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next --turbopack",
+    "build": "next build",
+    "postbuild": "pagefind --site .next/server/app --output-path out/_pagefind"
+  },
+  "dependencies": {
+    "next": "^16.4.6",
+    "nextra": "^4.6.1",
+    "nextra-theme-docs": "^4.6.1",
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  },
+  "devDependencies": {
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "pagefind": "^1.6.0",
+    "typescript": "catalog:"
+  }
+}

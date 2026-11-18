@@ -1,0 +1,19 @@
+# Examples
+
+Each example is a project of its own in the repository's
+[`example/`](https://github.com/lotun-io/vitest-cucumber/tree/main/example) folder.
+
+| Example | Shows |
+| ------- | ----- |
+| [`example/node`](https://github.com/lotun-io/vitest-cucumber/tree/main/example/node) | Node mode: steps, a tagged hook, a custom World, Backgrounds, Outlines and Rules |
+| [`example/node-playwright`](https://github.com/lotun-io/vitest-cucumber/tree/main/example/node-playwright) | Node mode driving a browser with Playwright (`BeforeAll` launches it, `Before` opens a page) |
+| [`example/browser`](https://github.com/lotun-io/vitest-cucumber/tree/main/example/browser) | Browser mode: steps that render and read the page |
+| [`example/storybook`](https://github.com/lotun-io/vitest-cucumber/tree/main/example/storybook) | Storybook: feature files as stories, Storybook steps, a story World, tags, `.feature.md` |
+
+Run one:
+
+```bash
+cd example/node
+pnpm install
+pnpm test
+```

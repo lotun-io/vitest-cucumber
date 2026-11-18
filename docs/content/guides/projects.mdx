@@ -1,0 +1,78 @@
+# Projects and monorepos
+
+## Node and browser side by side
+
+One `cucumber()` at the root serves every [project](https://vitest.dev/guide/projects) that
+`extends` the root config, node and browser ones alike:
+
+```ts filename="vitest.config.ts"
+import { cucumber } from "@lotun/vitest-cucumber";
+import { playwright } from "@vitest/browser-playwright";
+import { defineConfig } from "vitest/config";
+
+export default defineConfig({
+  plugins: [cucumber({ import: ["features/support/**/*.ts", "features/steps/**/*.ts"] })],
+  test: {
+    projects: [
+      {
+        extends: true,
+        test: { name: "node", include: ["features/**/*.feature"] },
+      },
+      {
+        extends: true,
+        test: {
+          name: "browser",
+          include: ["features/**/*.feature"],
+          browser: {
+            enabled: true,
+            headless: true,
+            provider: playwright(),
+            instances: [{ browser: "chromium" }],
+          },
+        },
+      },
+    ],
+  },
+});
+```
+
+`npx vitest run --project browser` runs one of them.
+
+Each project's root is its Cucumber working directory: `import` globs and feature file paths are
+relative to it. A project with its own `root` has its own support code.
+
+## Feature files and unit tests together
+
+Only `.feature` and `.feature.md` files become scenarios. Any other test file a project includes
+runs as a normal Vitest test, so they can share a project:
+
+```ts
+test: { include: ["features/**/*.feature", "src/**/*.test.ts"] },
+```
+
+Keep `import` and `include` from matching the same files.
+
+## Monorepos
+
+Give each package its own `vitest.config.ts` with its own `cucumber()`, and list them from the root:
+
+```ts filename="vitest.config.ts"
+import { defineConfig } from "vitest/config";
+
+export default defineConfig({
+  test: { projects: ["packages/*"] },
+});
+```
+
+Each package runs with its own support code, from its own directory. This works with pnpm, npm and
+yarn workspaces, and with `npx vitest --root packages/a`. Each package's config must load as ESM
+(`"type": "module"`).
+
+## Markdown feature files
+
+[Markdown with Gherkin](https://github.com/cucumber/gherkin/blob/main/MARKDOWN_WITH_GHERKIN.md)
+works: include `*.feature.md`.
+
+```ts
+test: { include: ["features/**/*.{feature,feature.md}"] },
+```

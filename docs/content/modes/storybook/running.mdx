@@ -1,0 +1,78 @@
+# Running
+
+## In Vitest
+
+```bash
+npx vitest run --reporter=tree
+```
+
+```ansi
+ [32m✓[39m [30m[45m storybook (chromium) [49m[39m src/stories/Greeting.feature [2m([22m[2m4 tests[22m[2m)[22m[33m 487[2mms[22m[39m
+   [32m✓[39m Greeting [2m(4)[22m
+     [33m[2m✓[22m[39m Saying hello[33m 376[2mms[22m[39m
+     [32m✓[39m Greeting <name> [2m(2)[22m
+       [32m✓[39m Greeting Ada[32m 30[2mms[22m[39m
+       [32m✓[39m Greeting Grace[32m 28[2mms[22m[39m
+     [32m✓[39m Greeting the world[32m 27[2mms[22m[39m[0m
+```
+
+A feature file's story tests are listed as in the other modes, under the feature file, each in its
+Feature, Rule and Outline. Failures show the same Cucumber summaries, at the Gherkin line. With
+other projects in your config, add `--project storybook` to run only these.
+
+## In Storybook's UI
+
+```bash
+npx storybook dev
+```
+
+Open a scenario's story: its scenario plays, and the Interactions panel shows each Gherkin step with
+what it did (hooks aren't listed). A static build (`storybook build`) plays them the same way, with
+no server.
+
+**As tests**: the addon's testing widget, at the bottom of the sidebar. "Run tests" runs the
+scenarios' story tests in Vitest, the same tests as `vitest run` above. With its watch mode on (the
+eye), saving a feature file, its stories file, a support file or a module one imports runs the
+tests it concerns again.
+
+## Filters
+
+In Vitest, as in the [other modes](/guides/running#filtering):
+
+```bash
+npx vitest run src/stories/Greeting.feature      # every scenario of the feature
+npx vitest run src/stories/Greeting.feature:4    # the scenario at line 4
+npx vitest run --tagsFilter "@smoke"             # by Gherkin tag
+npx vitest run -t "Saying hello"                 # by name
+```
+
+In Storybook, Gherkin tags are Storybook tags too (with their `@`), so they work in the sidebar's
+tag filter and in the addon's `tags` option:
+
+```ts
+storybookTest({ configDir, tags: { include: ["@smoke"] } }),
+```
+
+A scenario the addon's `tags` leave out is a skipped test in Vitest.
+
+## Vitest and Storybook's UI
+
+The same scenarios, in two hosts. What differs:
+
+| | In Vitest (story tests) | In Storybook's UI (`storybook dev`, a static build) |
+| --- | --- | --- |
+| `BeforeAll` | once per page, as in [browser mode](/modes/browser) | once, when the preview loads |
+| `AfterAll` | when the page is done | only when Storybook reloads its configuration in place, not when you close the tab |
+| [Timeouts](/guides/support-code#timeouts) | each step and hook has its own, Vitest's `testTimeout` the default | none, unless a definition sets its own `timeout` |
+| [Attachments](/guides/support-code#attachments) | the test's annotations | notes on a failed story |
+| A skipped scenario | a skipped test | a passed story, with a "Skipped" step |
+
+- Don't make scenarios depend on each other: a story plays alone in Storybook's UI.
+- The Vitest addon turns Vitest's file writing off, so `this.attach`'s data is dropped in story
+  tests (its name is kept). Set `test.api.allowWrite: true` in the project if you need it.
+
+## A broken feature
+
+A feature file cucumber can't parse, or whose links the plugin can't make, is reported with every
+error it has. In Vitest only its own file fails; `storybook dev` and `storybook build` stop, as
+for a broken stories file. See [Troubleshooting](/guides/troubleshooting#storybook).

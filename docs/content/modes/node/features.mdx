@@ -1,0 +1,140 @@
+import { Callout, FileTree } from "nextra/components";
+
+# Writing features
+
+A feature file, and the support code its steps need: a World, hooks, step definitions. All of it is
+`@cucumber/cucumber`'s API: [Support code](/guides/support-code).
+
+<FileTree>
+  <FileTree.Folder name="features" defaultOpen>
+    <FileTree.Folder name="support" defaultOpen>
+      <FileTree.File name="world.ts" />
+      <FileTree.File name="hooks.ts" />
+    </FileTree.Folder>
+    <FileTree.Folder name="steps" defaultOpen>
+      <FileTree.File name="greeting.ts" />
+    </FileTree.Folder>
+    <FileTree.File name="greeting.feature" />
+  </FileTree.Folder>
+  <FileTree.File name="vitest.config.ts" />
+</FileTree>
+
+```gherkin filename="features/greeting.feature"
+Feature: Greeting
+
+  @smoke
+  Scenario: Saying hello
+    Given a visitor named "Ada"
+    When they are greeted
+    Then the greeting is "Hello, Ada!"
+
+  Scenario Outline: Greeting <name>
+    Given a visitor named "<name>"
+    When they are greeted
+    Then the greeting is "<greeting>"
+
+    Examples:
+      | name  | greeting      |
+      | Ada   | Hello, Ada!   |
+      | Grace | Hello, Grace! |
+
+  @formal
+  Scenario: A formal greeting
+    Given a visitor named "Ada"
+    When they are greeted
+    Then the greeting is "Good day, Ada."
+```
+
+Each scenario gets a new World, `this` in its steps and hooks:
+
+```ts filename="features/support/world.ts"
+import { setWorldConstructor } from "@cucumber/cucumber";
+
+export class GreetingWorld {
+  name = "";
+  formal = false;
+  greeting = "";
+}
+
+setWorldConstructor(GreetingWorld);
+```
+
+```ts filename="features/support/hooks.ts"
+import { Before } from "@cucumber/cucumber";
+import type { GreetingWorld } from "./world.ts";
+
+// Only for scenarios tagged @formal
+Before({ tags: "@formal" }, function (this: GreetingWorld) {
+  this.formal = true;
+});
+```
+
+```ts filename="features/steps/greeting.ts"
+import { Given, Then, When } from "@cucumber/cucumber";
+import { expect } from "vitest";
+import type { GreetingWorld } from "../support/world.ts";
+
+Given("a visitor named {string}", function (this: GreetingWorld, name: string) {
+  this.name = name;
+});
+
+When("they are greeted", function (this: GreetingWorld) {
+  this.greeting = this.formal ? `Good day, ${this.name}.` : `Hello, ${this.name}!`;
+});
+
+Then("the greeting is {string}", function (this: GreetingWorld, text: string) {
+  expect(this.greeting).toBe(text);
+});
+```
+
+<Callout>
+  Your support code imports `@cucumber/cucumber` as usual. While it loads, the plugin swaps
+  Cucumber's definition functions (`Given`, `Before`, …) for its own, for both `import` and
+  `require`.
+</Callout>
+
+## Driving a browser with Playwright
+
+In node mode, launch the browser yourself: once per worker in `BeforeAll`, a fresh context per
+scenario in `Before`.
+
+```ts filename="features/support/hooks.ts"
+import { After, AfterAll, Before, BeforeAll } from "@cucumber/cucumber";
+import { chromium, type Browser } from "@playwright/test";
+import type { PlaywrightWorld } from "./world.ts";
+
+let browser: Browser;
+
+BeforeAll(async function () {
+  browser = await chromium.launch({ headless: true });
+});
+
+AfterAll(async function () {
+  await browser.close();
+});
+
+Before(async function (this: PlaywrightWorld) {
+  this.context = await browser.newContext();
+  this.page = await this.context.newPage();
+});
+
+After(async function (this: PlaywrightWorld) {
+  await this.context.close();
+});
+```
+
+```ts filename="features/steps/pages.ts"
+import { Given, Then } from "@cucumber/cucumber";
+import { expect } from "@playwright/test";
+import type { PlaywrightWorld } from "../support/world.ts";
+
+Given("I open {string}", async function (this: PlaywrightWorld, url: string) {
+  await this.page.goto(url);
+});
+
+Then("the title is {string}", async function (this: PlaywrightWorld, title: string) {
+  await expect(this.page).toHaveTitle(title);
+});
+```
+
+To render components in a real page instead, use [browser mode](/modes/browser).

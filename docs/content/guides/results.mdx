@@ -1,0 +1,96 @@
+# Results and failures
+
+Vitest reports every scenario. There's no separate Cucumber output: a scenario's result, Cucumber's
+summary of what went wrong and its snippets are in the test's result, in any Vitest reporter
+(default, verbose, JUnit, JSON, HTML, the UI).
+
+## Statuses
+
+| Cucumber           | Vitest                                                                 |
+| ------------------ | ---------------------------------------------------------------------- |
+| passed             | passed                                                                 |
+| failed             | failed, with the step's error                                          |
+| undefined          | failed, with Cucumber's summary and snippets                           |
+| ambiguous          | failed, with the matching definitions                                  |
+| pending            | failed; with [`strict: false`](/reference/options#strict): skipped     |
+| skipped            | skipped (a step or hook returned `"skipped"`)                          |
+
+The run fails as Vitest's does: a failed test, a feature file that can't load, or a failing
+`BeforeAll` / `AfterAll`.
+
+## A failing step
+
+The error is your error, as Vitest prints it (`expect`'s diff, the error's name and `cause`), and the
+code frame points at the step's line in the feature file before your own frames:
+
+```ansi
+[41m[1m FAIL [22m[49m features/cart.feature[2m:2[22m[2m > [22mCart[2m > [22mAdding an item
+[31m[1mAssertionError[22m: expected +0 to be 1 // Object.is equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 1[39m
+[31m+ 0[39m
+
+[36m [2m❯[22m features/cart.feature:[2m5:5[22m[39m
+    [90m  3|[39m     Given an empty cart
+    [90m  4|[39m     When I add "apples"
+    [90m  5|[39m     Then the cart has 1 item
+    [90m   |[39m     [31m^[39m
+    [90m  6|[39m
+    [90m  7|[39m   Scenario: Adding pears
+[90m [2m❯[22m World.<anonymous> features/steps/cart.ts:[2m11:29[22m[39m[0m
+```
+
+- The test's header is the scenario's line (an example's: its row's line).
+- An `And` step, a step with a data table or doc string, a Background step: each at its own line.
+- Cucumber's and the plugin's own frames are hidden; [`backtrace: true`](/reference/options#backtrace)
+  shows them.
+- A thrown value that isn't an `Error` (a string, an object, `null`) becomes an error named by the
+  step's text, with the value as its `cause`. In a hook: `Before hook failed`, `After hook failed`.
+- An `AggregateError` shows each of its errors.
+- An error thrown by a timer while an async step runs fails that step.
+
+## Undefined, pending and ambiguous steps
+
+The test's error is the step's text, followed by the scenario's summary, as Cucumber's summary
+formatter prints it:
+
+```ansi
+[31m[1mError[22m: When I pay with "card"
+
+[34mUndefined steps:[31m
+  [34m[1mWhen [22mI pay with "card"[31m
+
+You can implement missing steps with the snippets below:
+
+When('I pay with {string}', function (string) {
+  // Write code here that turns the phrase above into concrete actions
+  return 'pending';
+});[0m
+```
+
+The summary lists, in Cucumber's order, `Pending steps:` (with their definition's location),
+`Undefined steps:`, `Ambiguous steps:` (with every matching definition), parameter types used but
+not defined, and snippets. It's in color when Vitest's output is.
+
+## Attachments
+
+`this.log(text)`, `this.link(url)` and `this.attach(data, mediaType)` become the test's
+[annotations](https://vitest.dev/guide/test-annotations), in the order they ran, hooks included:
+
+| Call                          | Annotation                                             |
+| ----------------------------- | ------------------------------------------------------ |
+| `this.log("text")`            | type `log`, the text                                   |
+| `this.link("https://…")`      | type `link`, the URL                                   |
+| `this.attach(data, type)`     | type `attachment`, the file name or media type, data attached |
+
+The default reporter prints a failed test's annotations; the verbose reporter, every test's; JUnit,
+HTML and the UI include them. A retried scenario keeps every attempt's.
+
+## When a file fails before its scenarios run
+
+A feature file that doesn't parse, support code that throws while loading, a definition Cucumber
+rejects, a failing `BeforeAll` or `AfterAll`: each message and what to do is in
+[Troubleshooting](/guides/troubleshooting).

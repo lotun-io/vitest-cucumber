@@ -1,1 +1,3 @@
 src/utils/__tests__/features/parse-error.feature
+# Cucumber's Markdown Gherkin: Prettier unindents an Examples table, which then has no rows.
+*.feature.md

@@ -1,0 +1,61 @@
+import { Callout } from "nextra/components";
+
+# Writing features
+
+A feature file and its steps, as in the other modes, with the page at hand: `document`, and Vitest's
+`page` and `userEvent` from `vitest/browser`. The rest is `@cucumber/cucumber`'s API:
+[Support code](/guides/support-code).
+
+## Steps against the page
+
+The same scenarios as [node mode's](/modes/node/features), their steps rendering and clicking in the
+page:
+
+```gherkin filename="features/greeting.feature"
+Feature: Greeting
+
+  @smoke
+  Scenario: Saying hello
+    Given a visitor named "Ada"
+    When they are greeted
+    Then the greeting is "Hello, Ada!"
+
+  Scenario Outline: Greeting <name>
+    Given a visitor named "<name>"
+    When they are greeted
+    Then the greeting is "<greeting>"
+
+    Examples:
+      | name  | greeting      |
+      | Ada   | Hello, Ada!   |
+      | Grace | Hello, Grace! |
+```
+
+```ts filename="features/steps/greeting.ts"
+import { Given, Then, When } from "@cucumber/cucumber";
+import { expect } from "vitest";
+import { page, userEvent } from "vitest/browser";
+
+Given("a visitor named {string}", function (name: string) {
+  document.body.innerHTML = `<button>Say hello</button><p hidden>Hello, ${name}!</p>`;
+  document.querySelector("button")!.onclick = () => {
+    document.querySelector("p")!.hidden = false;
+  };
+});
+
+When("they are greeted", async function () {
+  await userEvent.click(page.getByRole("button", { name: "Say hello" }));
+});
+
+Then("the greeting is {string}", async function (text: string) {
+  await expect.element(page.getByText(text)).toBeVisible();
+});
+```
+
+Render your framework's components the same way, e.g. with `vitest-browser-react`'s `render` in a
+step, and keep what you rendered on the World.
+
+<Callout type="info">
+  The page runs the plugin's own copy of Cucumber's runtime, with every export of
+  `@cucumber/cucumber` typed as Cucumber's: your support code is the same as in node mode.
+</Callout>

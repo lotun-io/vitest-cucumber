@@ -1,0 +1,65 @@
+import { Tabs } from "nextra/components";
+
+# Browser mode
+
+With Vitest's [browser mode](https://vitest.dev/guide/browser/), your steps, hooks and World run in a
+real browser page, where they can render, click and read the DOM. It's the same plugin and the same
+`@cucumber/cucumber` imports as in node mode.
+
+## Install
+
+<Tabs items={["pnpm", "npm", "yarn"]}>
+  <Tabs.Tab>
+    ```bash
+    pnpm add -D @lotun/vitest-cucumber @cucumber/cucumber vitest @vitest/browser-playwright playwright
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```bash
+    npm install -D @lotun/vitest-cucumber @cucumber/cucumber vitest @vitest/browser-playwright playwright
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```bash
+    yarn add -D @lotun/vitest-cucumber @cucumber/cucumber vitest @vitest/browser-playwright playwright
+    ```
+  </Tabs.Tab>
+</Tabs>
+
+Install the browsers once: `npx playwright install chromium`.
+
+## Configure
+
+```ts filename="vitest.config.ts"
+import { cucumber } from "@lotun/vitest-cucumber";
+import { playwright } from "@vitest/browser-playwright";
+import { defineConfig } from "vitest/config";
+
+export default defineConfig({
+  plugins: [
+    cucumber({
+      import: ["features/support/**/*.ts", "features/steps/**/*.ts"],
+    }),
+  ],
+  test: {
+    include: ["features/**/*.feature"],
+    browser: {
+      enabled: true,
+      headless: true,
+      provider: playwright(),
+      instances: [{ browser: "chromium" }],
+    },
+  },
+});
+```
+
+The plugin switches to browser mode when `test.browser.enabled` is set in the config. Chromium,
+Firefox and WebKit all work.
+
+## Next
+
+- [Writing features](/modes/browser/features): steps that render, click and read the page.
+- [Running](/modes/browser/running): the run, filters, and what's specific to browser mode.
+
+Full example:
+[`example/browser`](https://github.com/lotun-io/vitest-cucumber/tree/main/example/browser).

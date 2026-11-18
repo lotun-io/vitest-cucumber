@@ -1,0 +1,109 @@
+// Storybook: a Storybook project's cucumber, by its config folder (one per process: the preset's
+// preview plugin and its indexer share it, in Storybook's own process and in the addon's Vitest,
+// which loads presets too): its root, its configuration (the options file's) and its feature
+// files' plans (`../../feature/plans.ts`, and Storybook's on them:
+// `../stories/storybookPlans.ts`).
+import path from "node:path";
+import type { FeatureSource } from "../../../types/storybook.ts";
+import { slash } from "../../../utils/slash.ts";
+import { createFeaturePlans } from "../../feature/plans.ts";
+import { configurationOf } from "../../plugin/options.ts";
+import { createStorybookPlans } from "../stories/storybookPlans.ts";
+import { optionsOf } from "./optionsFile.ts";
+
+/** Storybook's options to a preset's functions: its config folder among them. */
+export interface PresetOptions {
+  configDir: string;
+}
+
+/** A Storybook project's cucumber: its configuration (the options file's) and its plans. */
+const projects = new Map<string, ReturnType<typeof createProject>>();
+
+const createProject = (configDir: string) => {
+  // The Storybook project's folder, where its config folder is (`storybook dev` runs there; the
+  // addon's Vitest, which loads presets too, may run elsewhere: the workspace's root).
+  const root = path.dirname(path.resolve(configDir));
+  let configuration: ReturnType<typeof configurationOf> | undefined;
+  const loaded = () =>
+    (configuration ??= optionsOf(configDir).then((options) =>
+      configurationOf(options, root),
+    ));
+  /** `storybook dev`: what its dev server makes again as the linked features change (the features map: `./devWatch.ts`). */
+  let linkedFeaturesChanged: (() => void | Promise<void>) | undefined;
+  /**
+   * `storybook dev`: who has feature files indexed again (Storybook's index: `../preset.ts`'s
+   * server channel hook, the only one that can reach it).
+   */
+  const indexers = new Set<(features: readonly string[]) => Promise<void>>();
+  const plans = createFeaturePlans({ root: () => root, configuration: loaded });
+  const storybookPlans = createStorybookPlans({
+    plans,
+    root: () => root,
+    configuration: loaded,
+    onLinkedFeaturesChanged: () => {
+      void linkedFeaturesChanged?.();
+    },
+  });
+  /** The feature files linked so far that have a stories file (their links may fail), each with it. */
+  const linked = () =>
+    [...storybookPlans.links.storiesFiles()].flatMap(
+      ([storiesFile, features]) =>
+        storiesFile === undefined
+          ? []
+          : [...features].map((feature) => [feature, storiesFile] as const),
+    );
+  /** A file's path from the root, as Storybook writes a file's (`./src/Header.stories.ts`). */
+  const fromRoot = (file: string) => `./${slash(path.relative(root, file))}`;
+  return {
+    root,
+    plans,
+    /** The feature files' Storybook plans, on `plans`. */
+    storybookPlans,
+    /** `storybook dev`: `listener` is called as the linked features change (`featuresMap`'s). */
+    onLinkedFeaturesChanged: (listener: () => void | Promise<void>) => {
+      linkedFeaturesChanged = listener;
+    },
+    /** `storybook dev`: `listener` has feature files indexed again (Storybook's index). */
+    onIndexOutOfDate: (
+      listener: (features: readonly string[]) => Promise<void>,
+    ) => {
+      indexers.add(listener);
+    },
+    /** Feature files `features`' index entries are out of date: Storybook's index is told. */
+    indexOutOfDate: async (features: readonly string[]) => {
+      if (features.length > 0) {
+        await Promise.all([...indexers].map((index) => index(features)));
+      }
+    },
+    /**
+     * Each stories file's feature files (`./featuresModule.ts`), by their paths from the root, each
+     * file's features in their paths' order, each with its text as the plans read it (one that
+     * can't be read left out).
+     */
+    featuresMap: async () => {
+      const features: Record<string, FeatureSource[]> = {};
+      for (const [feature, storiesFile] of linked().sort(([a], [b]) =>
+        a.localeCompare(b),
+      )) {
+        const read = await plans.fileOf(feature).catch(() => undefined);
+        if (read) {
+          (features[fromRoot(storiesFile)] ??= []).push({
+            fileName: fromRoot(feature),
+            source: read.content,
+          });
+        }
+      }
+      return features;
+    },
+  };
+};
+
+/** The project of Storybook's config folder `configDir` (one per process): the plugin's and indexers'. */
+export const projectOf = (configDir: string) => {
+  let project = projects.get(configDir);
+  if (!project) {
+    project = createProject(configDir);
+    projects.set(configDir, project);
+  }
+  return project;
+};

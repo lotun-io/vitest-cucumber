@@ -1,0 +1,60 @@
+import { Tabs } from "nextra/components";
+
+# Node mode
+
+Your steps run in Vitest's workers, in Node.js. This is the default: any project that doesn't enable
+Vitest's browser mode runs in node mode.
+
+Use it for business logic, APIs and services, or to drive a browser yourself with Playwright.
+
+## Install
+
+<Tabs items={["pnpm", "npm", "yarn"]}>
+  <Tabs.Tab>
+    ```bash
+    pnpm add -D @lotun/vitest-cucumber @cucumber/cucumber vitest
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```bash
+    npm install -D @lotun/vitest-cucumber @cucumber/cucumber vitest
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```bash
+    yarn add -D @lotun/vitest-cucumber @cucumber/cucumber vitest
+    ```
+  </Tabs.Tab>
+</Tabs>
+
+## Configure
+
+```ts filename="vitest.config.ts"
+import { cucumber } from "@lotun/vitest-cucumber";
+import { defineConfig } from "vitest/config";
+
+export default defineConfig({
+  plugins: [
+    cucumber({
+      import: ["features/support/**/*.ts", "features/steps/**/*.ts"],
+    }),
+  ],
+  test: {
+    include: ["features/**/*.feature"],
+  },
+});
+```
+
+Both are required: `test.include` lists your feature files, [`import`](/reference/options#import)
+your support code. Support files load in order: each glob's matches sorted, globs in your order, so
+put your World and hooks first if your steps depend on them.
+
+## Next
+
+- [Writing features](/modes/node/features): a feature, its World, hooks and steps, and driving a
+  browser with Playwright.
+- [Running](/modes/node/running): the run, filters, and what's specific to node mode.
+
+Full example: [`example/node`](https://github.com/lotun-io/vitest-cucumber/tree/main/example/node),
+and with Playwright:
+[`example/node-playwright`](https://github.com/lotun-io/vitest-cucumber/tree/main/example/node-playwright).

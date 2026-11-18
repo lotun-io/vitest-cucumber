@@ -1,0 +1,158 @@
+import { Callout } from "nextra/components";
+
+# Support code
+
+Your step definitions, hooks, World and parameter types use `@cucumber/cucumber`'s API, unchanged.
+The plugin loads the files the [`import`](/reference/options#import) option lists, in every mode.
+
+## What works
+
+The whole support code API, in node mode, browser mode and Storybook:
+
+- `Given`, `When`, `Then`, `defineStep`, with Cucumber expressions (`{int}`, `{float}`, `{word}`,
+  `{string}`, `{}`, `{biginteger}`, optional text, alternatives) and regular expressions
+- `Before`, `After`, `BeforeStep`, `AfterStep` (with tags, names and timeouts), `BeforeAll`,
+  `AfterAll`
+- `setWorldConstructor`, `World`, `world`, `context`, `worldParameters`
+- `defineParameterType` (its transformer's `this` is the World; async transformers are awaited)
+- `DataTable` (`raw`, `rows`, `hashes`, `rowsHash`, `transpose`) and doc strings
+- a definition's `timeout`, `setDefinitionFunctionWrapper`
+- async, promise-returning and callback (`done`) steps and hooks
+- `return "pending"`, `return "skipped"`
+- `this.attach`, `this.log`, `this.link`
+- `Status`, `version`, `wrapPromiseWithTimeout`
+
+What doesn't: [Limitations](/reference/limitations).
+
+## World
+
+Each scenario gets a new World: `this` in its steps and its `Before`/`After`/`BeforeStep`/`AfterStep`
+hooks. Steps must be `function`s, not arrow functions, to get it.
+
+```ts filename="features/support/world.ts"
+import { setWorldConstructor, World, type IWorldOptions } from "@cucumber/cucumber";
+
+export class CartWorld extends World<{ currency: string }> {
+  items: string[] = [];
+
+  constructor(options: IWorldOptions<{ currency: string }>) {
+    super(options); // gives this.attach, this.log, this.link, this.parameters
+  }
+}
+
+setWorldConstructor(CartWorld);
+```
+
+A World constructor that throws fails every scenario.
+
+## World parameters
+
+`worldParameters` in the plugin's options are each World's `this.parameters`, a fresh copy per
+scenario:
+
+```ts filename="vitest.config.ts"
+cucumber({
+  import: ["features/**/*.ts"],
+  worldParameters: { baseUrl: "http://localhost:3000" },
+}),
+```
+
+They must be JSON: every feature file fails otherwise (e.g. with a `BigInt`). To share other values
+(a `Map`, a `Date`), set them on `this.parameters` in a `BeforeAll`: every World of that worker gets a
+copy.
+
+## Hooks
+
+`Before` and `After` run around each scenario, `BeforeStep` and `AfterStep` around each step, with
+the scenario's World as `this`. With `tags`, only for the scenarios that match:
+
+```ts filename="features/support/hooks.ts"
+import { After, Before } from "@cucumber/cucumber";
+import type { CartWorld } from "./world.ts";
+
+// Only for scenarios tagged @with-apples
+Before({ tags: "@with-apples" }, function (this: CartWorld) {
+  this.items = ["apples"];
+});
+
+After(function (this: CartWorld) {
+  this.log(`${this.items.length} items`);
+});
+```
+
+## BeforeAll and AfterAll
+
+They run once per Vitest worker (a page in browser mode): `BeforeAll` before the worker's first
+scenario, `AfterAll` when the worker is done.
+
+- With Vitest's default [`isolate: true`](https://vitest.dev/config/isolate), every feature file
+  has a fresh worker: they run once **per feature file**.
+- With `isolate: false`, a worker loads your support code once and runs them once for all the files
+  it runs.
+
+```ts
+test: { include: ["features/**/*.feature"], isolate: false },
+```
+
+A failing `BeforeAll` skips the worker's scenarios and fails the run; a failing `AfterAll` fails the
+run.
+
+<Callout type="warning">
+  For setup once per whole run (a database, a server), use Vitest's
+  [`globalSetup`](https://vitest.dev/config/globalsetup): Cucumber's once-per-run hooks
+  (`on: "COORDINATOR"`) aren't supported, see [Limitations](/reference/limitations#not-supported).
+</Callout>
+
+## Worker variables
+
+As in Cucumber's parallel mode, every worker has:
+
+| Variable                 | Value                                   |
+| ------------------------ | --------------------------------------- |
+| `CUCUMBER_WORKER_ID`     | the worker's id, unique in the run      |
+| `CUCUMBER_TOTAL_WORKERS` | Vitest's `maxWorkers`                   |
+| `CUCUMBER_PARALLEL`      | `"true"`                                |
+
+They're set before your support code loads: on `process.env` in node mode,
+`import.meta.env` in a page.
+
+## Attachments
+
+```ts
+Then("I see the receipt", async function (this: CartWorld) {
+  this.log("receipt checked");
+  this.link("https://example.com/orders/42");
+  this.attach(JSON.stringify(this.items), "application/json");
+});
+```
+
+They're the test's [annotations](/guides/results#attachments). Node mode takes strings, `Buffer`s and
+streams; a page takes strings only, so attach binary data as base64 with a `base64:` media type
+(`"base64:image/png"`).
+
+## Timeouts
+
+Each step and hook has its own timeout, as in Cucumber:
+
+```ts
+When("the report is ready", { timeout: 30_000 }, async function () {
+  // …
+});
+```
+
+Without one, Vitest's: its `testTimeout` for a scenario's steps and hooks, its `hookTimeout` for
+`BeforeAll` and `AfterAll` (Vitest's defaults: 5 and 10 seconds in Node.js, 15 and 30 in browser
+mode; `0` for none).
+
+- A scenario as a whole has no timeout, unless a [tag](/guides/running#tag-options) with a `timeout`
+  gives it one: the whole scenario must then finish in time.
+- Cucumber's `setDefaultTimeout` isn't supported: set Vitest's `testTimeout` and `hookTimeout`.
+- Fake timers don't change them.
+- In Storybook's UI (`storybook dev` and static builds) there's no Vitest, and Storybook has no
+  timeout for a play function: steps and hooks have none either, unless a definition sets its own.
+
+## Defining steps
+
+Definitions are recorded while the support code loads. Calling `Given` (or any definition function)
+later, e.g. inside a step, throws
+`@lotun/vitest-cucumber: "Given" was called after the support code loaded`.

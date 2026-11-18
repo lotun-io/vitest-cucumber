@@ -1,0 +1,143 @@
+import { Callout } from "nextra/components";
+
+# Running and filtering
+
+Everything runs through Vitest's CLI and config. Cucumber's CLI options have Vitest equivalents:
+see [Options](/reference/options#cucumber-cli-options-in-vitest).
+
+## How scenarios become tests
+
+Each feature file is a Vitest test file:
+
+| Gherkin                   | Vitest                                     |
+| ------------------------- | ------------------------------------------ |
+| `Feature`                 | a suite                                    |
+| `Rule`                    | a suite inside it                          |
+| `Scenario Outline`        | a suite, named as written (`<input>` kept) |
+| `Scenario`, Examples row  | a test                                     |
+
+```gherkin filename="features/arithmetic.feature"
+Feature: Arithmetic
+
+  Scenario: Adding
+    Given a value of 2
+    When I add 3
+    Then the value should be 5
+
+  Rule: Doubling
+
+    Scenario Outline: Doubling <input>
+      Given a value of <input>
+      When I double it
+      Then the value should be <output>
+
+      Examples:
+        | input | output |
+        | 3     | 6      |
+        | 5     | 10     |
+```
+
+`npx vitest run --reporter=tree`:
+
+```ansi
+ [32m✓[39m features/arithmetic.feature [2m([22m[2m3 tests[22m[2m)[22m[32m 70[2mms[22m[39m
+   [32m✓[39m Arithmetic [2m(3)[22m
+     [32m✓[39m Adding[32m 8[2mms[22m[39m
+     [32m✓[39m Doubling [2m(2)[22m
+       [32m✓[39m Doubling <input> [2m(2)[22m
+         [32m✓[39m Doubling 3[32m 1[2mms[22m[39m
+         [32m✓[39m Doubling 5[32m 1[2mms[22m[39m[0m
+```
+
+Scenarios with the same name are separate tests, each running its own steps. A Feature with no name
+is named by its file's path.
+
+<Callout type="warning">
+  A feature file with no scenarios fails with Vitest's `No test found in suite`.
+</Callout>
+
+## Filtering
+
+```bash
+npx vitest run features/cart.feature             # one feature file
+npx vitest run features/cart.feature:12          # the scenario, outline or example row at line 12
+npx vitest run --tagsFilter "@smoke && !@slow"   # by Gherkin tag expression
+npx vitest run -t "Cart > Checkout"              # by name: feature > rule > outline > scenario
+```
+
+- **By line**: a scenario's line runs it, an outline's line runs all its examples, an example row's
+  line runs that row. A line with no scenario fails with
+  `No test found in features/cart.feature in line 12`.
+- **By tag**: Gherkin tags are Vitest [tags](https://vitest.dev/guide/test-tags), `@` included, and
+  inherited as in Cucumber (a Feature's, a Rule's and an Examples block's tags apply to their
+  scenarios). You don't need to declare them in `test.tags`.
+- **By name**: `-t` matches the full name, so `-t "Arithmetic > Doubling"` runs every scenario of
+  that rule.
+
+To list the scenarios without running them: `npx vitest list --staticParse=false` (Vitest's default
+reads test files without running them, and finds no test in a feature file).
+
+## Tag options
+
+Declare a Gherkin tag in [`test.tags`](https://vitest.dev/config/tags) to give its scenarios Vitest
+options:
+
+```ts filename="vitest.config.ts"
+test: {
+  include: ["features/**/*.feature"],
+  tags: [
+    { name: "@flaky", retry: 2 },
+    { name: "@slow", timeout: 30_000 },
+  ],
+},
+```
+
+`retry`, `timeout`, `skip` and the others apply to the tagged scenarios. `concurrent` doesn't: a
+worker always runs its scenarios one at a time. A tag's `timeout` times the whole scenario; a step's
+own: [Timeouts](/guides/support-code#timeouts).
+
+## Retries
+
+```ts
+test: { retry: 1 }                          // every scenario
+test: { tags: [{ name: "@flaky", retry: 2 }] }  // tagged ones
+```
+
+A retry reruns the whole scenario with a fresh World. As in Cucumber, only a failed scenario is run
+again: one with an undefined, pending or ambiguous step fails each attempt with the same result,
+without running.
+
+## Bail
+
+`npx vitest run --bail 1` stops at the first failure (Cucumber's `--fail-fast`): the rest of the file
+isn't run and later files don't start.
+
+## Parallel runs
+
+Vitest spreads feature files across its workers (up to
+[`maxWorkers`](https://vitest.dev/config/maxworkers)). Inside a worker, scenarios run one at a time,
+in file order, even with `sequence.concurrent`. Each worker loads the support code and runs
+`BeforeAll` once; see [`isolate`](/guides/support-code#beforeall-and-afterall).
+
+## Watch mode
+
+`npx vitest` watches:
+
+- editing a feature file reruns it, with its new or renamed scenarios;
+- editing a step definition, hook, World or any module they import reruns the feature files that
+  load it;
+- adding or removing a file that `import` matches reruns the project's feature files (new steps
+  become defined, removed ones undefined);
+- a feature file that failed to parse reruns once you fix it.
+
+In Storybook: [Running](/modes/storybook/running).
+
+## Coverage
+
+Vitest's coverage works as usual and counts your support code and what it imports:
+
+```ts
+test: {
+  coverage: { provider: "v8", include: ["src/**/*.ts", "features/**/*.ts"] },
+},
+```
