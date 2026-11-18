@@ -10,8 +10,8 @@ catalogs:
       specifier: ^13.3.0
       version: 13.3.0
     '@lotun/vitest-cucumber':
-      specifier: ^0.5.4
-      version: 0.5.4
+      specifier: ^1.0.0-beta.0
+      version: 1.0.0-beta.0
     '@playwright/test':
       specifier: ^1.65.1
       version: 1.65.1
@@ -36,7 +36,7 @@ importers:
         version: 13.3.0
       '@lotun/vitest-cucumber':
         specifier: 'catalog:'
-        version: 0.5.4(@cucumber/cucumber@13.3.0)(vitest@5.1.0)
+        version: 1.0.0-beta.0(@cucumber/cucumber@13.3.0)(@vitest/utils@5.1.0)(storybook@10.6.5(@types/react@19.3.0)(react@19.3.1))(vitest@5.1.0)
       '@vitest/browser':
         specifier: ^5.1.0
         version: 5.1.0(vite@8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(yaml@2.9.0))(vitest@5.1.0)
@@ -57,7 +57,7 @@ importers:
         version: 13.3.0
       '@lotun/vitest-cucumber':
         specifier: 'catalog:'
-        version: 0.5.4(@cucumber/cucumber@13.3.0)(vitest@5.1.0)
+        version: 1.0.0-beta.0(@cucumber/cucumber@13.3.0)(@vitest/utils@5.1.0)(storybook@10.6.5(@types/react@19.3.0)(react@19.3.1))(vitest@5.1.0)
       vitest:
         specifier: 'catalog:'
         version: 5.1.0(@types/node@24.19.2)(@vitest/browser-playwright@5.1.0)(@vitest/coverage-v8@5.1.0)(@vitest/ui@5.1.0)(vite@8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(yaml@2.9.0))
@@ -69,7 +69,7 @@ importers:
         version: 13.3.0
       '@lotun/vitest-cucumber':
         specifier: 'catalog:'
-        version: 0.5.4(@cucumber/cucumber@13.3.0)(vitest@5.1.0)
+        version: 1.0.0-beta.0(@cucumber/cucumber@13.3.0)(@vitest/utils@5.1.0)(storybook@10.6.5(@types/react@19.3.0)(react@19.3.1))(vitest@5.1.0)
       '@playwright/test':
         specifier: 'catalog:'
         version: 1.65.1
@@ -97,7 +97,7 @@ importers:
         version: 13.3.0
       '@lotun/vitest-cucumber':
         specifier: 'catalog:'
-        version: 0.5.4(@cucumber/cucumber@13.3.0)(vitest@5.1.0)
+        version: 1.0.0-beta.0(@cucumber/cucumber@13.3.0)(@vitest/utils@5.1.0)(storybook@10.6.5(@types/react@19.3.0)(react@19.3.1))(vitest@5.1.0)
       '@storybook/addon-a11y':
         specifier: ^10.6.5
         version: 10.6.5(storybook@10.6.5(@types/react@19.3.0)(react@19.3.1))
@@ -249,8 +249,19 @@ packages:
   '@cucumber/ci-environment@15.0.0':
     resolution: {integrity: sha512-9zIy0YIn7Tkws4pNJElf/kOnPy/6yxWZPWH6eMNW8s/BsV3d10+Xs1yjp2HwEMPElnrFEVHQlUs4XGQ1M3q2Nw==}
 
+  '@cucumber/core@0.10.0':
+    resolution: {integrity: sha512-EuJ90GpFndE4IJMTWP4qATEC7R1GUthHggkuRO30xhXpAcjt9Xod36jTXxDqcY4cguxIJgXaRCeXxdnz6FWC1A==}
+    peerDependencies:
+      '@cucumber/cucumber-expressions': '*'
+      '@cucumber/messages': '>=31.0.0'
+      '@cucumber/query': '*'
+      '@cucumber/tag-expressions': '*'
+
   '@cucumber/cucumber-expressions@20.1.0':
     resolution: {integrity: sha512-KXQJChHTyHdg6HI7fHy3zpjfoS205vV1B/aJQKB82VFgMGbdVdiaSy7sTtap/5Q787anLmZt25Tg0FqQ2n4fqw==}
+
+  '@cucumber/cucumber-expressions@20.2.0':
+    resolution: {integrity: sha512-qzQYovDERDTf4iFvnJwhWxU2J0Yj25cVFoxr78WJqNt+Lvt9xZWobEG9bu3rQ35HTmlbmreoCGZcTKPwskH33Q==}
 
   '@cucumber/cucumber@13.3.0':
     resolution: {integrity: sha512-6OSoj/SQogJwEjoNrPZ5gtyTDwbmtCDuzJ/hc81nOVhwEBAO6ypgdWd+qCScOdyZxgtQvUWG534LBWb5h9/Y8Q==}
@@ -300,8 +311,16 @@ packages:
     peerDependencies:
       '@cucumber/messages': '*'
 
+  '@cucumber/query@16.4.0':
+    resolution: {integrity: sha512-SdC3lnAYd4RNvoLVHG59mtqC3suotgRD15PvendGxLXV7BE9mDkhbPiHAPGqGyDlQmB7beixjbIZ7+cYEU/zXQ==}
+    peerDependencies:
+      '@cucumber/messages': '*'
+
   '@cucumber/tag-expressions@11.0.1':
     resolution: {integrity: sha512-x0AssM2HKLoxw8gSeAsYo0QK9wImODYBNDO423/K1Pfk2vwA/MdecRS1ky5i3Rl84kohaG0uUXhIBR+HTu/Qjg==}
+
+  '@cucumber/tag-expressions@11.2.0':
+    resolution: {integrity: sha512-fDASLgFhVUQfn65xolA9T9686Gub7p8iIqOnwQxgZZreRa7uaWkHqYCe/XeBh3/ud0Bz6ymfjT/WFl7SxeB68w==}
 
   '@emnapi/core@1.11.0':
     resolution: {integrity: sha512-l9Oo58x0HOP5znGzVhYW9U3e5wVuA4LAZU2AGezTmkhO1CgQRFDhDg4nneHsu/t3WniXg9QrG2nIXL/ZS8ln8Q==}
@@ -502,12 +521,17 @@ packages:
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
 
-  '@lotun/vitest-cucumber@0.5.4':
-    resolution: {integrity: sha512-V//+2hMCoyGgRVcRBGT5a9sJcDYdRd047aTZSKMsJligYoav6WhrJD+3Sp5dfWKKDhXqeLG9UGLID/+qUtIJHw==}
-    engines: {node: '>=22.0.0'}
+  '@lotun/vitest-cucumber@1.0.0-beta.0':
+    resolution: {integrity: sha512-pWNmy9hQyO214DZ3bMpzij75n4YHAtAKe4WmlB9V25Axhv6EHe6uDYRDjC4vnMTgQqAmgxgdFY+Tu1ZAmKB2RA==}
+    engines: {node: ^24.0.0 || ^26.0.0}
     peerDependencies:
-      '@cucumber/cucumber': 12.x || 13.x
-      vitest: 4.x || 5.x
+      '@cucumber/cucumber': ^13.3.0
+      '@vitest/utils': ^5.x
+      storybook: ^10.6.0
+      vitest: ^5.x
+    peerDependenciesMeta:
+      storybook:
+        optional: true
 
   '@mdx-js/react@3.1.1':
     resolution: {integrity: sha512-f++rKLQgUVYDAtECQ6fn/is15GkEH9+nZPM3MS0RcxVqoTfawHvDlSCH7JbMhAM6uJ32v3eXLvLmLvjGu7PTQw==}
@@ -2183,10 +2207,6 @@ packages:
       vite-plus:
         optional: true
 
-  stream-chain@4.2.5:
-    resolution: {integrity: sha512-Wtyq3bNE3ggLR0v2vftqvuhltym3WbZAkZpfIrkr5F/6vpeUmWmwTgXa16zD87gpahwJ/Qulq3zVfUlgIc0J2A==}
-    engines: {node: '>=22'}
-
   string-argv@0.3.2:
     resolution: {integrity: sha512-aqD2Q0144Z+/RqG52NeHEkZauTAUWJO8c6yTftGJKO3Tja5tUgIfmIl6kExvhtxSDP7fXB6DvzkfMpCd/F3G+Q==}
     engines: {node: '>=0.6.19'}
@@ -2327,6 +2347,10 @@ packages:
   util-arity@1.1.0:
     resolution: {integrity: sha512-kkyIsXKwemfSy8ZEoaIz06ApApnWsk5hQO0vLjZS6UkBiGiW++Jsyb8vSBoc0WKlffGoGs5yYy/j5pp8zckrFA==}
 
+  uuid@14.0.3:
+    resolution: {integrity: sha512-Sc5u1VVln93y1Xnz4R+CunOZc7R9LUcTmhj7Rc7Eg3HVcf7rVn2FOoa812fe0W8p3jD7xeoGSYbfqCGGH2B6xw==}
+    hasBin: true
+
   valibot@1.5.0:
     resolution: {integrity: sha512-nil6AkP2TChWL43Z5uJ6GTxX01CUA+g8LWUM+N/rB9NBbkUMaUsi9PUNzlUPgoKASgmx9f7eGOYpJ04/fSa6FQ==}
     peerDependencies:
@@ -2429,18 +2453,6 @@ packages:
     resolution: {integrity: sha512-Tb2FUhB4vUsGQlfSquQLYkApkuPAFQXGFzxWKHHumVz2dK+X1RUm/HnID4+TfIGYJ1kTcwOaCk/buYCEJr6YjQ==}
     engines: {node: '>=20.11'}
     hasBin: true
-
-  ws@8.21.3:
-    resolution: {integrity: sha512-201TZ/kPWxoPr/OKWjquZR1SWKXcvxdH+e1xrx89b3YbmzLMFCLfnaG1HFIgWzJOEWZ7MvpK++odZufgYR50Rw==}
-    engines: {node: '>=10.0.0'}
-    peerDependencies:
-      bufferutil: ^4.0.1
-      utf-8-validate: '>=5.0.2'
-    peerDependenciesMeta:
-      bufferutil:
-        optional: true
-      utf-8-validate:
-        optional: true
 
   ws@8.22.1:
     resolution: {integrity: sha512-oyL6OPYme/CmiFvNuGzeoxCJ4nOrZE2O1FwM9MWM1AsGri6nLXB2pg+lNA8aLeXMSav0J6eIVS1j6vUPzUtK9g==}
@@ -2604,7 +2616,18 @@ snapshots:
 
   '@cucumber/ci-environment@15.0.0': {}
 
+  '@cucumber/core@0.10.0(@cucumber/cucumber-expressions@20.2.0)(@cucumber/messages@34.2.1)(@cucumber/query@16.4.0(@cucumber/messages@34.2.1))(@cucumber/tag-expressions@11.2.0)':
+    dependencies:
+      '@cucumber/cucumber-expressions': 20.2.0
+      '@cucumber/messages': 34.2.1
+      '@cucumber/query': 16.4.0(@cucumber/messages@34.2.1)
+      '@cucumber/tag-expressions': 11.2.0
+
   '@cucumber/cucumber-expressions@20.1.0':
+    dependencies:
+      regexp-match-indices: 1.0.2
+
+  '@cucumber/cucumber-expressions@20.2.0':
     dependencies:
       regexp-match-indices: 1.0.2
 
@@ -2694,7 +2717,15 @@ snapshots:
       '@teppeis/multimaps': 3.0.0
       lodash.sortby: 4.7.0
 
+  '@cucumber/query@16.4.0(@cucumber/messages@34.2.1)':
+    dependencies:
+      '@cucumber/messages': 34.2.1
+      '@teppeis/multimaps': 3.0.0
+      lodash.sortby: 4.7.0
+
   '@cucumber/tag-expressions@11.0.1': {}
+
+  '@cucumber/tag-expressions@11.2.0': {}
 
   '@emnapi/core@1.11.0':
     dependencies:
@@ -2833,15 +2864,22 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.6.0
 
-  '@lotun/vitest-cucumber@0.5.4(@cucumber/cucumber@13.3.0)(vitest@5.1.0)':
+  '@lotun/vitest-cucumber@1.0.0-beta.0(@cucumber/cucumber@13.3.0)(@vitest/utils@5.1.0)(storybook@10.6.5(@types/react@19.3.0)(react@19.3.1))(vitest@5.1.0)':
     dependencies:
+      '@cucumber/core': 0.10.0(@cucumber/cucumber-expressions@20.2.0)(@cucumber/messages@34.2.1)(@cucumber/query@16.4.0(@cucumber/messages@34.2.1))(@cucumber/tag-expressions@11.2.0)
       '@cucumber/cucumber': 13.3.0
+      '@cucumber/cucumber-expressions': 20.2.0
+      '@cucumber/gherkin': 42.0.1
       '@cucumber/messages': 34.2.1
-      '@cucumber/query': 16.1.1(@cucumber/messages@34.2.1)
-      stream-chain: 4.2.5
-      string-argv: 0.3.2
+      '@cucumber/query': 16.4.0(@cucumber/messages@34.2.1)
+      '@cucumber/tag-expressions': 11.2.0
+      '@vitest/utils': 5.1.0
+      magic-string: 1.4.5
       tinyglobby: 0.2.17
+      uuid: 14.0.3
       vitest: 5.1.0(@types/node@24.19.2)(@vitest/browser-playwright@5.1.0)(@vitest/coverage-v8@5.1.0)(@vitest/ui@5.1.0)(vite@8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(yaml@2.9.0))
+    optionalDependencies:
+      storybook: 10.6.5(@types/react@19.3.0)(react@19.3.1)
 
   '@mdx-js/react@3.1.1(@types/react@19.3.0)(react@19.3.1)':
     dependencies:
@@ -4245,15 +4283,13 @@ snapshots:
       recast: 0.23.21
       semver: 7.8.5
       use-sync-external-store: 1.6.0(react@19.3.1)
-      ws: 8.21.3
+      ws: 8.22.1
     optionalDependencies:
       '@types/react': 19.3.0
     transitivePeerDependencies:
       - bufferutil
       - react
       - utf-8-validate
-
-  stream-chain@4.2.5: {}
 
   string-argv@0.3.2: {}
 
@@ -4387,6 +4423,8 @@ snapshots:
 
   util-arity@1.1.0: {}
 
+  uuid@14.0.3: {}
+
   valibot@1.5.0(typescript@7.0.2):
     optionalDependencies:
       typescript: 7.0.2
@@ -4436,8 +4474,6 @@ snapshots:
   webpack-virtual-modules@0.6.2: {}
 
   why-is-node-running@3.2.1: {}
-
-  ws@8.21.3: {}
 
   ws@8.22.1: {}
 
