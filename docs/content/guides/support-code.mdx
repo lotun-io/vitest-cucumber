@@ -113,8 +113,21 @@ As in Cucumber's parallel mode, every worker has:
 | `CUCUMBER_TOTAL_WORKERS` | Vitest's `maxWorkers`                   |
 | `CUCUMBER_PARALLEL`      | `"true"`                                |
 
-They're set before your support code loads: on `process.env` in node mode,
-`import.meta.env` in a page.
+They're set before your support code loads. Where you read them depends on the mode:
+
+```ts
+// Node mode
+const worker = process.env.CUCUMBER_WORKER_ID;
+
+// Browser mode and Storybook: a page has no `process`
+const worker = import.meta.env.CUCUMBER_WORKER_ID;
+```
+
+Support code that runs in both can pick whichever has them:
+
+```ts
+const env = import.meta.env.CUCUMBER_WORKER_ID ? import.meta.env : process.env;
+```
 
 ## Attachments
 
