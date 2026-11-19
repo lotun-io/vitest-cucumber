@@ -3,7 +3,7 @@ import { Callout } from "nextra/components";
 # Running and filtering
 
 Everything runs through Vitest's CLI and config. Cucumber's CLI options have Vitest equivalents:
-see [Options](/reference/options#cucumber-cli-options-in-vitest).
+see [Options](/reference/options#cucumbers-options).
 
 ## How scenarios become tests
 
@@ -37,7 +37,9 @@ Feature: Arithmetic
         | 5     | 10     |
 ```
 
-`npx vitest run --reporter=tree`:
+```bash
+npx vitest run
+```
 
 ```ansi
  [32m✓[39m features/arithmetic.feature [2m([22m[2m3 tests[22m[2m)[22m[32m 70[2mms[22m[39m
@@ -49,6 +51,7 @@ Feature: Arithmetic
          [32m✓[39m Doubling 5[32m 1[2mms[22m[39m[0m
 ```
 
+Vitest lists every scenario when a run has one test file, and one line per file when it has more.
 Scenarios with the same name are separate tests, each running its own steps. A Feature with no name
 is named by its file's path.
 

@@ -46,26 +46,40 @@ Errors hide frames from Cucumber and the plugin. `backtrace: true` keeps every f
 
 See [World parameters](/guides/support-code#world-parameters).
 
-## Not supported
+## Cucumber's options
 
-Every other Cucumber option is ignored, and so are Cucumber's configuration files (`cucumber.js`,
-`cucumber.mjs`, …) and profiles: configure per environment in your Vitest config instead. Cucumber's
-formatters (`format`, `formatOptions`), plugins and publishing aren't supported; Vitest's
-[reporters](https://vitest.dev/guide/reporters) report the run.
+Every option of Cucumber's configuration, and what to use here:
 
-## Cucumber CLI options in Vitest
+| Cucumber option | | Use |
+| --- | :-: | --- |
+| `import` | ✅ | |
+| `strict` | ✅ | |
+| `dryRun` | ✅ | |
+| `backtrace` | ✅ | |
+| `language` | ✅ | |
+| `worldParameters` | ✅ | |
+| `paths` | 🔀 | `test.include`, and files on the command line |
+| `tags` | 🔀 | `--tagsFilter` |
+| `name` | 🔀 | `-t` / `--testNamePattern` |
+| `retry`, `retryTagFilter` | 🔀 | `test.retry`, and `retry` in `test.tags` |
+| `parallel` | 🔀 | `test.maxWorkers` |
+| `failFast` | 🔀 | `--bail` |
+| `order` | 🔀 | `test.sequence.shuffle` (`--sequence.shuffle`) |
+| `shard` | 🔀 | `--shard`, which splits by feature file |
+| `format`, `formatOptions` | 🔀 | `test.reporters` |
+| `require` | 🔀 | the plugin's [`import`](#import) |
+| `requireModule`, `loader` | 🔀 | not needed: Vite transforms TypeScript |
+| `forceExit` | 🔀 | not needed: Vitest ends the run itself |
+| `workerOptions` | 🔀 | `test.execArgv`: Node's flags for each worker, such as `--max-old-space-size=2048` (with the default `forks` pool) |
+| `plugin`, `pluginOptions` | ❌ | |
+| `publish` | ❌ | |
 
-| Cucumber                  | Vitest                                                    |
-| ------------------------- | --------------------------------------------------------- |
-| `paths`                   | `test.include`, and files on the command line             |
-| `tags`                    | `--tagsFilter`                                            |
-| `name`                    | `-t` / `--testNamePattern`                                |
-| `retry`, `retryTagFilter` | `test.retry`, and `retry` in `test.tags`                  |
-| `parallel`                | `test.maxWorkers`                                         |
-| `failFast`                | `--bail`                                                  |
-| `format`                  | `test.reporters`                                          |
-| `require`, `import`       | the plugin's `import`                                     |
-| `requireModule`, `loader` | not needed: Vite transforms TypeScript                    |
+- ✅ **Supported**, with Cucumber's meaning.
+- 🔀 **Not supported, use Vitest's alternative.**
+- ❌ **Not supported.**
+
+An option that isn't supported is ignored, and so are Cucumber's configuration files (`cucumber.js`,
+`cucumber.mjs`, …) and profiles: configure per environment in your Vitest config instead.
 
 ## Exports
 

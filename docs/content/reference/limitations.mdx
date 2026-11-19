@@ -10,7 +10,7 @@ In every mode:
 | `setDefaultTimeout` | Calling it throws | Vitest's `testTimeout` and `hookTimeout`, or a definition's [`timeout`](/guides/support-code#timeouts) |
 | `setParallelCanAssign` | Calling it throws | Nothing: Vitest decides which worker runs which feature file |
 | Cucumber's formatters, plugins and publishing | The options are ignored | Vitest's [reporters](https://vitest.dev/guide/reporters) |
-| Cucumber's configuration files and profiles | They aren't read | Your Vitest config: [Options](/reference/options#not-supported) |
+| Cucumber's configuration files and profiles | They aren't read | Your Vitest config: [Options](/reference/options#cucumbers-options) |
 | Concurrent scenarios | A worker runs its scenarios one at a time, whatever `concurrent` says | Feature files run in parallel across workers |
 | Vitest's `vmThreads` and `vmForks` pools | Not tested | `forks` (the default) or `threads` |
 
