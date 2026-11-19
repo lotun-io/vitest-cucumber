@@ -4,7 +4,7 @@ Run [Cucumber](https://cucumber.io/) feature files as [Vitest](https://vitest.de
 
 [![npm version](https://img.shields.io/npm/v/@lotun/vitest-cucumber/beta)](https://www.npmjs.com/package/@lotun/vitest-cucumber)
 
-[Documentation](https://lotun-io.github.io/vitest-cucumber/) | [Getting Started](https://lotun-io.github.io/vitest-cucumber/getting-started) | [Examples](https://lotun-io.github.io/vitest-cucumber/examples) | [Discord](https://discord.gg/dfJUkmEtAP)
+[Documentation](https://lotun-io.github.io/vitest-cucumber/) | [Getting Started](https://lotun-io.github.io/vitest-cucumber/getting-started) | [Examples](https://lotun-io.github.io/vitest-cucumber/examples) | [Discord](https://discord.gg/dfJUkmEtAP) | [Discussions](https://github.com/lotun-io/vitest-cucumber/discussions)
 
 ## Install
 
