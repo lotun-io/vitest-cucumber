@@ -20,12 +20,13 @@ import {
   viteFinal,
 } from "../preset.ts";
 import { featuresMapId } from "../preset/featuresModule.ts";
-import { projectOf } from "../preset/project.ts";
+import { type PresetOptions, projectOf } from "../preset/project.ts";
 import {
   isPreviewSupport,
   mayBePreviewSupport,
   previewSupportId,
 } from "../preset/supportModule.ts";
+import { storybookOptionsOf } from "../vitest/storybookOptions.ts";
 
 /**
  * A Storybook project of the test's own: its options file (its support code, a Storybook step), a stories
@@ -36,7 +37,8 @@ const configDir = path.join(project, ".storybook");
 for (const [name, content] of Object.entries({
   // From the project's folder (an absolute path from `path.join` isn't a glob on Windows).
   ".storybook/cucumber.mjs": 'export default { import: ["steps/*.ts"] };\n',
-  "steps/stories.ts": `Given("the {storybook:story} story", (story) => {});`,
+  "steps/stories.ts": `Given("the {storybook:story} story", (story) => {});
+Given("the stories of {storybook:storiesFile}", (file) => {});`,
   "src/Login.stories.ts": `import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Page } from "./Page";
 
@@ -49,6 +51,18 @@ export const LogIn: Story = { tags: ["smoke"] };
 export const JustThePage: Story = {};
 `,
   "src/Page.stories.ts": 'export default { title: "Page" };\n',
+  // No title written: Storybook's automatic one, by its `stories`.
+  "src/parts/Card.stories.ts": "export default {};\nexport const Plain = {};\n",
+  "src/parts/Card.feature": `Feature: Card
+  Scenario: Plain
+    Given the Plain story
+`,
+  // No title written, and no `stories` pattern matches it.
+  "elsewhere/Unlisted.stories.ts": "export default {};\n",
+  "src/Unlisted.feature": `Feature: Unlisted
+  Scenario: A
+    Given the stories of elsewhere/Unlisted.stories.ts
+`,
   "src/Typo.stories.ts":
     'export default { title: "Typo" };\nexport const Primary = {};\n',
   "src/Typo.feature": `Feature: Typo
@@ -83,6 +97,19 @@ afterAll(() => {
 
 const makeTitle = (title?: string) => title ?? "Auto";
 
+/** Storybook's options to the preset's functions: its config folder, its presets (their `stories`). */
+const options = {
+  configDir,
+  presets: {
+    apply: (name: string) =>
+      Promise.resolve(
+        name === "stories"
+          ? ["../src/**/*.stories.ts", "../src/**/*.feature"]
+          : undefined,
+      ),
+  },
+} as unknown as PresetOptions;
+
 /** Runs `run` as Storybook's own process does (no `VITEST`, which this test run sets). */
 const inStorybook = async <T>(run: () => Promise<T>) => {
   vi.stubEnv("VITEST", "");
@@ -101,9 +128,7 @@ const storybookIndexer = {
 
 describe("Storybook's indexers, and ours for a feature file", () => {
   test("a feature file: its stories module indexed as Storybook's CSF indexer does, under its stories file's title", async () => {
-    const indexers = await experimental_indexers([storybookIndexer], {
-      configDir,
-    });
+    const indexers = await experimental_indexers([storybookIndexer], options);
     expect(indexers[1]).toBe(storybookIndexer);
     const feature = path.join(project, "src/Login.feature");
     const [indexer] = indexers;
@@ -139,12 +164,40 @@ describe("Storybook's indexers, and ours for a feature file", () => {
       },
     ]);
   });
+
+  test("a stories file that writes no title: Storybook's automatic one (by its `stories`), then the feature's label; the ids made from it", async () => {
+    const [indexer] = await experimental_indexers([], options);
+    const entries = await inStorybook(async () =>
+      indexer?.createIndex(path.join(project, "src/parts/Card.feature"), {
+        makeTitle,
+      }),
+    );
+    expect(entries?.map(({ title, __id }) => ({ title, __id }))).toEqual([
+      {
+        title: "parts/Card/Feature: Card",
+        __id: "parts-card-feature-card--plain",
+      },
+    ]);
+  });
+
+  test("a stories file with no title to take (none written, no `stories` pattern matches it): the feature's error, at its stories file step", async () => {
+    const [indexer] = await experimental_indexers([], options);
+    await expect(
+      inStorybook(async () =>
+        indexer?.createIndex(path.join(project, "src/Unlisted.feature"), {
+          makeTitle,
+        }),
+      ),
+    ).rejects.toThrow(
+      'src/Unlisted.feature:3: elsewhere/Unlisted.stories.ts has no title: none is written in its meta, and no pattern of Storybook\'s "stories" matches it',
+    );
+  });
 });
 
 describe("a broken feature file (here a story its stories file doesn't have)", () => {
   const typo = path.join(project, "src/Typo.feature");
   const indexerOf = async () =>
-    (await experimental_indexers([storybookIndexer], { configDir }))[0];
+    (await experimental_indexers([storybookIndexer], options))[0];
 
   test("stops Storybook's index: the indexer throws, its errors listed", async () => {
     await expect(
@@ -168,6 +221,14 @@ describe("a broken feature file (here a story its stories file doesn't have)", (
       vi.unstubAllEnvs();
     }
   });
+});
+
+test("in the addon's Vitest runs (`VITEST` set), `viteFinal` gives only the plugin that carries Storybook's options to the Vitest plugin", async () => {
+  vi.stubEnv("VITEST", "true");
+  const config = await viteFinal({ plugins: [] }, options);
+  vi.unstubAllEnvs();
+  expect(config.plugins).toHaveLength(1);
+  expect(storybookOptionsOf([config.plugins?.[0] as Plugin])).toBe(options);
 });
 
 describe("each Storybook page's own modules", () => {
@@ -198,7 +259,7 @@ describe("each Storybook page's own modules", () => {
 
   test("the placeholder's import is the support module's own id, served its code (not the placeholder's path: Vite would cache it as a dependency)", async () => {
     vi.stubEnv("VITEST", "");
-    const config = await viteFinal({}, { configDir });
+    const config = await viteFinal({}, options);
     vi.unstubAllEnvs();
     const plugin = config.plugins?.at(-1) as Plugin;
     const resolveId = plugin.resolveId as (
@@ -240,7 +301,7 @@ describe("`storybook dev`: the dev server's watcher", () => {
   /** The preview plugin, as `viteFinal` gives it to Storybook's Vite. */
   const previewPlugin = async () => {
     vi.stubEnv("VITEST", "");
-    const config = await viteFinal({}, { configDir });
+    const config = await viteFinal({}, options);
     vi.unstubAllEnvs();
     return config.plugins?.at(-1) as Plugin;
   };
@@ -352,11 +413,11 @@ describe("`storybook dev`: the dev server's watcher", () => {
 describe("the features map (`featuresOf`'s, in Storybook's preview)", () => {
   test("the placeholder's import is the map's own id; the map: each stories file's linked features, each one's text written in", async () => {
     vi.stubEnv("VITEST", "");
-    const config = await viteFinal({}, { configDir });
+    const config = await viteFinal({}, options);
     vi.unstubAllEnvs();
     const plugin = config.plugins?.at(-1) as Plugin;
     // Storybook's index links each feature (Login.feature on Login.stories.ts).
-    const indexer = (await experimental_indexers([], { configDir }))[0];
+    const indexer = (await experimental_indexers([], options))[0];
     await inStorybook(async () =>
       indexer?.createIndex(path.join(project, "src/Login.feature"), {
         makeTitle,
@@ -393,7 +454,7 @@ describe("the features map (`featuresOf`'s, in Storybook's preview)", () => {
 
   test("a feature file deleted: it leaves the map (an import of it would fail the preview)", async () => {
     vi.stubEnv("VITEST", "");
-    const config = await viteFinal({}, { configDir });
+    const config = await viteFinal({}, options);
     vi.unstubAllEnvs();
     const plugin = config.plugins?.at(-1) as Plugin;
     const load = plugin.load as (this: unknown, id: string) => Promise<string>;
@@ -406,7 +467,7 @@ describe("the features map (`featuresOf`'s, in Storybook's preview)", () => {
       path.join(project, "src/Gone.stories.ts"),
       'export default { title: "Gone" };\nexport const LogIn = {};\n',
     );
-    const indexer = (await experimental_indexers([], { configDir }))[0];
+    const indexer = (await experimental_indexers([], options))[0];
     await inStorybook(async () => indexer?.createIndex(gone, { makeTitle }));
     const context = { addWatchFile: vi.fn() };
     expect(await load.call(context, featuresMapId)).toContain(
@@ -467,13 +528,14 @@ test("the server channel hook: feature files whose index entries are out of date
     ),
   ).toBe(channel);
   // Nothing out of date: nothing asked of Storybook.
-  await projectOf(dir).indexOutOfDate([]);
+  const channelProject = projectOf(options as unknown as PresetOptions);
+  await channelProject.indexOutOfDate([]);
   expect({ asked, invalidated, emitted }).toEqual({
     asked: [],
     invalidated: [],
     emitted: [],
   });
-  await projectOf(dir).indexOutOfDate([
+  await channelProject.indexOutOfDate([
     path.join(process.cwd(), "src", "A.feature"),
     path.join(process.cwd(), "features", "b", "B.feature"),
   ]);

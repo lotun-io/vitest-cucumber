@@ -13,9 +13,9 @@ Keep your feature files where you like:
   its stories file with a [stories file step](#storybook-steps)
   (`Given the stories of src/stories/Greeting.stories.ts`).
 
-Both work in one project, with each folder's feature files listed in Storybook's
-[`stories`](/modes/storybook#add-the-addon) (`"../features/**/*.@(feature|feature.md)"` for the
-second). The examples here keep the feature next to its stories file:
+Both work in one project: the pattern in Storybook's [`stories`](/modes/storybook#add-the-addon)
+lists both folders (`"../@(src|features)/**/*.@(feature|feature.md)"`). The examples here keep the
+feature next to its stories file:
 
 <FileTree>
   <FileTree.Folder name="src" defaultOpen>
@@ -42,14 +42,15 @@ Each scenario's story:
 
 - **renders the story its Storybook step names** (`Given the Ada story`), with everything the
   story has (`args`, `render`, `decorators`, `parameters`, …) but its own `play`, which the scenario
-  replaces; with no such step, or one naming `default` (an Outline with rows on stories and a row
-  on the meta), it renders the stories file's meta (its `component`, `args`, `render`, …);
+  replaces; with `default`, or no story step, it renders the stories file's meta (its `component`,
+  `args`, `render`, …);
 - **uses the stories file's meta**: its decorators, loaders, parameters and tags, as any story of
   that file;
 - is **named after the scenario** (an Outline row after its row), with the story's tags and the
   scenario's Gherkin tags (with their `@`), and not in autodocs pages;
 - is listed under **the stories file's title, then the feature**: `Example/Greeting/Feature: Greeting`
-  (the feature's keyword and name; a feature without a name, its file's name without the extension:
+  (the title written in the stories file, or Storybook's automatic one if it writes none; then the
+  feature's keyword and name; a feature without a name, its file's name without the extension:
   `Feature:` in `Greeting.feature` is `Feature: Greeting`). Several features on one stories file are
   told apart by their names: give each its own. A `/` in a feature's name is listed as a `|`
   (`Feature: Log in/out` as `Feature: Log in|out`): Storybook splits a title at each `/`.
@@ -77,6 +78,7 @@ Feature: Greeting
       | Grace |
 
   Scenario: Greeting the world
+    Given the Basic story
     When I click the "Say hello" button
     Then I see the text "Hello, World!"
     And its "onGreet" handler was called
@@ -108,11 +110,15 @@ export const Grace: Story = {
   args: { name: "Grace" },
 };
 
-// "Greeting the world" names no story: it renders the meta
+// "Greeting the world": the meta's args as they are
+export const Basic: Story = {};
 ```
 
-The Outline gives each row its own story with a column (`<name>`); a row naming `default` would
-render the meta.
+The Outline gives each row its own story with a column (`<name>`).
+
+The story step is optional: a scenario without one renders the stories file's meta (its `component`
+with its `args`). `Given the default story` says the same explicitly, for a stories file that has
+only a meta. `default`, in lowercase, is the meta: not a story named `Default`.
 
 ## Storybook steps
 
@@ -239,4 +245,5 @@ in JavaScript or TypeScript** (`.js`, `.jsx`, `.mjs`, `.ts`, `.tsx`, `.mts`, …
 - **MDX** files are docs, with no stories to play.
 
 Write a story's `tags` and the meta's `title` and `tags` as literals. A stories file without a
-`title` gets Storybook's automatic one.
+`title` has Storybook's automatic one, and its features are listed under that. Storybook makes one
+only for a file its `stories` patterns match: a stories file they don't list needs a written `title`.

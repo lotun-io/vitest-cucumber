@@ -43,6 +43,8 @@ const project = () => {
     plans,
     root: () => root,
     configuration,
+    // Every stories file here writes its title.
+    autoTitleOf: () => Promise.resolve(undefined),
     onLinkedFeaturesChanged: () => {
       counted.linkedChanges += 1;
     },

@@ -38,8 +38,11 @@ afterEach(() => {
   rmSync(root, { recursive: true, force: true });
 });
 
-/** Feature file `uri` (its content written), linked. */
-const linkedOf = async (uri: string, lines: string[]) => {
+/**
+ * Feature file `uri` (its content written), linked; `autoTitle`, Storybook's automatic title of
+ * its stories file (none: no `stories` pattern matches it).
+ */
+const linkedOf = async (uri: string, lines: string[], autoTitle?: string) => {
   write({ [uri]: lines.join("\n") });
   const { gherkin } = planOf(lines.join("\n"), uri, "en");
   if (!gherkin) {
@@ -59,6 +62,7 @@ const linkedOf = async (uri: string, lines: string[]) => {
       ...gherkin,
     }),
     stepErrors: steps.errors,
+    autoTitleOf: () => Promise.resolve(autoTitle),
   });
 };
 
@@ -80,11 +84,44 @@ describe("a feature file, linked to its stories file", () => {
     expect(linked.errors).toEqual([]);
     expect(linked.storiesFile).toBe(path.join(root, "src/Button.stories.ts"));
     expect(linked.stories?.exports).toEqual(["Primary", "Secondary"]);
+    // The title written in the stories file, whatever Storybook's automatic one would be.
+    expect(linked.title).toBe("Button");
     expect(
       linked.links.map(({ name, exportName }) => [name, exportName]),
     ).toEqual([
       ["Secondary", "Secondary"],
       ["Primary", "Primary"],
+    ]);
+  });
+
+  test("a stories file that writes no title: Storybook's automatic one; none either (no `stories` pattern matches it): the feature's error, at its stories file step if it has one", async () => {
+    write({
+      "steps/stories.ts": stepsFile,
+      "src/Card.stories.ts": "export default {};\nexport const Plain = {};\n",
+    });
+    const sibling = [
+      "Feature: Card",
+      "  Scenario: A",
+      "    Given the Plain story",
+    ];
+    const listed = await linkedOf("src/Card.feature", sibling, "parts/Card");
+    expect(listed.errors).toEqual([]);
+    expect(listed.title).toBe("parts/Card");
+    const unlisted = await linkedOf("src/Card.feature", sibling);
+    expect(unlisted.title).toBeUndefined();
+    expect(unlisted.errors).toEqual([
+      'src/Card.feature: src/Card.stories.ts has no title: none is written in its meta, and no pattern of Storybook\'s "stories" matches it (give its meta a "title", or list the file in "stories")',
+    ]);
+    const named = await linkedOf("features/card.feature", [
+      "Feature: Card",
+      "  Scenario: A",
+      "    Given the stories of src/Card.stories.ts",
+      "    Given the Plan story",
+    ]);
+    // Every error of its links, the title's among them.
+    expect(named.errors).toEqual([
+      'features/card.feature:3: src/Card.stories.ts has no title: none is written in its meta, and no pattern of Storybook\'s "stories" matches it (give its meta a "title", or list the file in "stories")',
+      'features/card.feature:4: src/Card.stories.ts has no story "Plan" (its stories: Plain)',
     ]);
   });
 

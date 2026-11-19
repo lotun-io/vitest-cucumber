@@ -1,7 +1,7 @@
 Feature: Greeting
   A scenario and a Scenario Outline on the stories of `Greeting.stories.ts`: the story a step names
   (`Given the Ada story`) gives the scenario its `args`, an Outline's rows each name theirs with a
-  column, and a scenario that names none runs on the meta (its `name` is "World").
+  column, and `Basic` is the meta's args as they are (its `name` is "World").
 
   @smoke
   Scenario: Saying hello
@@ -20,6 +20,7 @@ Feature: Greeting
       | Grace |
 
   Scenario: Greeting the world
+    Given the Basic story
     When I click the "Say hello" button
     Then I see the text "Hello, World!"
     And its "onGreet" handler was called

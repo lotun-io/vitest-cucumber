@@ -2,24 +2,26 @@
 // preview plugin and its indexer share it, in Storybook's own process and in the addon's Vitest,
 // which loads presets too): its root, its configuration (the options file's) and its feature
 // files' plans (`../../feature/plans.ts`, and Storybook's on them:
-// `../stories/storybookPlans.ts`).
+// `../stories/storybookPlans.ts`), with Storybook's automatic titles (`../stories/storiesTitle.ts`:
+// its `stories`, as its presets give them).
 import path from "node:path";
+import type { Options } from "storybook/internal/types";
 import type { FeatureSource } from "../../../types/storybook.ts";
 import { slash } from "../../../utils/slash.ts";
 import { createFeaturePlans } from "../../feature/plans.ts";
 import { configurationOf } from "../../plugin/options.ts";
+import { autoTitleOfStorybook } from "../stories/storiesTitle.ts";
 import { createStorybookPlans } from "../stories/storybookPlans.ts";
 import { optionsOf } from "./optionsFile.ts";
 
-/** Storybook's options to a preset's functions: its config folder among them. */
-export interface PresetOptions {
-  configDir: string;
-}
+/** Storybook's options to a preset's functions: its config folder and its presets among them. */
+export type PresetOptions = Pick<Options, "configDir" | "presets">;
 
 /** A Storybook project's cucumber: its configuration (the options file's) and its plans. */
 const projects = new Map<string, ReturnType<typeof createProject>>();
 
-const createProject = (configDir: string) => {
+const createProject = (options: PresetOptions) => {
+  const { configDir } = options;
   // The Storybook project's folder, where its config folder is (`storybook dev` runs there; the
   // addon's Vitest, which loads presets too, may run elsewhere: the workspace's root).
   const root = path.dirname(path.resolve(configDir));
@@ -40,6 +42,7 @@ const createProject = (configDir: string) => {
     plans,
     root: () => root,
     configuration: loaded,
+    autoTitleOf: autoTitleOfStorybook(() => options),
     onLinkedFeaturesChanged: () => {
       void linkedFeaturesChanged?.();
     },
@@ -98,12 +101,16 @@ const createProject = (configDir: string) => {
   };
 };
 
-/** The project of Storybook's config folder `configDir` (one per process): the plugin's and indexers'. */
-export const projectOf = (configDir: string) => {
-  let project = projects.get(configDir);
+/**
+ * The project of Storybook's config folder (`options.configDir`; one per process): the plugin's
+ * and indexers', made with the options of the first to ask (Storybook gives every preset
+ * function the same).
+ */
+export const projectOf = (options: PresetOptions) => {
+  let project = projects.get(options.configDir);
   if (!project) {
-    project = createProject(configDir);
-    projects.set(configDir, project);
+    project = createProject(options);
+    projects.set(options.configDir, project);
   }
   return project;
 };

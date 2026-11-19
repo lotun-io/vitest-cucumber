@@ -10,12 +10,14 @@ import { featureModuleOf } from "./featureRuntimeModule.ts";
 import { featureStoriesOf } from "./featureStories.ts";
 import { linkedFeatureOf } from "./linkedFeature.ts";
 import type { StoriesOf } from "./storiesFile.ts";
+import type { AutoTitleOf } from "./storiesTitle.ts";
 import type { StorybookPlan } from "./storybookPlans.ts";
 
 /**
  * Feature file `feature` (its Vitest `plan`; its links `linked`, with the Storybook steps' own
  * errors `stepErrors`) for the project at `root`: its links checked against its stories file's
- * stories (`storiesOf`), its stories module written.
+ * stories (`storiesOf`), its title its stories file's (Storybook's automatic one: `autoTitleOf`),
+ * its stories module written.
  * A feature file a Storybook project lists as stories must link to a stories file.
  */
 export const storybookPlanFrom = async ({
@@ -26,6 +28,7 @@ export const storybookPlanFrom = async ({
   storybookSteps,
   root,
   storiesOf,
+  autoTitleOf,
 }: {
   feature: string;
   plan: VitestPlan;
@@ -36,6 +39,8 @@ export const storybookPlanFrom = async ({
   root: string;
   /** A stories file's stories, as Storybook reads them (kept: `../../feature/plans.ts`). */
   storiesOf: (file: string) => Promise<StoriesOf>;
+  /** Storybook's automatic title of a stories file (`./storiesTitle.ts`). */
+  autoTitleOf: AutoTitleOf;
 }): Promise<StorybookPlan | FailedPlan> => {
   const { uri, gherkin } = plan;
   const linked = await linkedFeatureOf({
@@ -44,6 +49,7 @@ export const storybookPlanFrom = async ({
     linked: links,
     stepErrors,
     storiesOf,
+    autoTitleOf,
   });
   const errors = [...linked.errors];
   if (!linked.storiesFile && errors.length === 0) {
@@ -51,7 +57,12 @@ export const storybookPlanFrom = async ({
       `${uri} has no stories file: none is next to it (a stories file of its name), and none is named by a stories file step`,
     );
   }
-  if (!linked.storiesFile || !linked.stories || errors.length > 0) {
+  if (
+    !linked.storiesFile ||
+    !linked.stories ||
+    linked.title === undefined ||
+    errors.length > 0
+  ) {
     return {
       // Each error names the feature file.
       error: pluginError(
@@ -64,6 +75,7 @@ export const storybookPlanFrom = async ({
     feature,
     document: gherkin.document,
     storiesFile: linked.storiesFile,
+    storiesTitle: linked.title,
     stories: linked.stories,
     links: linked.links,
     featureModule: featureModuleOf(feature),
@@ -71,6 +83,6 @@ export const storybookPlanFrom = async ({
   return {
     ...plan,
     storybookSteps,
-    stories: { code, label, ...(title !== undefined && { title }) },
+    stories: { code, title, label },
   };
 };

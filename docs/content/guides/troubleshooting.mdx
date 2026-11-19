@@ -51,8 +51,8 @@ Not here? Ask on [Discord](https://discord.gg/dfJUkmEtAP) or in
 | `no cucumber runner in this page …` | The preset or the plugin isn't loaded | Add `@lotun/vitest-cucumber/storybook` to Storybook's `addons`, and `cucumber()` to the Storybook test project |
 | `the preview's support code isn't served …` | The preset isn't loaded | Add `@lotun/vitest-cucumber/storybook` to Storybook's `addons` |
 | `no story is running` | `story()` was called outside a scenario's step | Call it in a step, or in a World getter a step reads |
+| Features are listed apart from their stories file, which is under a prefix | The stories files' `stories` entry has a `titlePrefix`, the features' entry doesn't: Storybook prefixes each file by its own entry | Give the features' entry the same `titlePrefix`: [Title prefix](/modes/storybook#title-prefix) |
 | Storybook's `NoStoryMountedError` | An unmounted story (`{storybook:storyUnmounted}`) that no step mounted | Mount it in a step: [Mounting](/modes/storybook/features#mounting) |
-| Story tests don't show their status in Storybook's sidebar | Their stories file has no literal `title` | Give its meta a `title` |
 | `Failed to generate manifests`, with `SyntaxError: Unexpected token` | An MDX docs page is attached to a feature file (`<Meta of={…} />`), and Storybook's manifests read that file as a stories file | Add `tags={["!manifest"]}` to that `<Meta>`: [Features in docs](/modes/storybook/docs#in-an-mdx-page) |
 | `Storybook's story tests of … aren't declared as the plugin expects` | Your Storybook is newer than the plugin knows | Report it; meanwhile use the Storybook version the plugin was released for |
 
@@ -69,6 +69,7 @@ index, as it does a broken stories file. A feature that doesn't parse is reporte
 | `the stories file "…" starts with "/"` | The same: no leading `/` |
 | `names 2 stories files …` | A feature runs on one stories file: split it into one feature per stories file |
 | `has no story "Primary" (its stories: …)` | Name an export the stories file has; they're listed |
+| `has no title: none is written in its meta, and no pattern of Storybook's "stories" matches it` | The feature is listed under its stories file's title: give that file's meta a `title`, or list the file in Storybook's `stories` |
 | `names the story "Primary" …, but has no stories file` | Add the stories file next to the feature, or a stories file step |
 | `names a story twice`, `names a stories file twice` | One of each per scenario, its Backgrounds' steps included |
 | `"…" matches 2 Storybook steps` | Two of your Storybook steps match the same text: change one's wording |

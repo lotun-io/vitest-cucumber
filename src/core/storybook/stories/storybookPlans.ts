@@ -2,9 +2,10 @@
 // its feature plans (`../../feature/plans.ts`) from what they give any caller: a feature's Vitest
 // plan, its text, the support files.
 // - `storybookPlanOf`: its Vitest plan and its stories module, linked by the support files'
-//   Storybook steps to its stories file and each scenario's story (`./storybookPlan.ts`);
-// - `storybookIndexPlanOf`: its Storybook plan and its index entries, with the title Storybook
-//   makes for it (`./indexEntries.ts`);
+//   Storybook steps to its stories file and each scenario's story, its title its stories file's
+//   (`./storybookPlan.ts`; a stories file that writes none: Storybook's automatic one, which the
+//   host gives, `autoTitleOf`);
+// - `storybookIndexPlanOf`: its Storybook plan and its index entries (`./indexEntries.ts`);
 // - `storybookSupportPlanOf`: what the project's support code is loaded with, the same for every
 //   feature file.
 // None throws: a feature that can't be linked has a `FailedPlan`, as one that can't be parsed.
@@ -50,6 +51,7 @@ import {
   type StoriesOf,
 } from "./storiesFile.ts";
 import { createStoriesLinks } from "./storiesLinks.ts";
+import type { AutoTitleOf } from "./storiesTitle.ts";
 import { storybookPlanFrom } from "./storybookPlan.ts";
 import { dropSupportFile, storybookStepsOfFiles } from "./supportSteps.ts";
 
@@ -67,13 +69,13 @@ export interface StorybookSupportPlan {
 export interface StorybookPlan extends VitestPlan {
   /** Whether a support file has a Storybook step: its page then defines their parameter types. */
   storybookSteps: boolean;
-  /** Its stories module: its code, its title if its stories file has one, its label. */
-  stories: { code: string; title?: string; label: string };
+  /** Its stories module: its code, its title (its stories file's, then its label), its label. */
+  stories: { code: string; title: string; label: string };
 }
 
 /** A feature file indexed for Storybook: its Storybook plan, and its index entries. */
 export interface StorybookIndexPlan extends StorybookPlan {
-  /** Its index entries (`./indexEntries.ts`), with the title Storybook made. */
+  /** Its index entries (`./indexEntries.ts`). */
   indexEntries: IndexInput[];
 }
 
@@ -85,11 +87,15 @@ export interface StorybookFileChanged {
   docsChanged: boolean;
 }
 
-/** The Storybook plans of the project at `root`, on its feature `plans`, with the user's `configuration`. */
+/**
+ * The Storybook plans of the project at `root`, on its feature `plans`, with the user's
+ * `configuration` and Storybook's automatic titles (`autoTitleOf`).
+ */
 export const createStorybookPlans = ({
   plans,
   root,
   configuration,
+  autoTitleOf,
   onLinkedFeaturesChanged = () => undefined,
 }: {
   plans: Pick<
@@ -98,6 +104,8 @@ export const createStorybookPlans = ({
   >;
   root: () => string;
   configuration: () => Promise<IConfiguration>;
+  /** Storybook's automatic title of a stories file (`./storiesTitle.ts`): the host knows its `stories`. */
+  autoTitleOf: AutoTitleOf;
   /**
    * Which feature file runs on which stories file changed (`links`): the host makes again what
    * it wrote from them (`storybook dev`'s features map). They change as a plan is made, not
@@ -162,6 +170,7 @@ export const createStorybookPlans = ({
       storybookSteps: by.used,
       root: root(),
       storiesOf,
+      autoTitleOf,
     });
   };
   const storybookOf = (file: string) =>

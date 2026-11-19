@@ -4,9 +4,11 @@
 // (`./linkedFeature.ts`), whose meta is its own (Storybook composes a story with the meta of the module
 // exporting it), and exports a story per scenario or Outline row: the story it runs on spread (its
 // args, render, decorators, loaders), or none (the meta's defaults), its name and tags, its `play`
-// the scenario's steps (`../../../worker/storybook/feature.ts`). Its title is the stories file's, then
-// `<Feature keyword>: <name>`: a group per feature under its component. The stories file is never
-// transformed: its stories are ordinary stories, listed and tested there.
+// the scenario's steps (`../../../worker/storybook/feature.ts`). Its title is the stories file's
+// (`./linkedFeature.ts`: the one written there, else Storybook's automatic one), then
+// `<Feature keyword>: <name>`: a group per feature under its component, written in the module, so
+// Storybook's index, its preview and the addon's story tests make the same ids from it. The
+// stories file is never transformed: its stories are ordinary stories, listed and tested there.
 import type { GherkinDocument } from "@cucumber/messages";
 import path from "node:path";
 import { slash } from "../../../utils/slash.ts";
@@ -77,16 +79,16 @@ export interface ScenarioStory extends ScenarioLink {
 
 /**
  * The stories module of feature file `feature` (its Gherkin `document`), linked to `storiesFile`
- * (its `stories`, as Storybook reads them) by `links`; `featureModule`, the feature module's id (its
- * `playAt`). Its title: the stories file's literal one, then the feature's label (with none, the
- * caller completes Storybook's automatic one: `label`). Its meta: the stories file's
- * (`metaOf`, its parameters among it). A feature's text for docs: `featuresOf` (by its stories
+ * (its `stories`, as Storybook reads them; its title, `storiesTitle`) by `links`; `featureModule`,
+ * the feature module's id (its `playAt`). Its title: the stories file's, then the feature's
+ * label. Its meta: the stories file's (`metaOf`, its parameters among it). A feature's text for docs: `featuresOf` (by its stories
  * file: `../../../worker/storybook/features.ts`), or Vite's `?raw` import of the file.
  */
 export const featureStoriesOf = ({
   feature,
   document,
   storiesFile,
+  storiesTitle,
   stories,
   links,
   featureModule,
@@ -94,13 +96,13 @@ export const featureStoriesOf = ({
   feature: string;
   document: GherkinDocument;
   storiesFile: string;
+  storiesTitle: string;
   stories: StoriesOf;
   links: readonly ScenarioLink[];
   featureModule: string;
 }) => {
   const label = featureLabelOf(document, feature);
-  const title =
-    stories.title === undefined ? undefined : `${stories.title}/${label}`;
+  const title = `${storiesTitle}/${label}`;
   const exportNames = exportNamesOf(links);
   const scenarios: ScenarioStory[] = links.map((link, index) => ({
     ...link,
@@ -124,7 +126,7 @@ export const featureStoriesOf = ({
     `import __cucumberFeature from ${json(featureModule)};`,
     "export default {",
     "  ...__cucumberFeature.metaOf(__cucumberStories.default),",
-    ...(title === undefined ? [] : [`  title: ${json(title)},`]),
+    `  title: ${json(title)},`,
     `  tags: ${json(stories.metaTags)},`,
     "};",
     ...scenarios.map(

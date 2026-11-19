@@ -41,8 +41,8 @@ import {
 } from "./supportModule.ts";
 
 /** The preview's Vite plugin, for the project at Storybook's working directory. */
-export const previewPlugin = ({ configDir }: PresetOptions): Plugin => {
-  const project = projectOf(configDir);
+export const storybookPreviewPlugin = (options: PresetOptions): Plugin => {
+  const project = projectOf(options);
   const { root, storybookPlans: plans } = project;
   return {
     name: "vitest-cucumber:storybook-preview",

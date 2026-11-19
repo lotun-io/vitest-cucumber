@@ -43,7 +43,7 @@ test("a feature's label: its keyword and name, as written; no name, its file's b
   ).toBe("Feature: Log in|out");
 });
 
-test("the meta is the stories file's (its parameters spread with it), nothing of the plugin's added", () => {
+test("the meta is the stories file's (its parameters spread with it), its title the stories file's then the feature's label, nothing else of the plugin's added", () => {
   const source = 'Feature: Login\n  Scenario: Log in\n    Given a "step"\n';
   const { gherkin } = planOf(source, "src/Login.feature", "en");
   if (!gherkin) {
@@ -53,6 +53,7 @@ test("the meta is the stories file's (its parameters spread with it), nothing of
     feature: "/p/src/Login.feature",
     document: gherkin.document,
     storiesFile: "/p/src/Login.stories.ts",
+    storiesTitle: "Example/Login",
     stories: { exports: [], factories: false, metaTags: [], tags: {} },
     links: [],
     featureModule: "/p/feature",
@@ -60,5 +61,6 @@ test("the meta is the stories file's (its parameters spread with it), nothing of
   expect(code).toContain(
     "  ...__cucumberFeature.metaOf(__cucumberStories.default),",
   );
+  expect(code).toContain('  title: "Example/Login/Feature: Login",');
   expect(code).not.toContain("parameters");
 });

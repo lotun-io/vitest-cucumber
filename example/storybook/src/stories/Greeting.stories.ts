@@ -5,7 +5,7 @@ import { fn } from "storybook/test";
 import { Greeting } from "./Greeting";
 
 // The stories file of `Greeting.feature`, next to it: a scenario runs on the story its story step
-// names here (`Ada`, `Grace`), which gives it its `args`; one that names none runs on the meta.
+// names here (`Ada`, `Grace`, `Basic`), which gives it its `args`.
 const meta = {
   title: "Example/Greeting",
   component: Greeting,
@@ -29,3 +29,6 @@ export const Ada: Story = {
 export const Grace: Story = {
   args: { name: "Grace" },
 };
+
+/** The story of "Greeting the world": the meta's args as they are. */
+export const Basic: Story = {};

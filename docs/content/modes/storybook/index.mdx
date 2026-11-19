@@ -57,7 +57,8 @@ const config: StorybookConfig = {
   stories: [
     "../src/**/*.mdx",
     "../src/**/*.stories.@(js|jsx|mjs|ts|tsx)",
-    "../src/**/*.@(feature|feature.md)",
+    // Feature files next to their stories files (src/) and in features/
+    "../@(src|features)/**/*.@(feature|feature.md)",
   ],
   addons: [
     "@storybook/addon-vitest",
@@ -70,7 +71,8 @@ export default config;
 ```
 
 List your feature files in `stories` (`.feature`, and `.feature.md` for Markdown ones): each is a
-stories file of its own. Story tests run what `stories` lists too.
+stories file of its own. Story tests run what `stories` lists too. The pattern covers both places a
+feature file may be in: [next to its stories file, or in `features/`](/modes/storybook/features#feature-files-become-stories).
 
 ### Put the options in `.storybook/cucumber.ts`
 
@@ -133,6 +135,31 @@ export default defineConfig({
 not supported on Storybook 10.
 
 </Steps>
+
+## Title prefix
+
+If your `stories` entries have a `titlePrefix`, give the feature files' entries the same prefix as
+the stories files' entry:
+
+```ts filename=".storybook/main.ts"
+stories: [
+  { directory: "../src", files: "**/*.stories.@(js|jsx|mjs|ts|tsx)", titlePrefix: "App" },
+  // Feature files next to their stories files
+  { directory: "../src", files: "**/*.@(feature|feature.md)", titlePrefix: "App" },
+  // Feature files in features/
+  { directory: "../features", files: "**/*.@(feature|feature.md)", titlePrefix: "App" },
+],
+```
+
+Storybook puts an entry's prefix in front of the title of every file that entry matches, and a
+feature file is matched by its own entry, wherever its stories file is. With the same prefix on
+each, a feature is listed under its stories file (`App/Example/Greeting`, then
+`Feature: Greeting`). Without it on a features' entry, those features are listed outside `App`,
+apart from their stories files.
+
+An entry has one prefix: with stories files under several prefixes, keep the features of each in a
+folder of their own, with an entry and its prefix (`features/app` with `App`, `features/admin`
+with `Admin`).
 
 ## Frameworks
 

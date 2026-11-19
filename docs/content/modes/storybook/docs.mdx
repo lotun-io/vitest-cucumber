@@ -1,3 +1,5 @@
+import { StorybookSidebar } from "../../../components/storybook-sidebar";
+
 # Features in docs
 
 A stories file's features on its docs page, with [`featuresOf()`](/reference/api#featuresof) in
@@ -118,7 +120,37 @@ import login from "./Login.feature?raw";
 <Source code={login} language="gherkin" format={false} />
 ```
 
-Keep the `!manifest` tag on a page attached to a feature. Storybook's component manifests (what its
-MCP addon serves) read the file a docs page is attached to as a stories file, and a feature file
-isn't one: without the tag the build prints "Failed to generate manifests" and no component gets a
-manifest. The scenarios' own stories carry the tag already.
+In Storybook's UI sidebar, the page is listed in its feature's group, before the scenarios, under
+the name `<Meta>` gives it:
+
+<StorybookSidebar
+  tree={[
+    {
+      kind: "root",
+      name: "Example",
+      children: [
+        {
+          kind: "group",
+          name: "Login",
+          children: [
+            {
+              kind: "component",
+              name: "Feature: Login",
+              children: [
+                { kind: "docs", name: "Behavior" },
+                { kind: "story", name: "Log in" },
+                { kind: "story", name: "Sign up then log out with Log in" },
+                { kind: "story", name: "Sign up then log out with Sign up" },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  ]}
+/>
+
+Keep the `!manifest` tag on a page attached to a feature. Storybook's component manifests read the
+file a docs page is attached to as a stories file, and a feature file isn't one: without the tag
+the build prints "Failed to generate manifests" and no component gets a manifest. The scenarios'
+own stories carry the tag already.

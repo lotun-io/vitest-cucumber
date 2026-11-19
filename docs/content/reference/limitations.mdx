@@ -44,8 +44,8 @@ default `isolate: true`, it's reported as usual.
   file step names), in CSF 3 written in JavaScript or TypeScript (one with only a meta is enough),
   its `tags` and `title` written as literals. Not CSF factories, `.stories.svelte` or `.stories.vue`:
   [Stories files a feature can use](/modes/storybook/features#stories-files-a-feature-can-use).
-- A stories file without a literal `title`: its scenarios' story tests don't show their status in
-  Storybook's UI (their ids differ from the index's).
+- A stories file that no pattern of Storybook's `stories` matches needs a `title` written in its
+  meta: its features are listed under its title.
 
 ## File names
 

@@ -17,8 +17,9 @@ import { slash } from "../../utils/slash.ts";
 import { ownModule } from "../utils/ownModule.ts";
 import { featureIndexer, type Indexer } from "./preset/indexer.ts";
 import { optionsFile } from "./preset/optionsFile.ts";
-import { previewPlugin } from "./preset/previewPlugin.ts";
+import { storybookPreviewPlugin } from "./preset/previewPlugin.ts";
 import { type PresetOptions, projectOf } from "./preset/project.ts";
+import { storybookOptionsPlugin } from "./vitest/storybookOptions.ts";
 
 /** A file's import path in Storybook's index: from its working directory, with `./` (its `toImportPath`). */
 const importPathOf = (file: string) => {
@@ -39,7 +40,7 @@ export const experimental_serverChannel = async (
   channel: Channel,
   options: Options,
 ) => {
-  projectOf(options.configDir).onIndexOutOfDate(async (features) => {
+  projectOf(options).onIndexOutOfDate(async (features) => {
     const generator = await options.presets.apply<StoryIndexGenerator>(
       "storyIndexGenerator",
     );
@@ -57,7 +58,7 @@ export const experimental_serverChannel = async (
 export const experimental_indexers = async (
   existing: Indexer[] = [],
   options: PresetOptions,
-): Promise<Indexer[]> => [featureIndexer(options.configDir), ...existing];
+): Promise<Indexer[]> => [featureIndexer(options), ...existing];
 
 /**
  * The page's annotation: its runner (in the preview, with cucumber's BeforeAll and AfterAll). Story
@@ -75,19 +76,23 @@ export const previewAnnotations = (entries: string[] = []) => [
 
 /**
  * The preview's Vite config, as Storybook serves or builds it: the preview plugin. No options file
- * stops Storybook (dev or build), with the file to add. In the addon's Vitest runs, nothing: the
- * Vitest plugin does it.
+ * stops Storybook (dev or build), with the file to add. In the addon's Vitest runs, where the
+ * Vitest plugin does that, only the plugin that carries Storybook's options to it (the addon adds
+ * a preset's `viteFinal` plugins to its Vitest project: `./vitest/storybookOptions.ts`).
  */
 export const viteFinal = async (
   config: { plugins?: unknown[] },
   options: PresetOptions,
 ) => {
   if (process.env.VITEST) {
-    return config;
+    return {
+      ...config,
+      plugins: [...(config.plugins ?? []), storybookOptionsPlugin(options)],
+    };
   }
   optionsFile(options.configDir);
   return {
     ...config,
-    plugins: [...(config.plugins ?? []), previewPlugin(options)],
+    plugins: [...(config.plugins ?? []), storybookPreviewPlugin(options)],
   };
 };

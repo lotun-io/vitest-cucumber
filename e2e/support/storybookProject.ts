@@ -72,6 +72,13 @@ const withoutDebugLinks = (text: string) =>
 const storiesFileOf = (feature: string) =>
   feature.replace(/\.feature(\.md)?$/, ".stories.tsx");
 
+/**
+ * The title of a feature file's stories file: the feature's path in the project without its last
+ * extension (`features/a.feature` → `features/a`). No `stories` pattern lists the stories file,
+ * so it writes one (the plugin takes a feature's title from its stories file).
+ */
+const titleOf = (feature: string) => feature.replace(/\.[^./]+$/, "");
+
 /** The scenario's own stories file next to `feature` (any but the one this file writes), if any. */
 const ownStoriesFileOf = async (dir: string, feature: string) =>
   (
@@ -83,7 +90,7 @@ const ownStoriesFileOf = async (dir: string, feature: string) =>
 
 /**
  * Gives each of the project's feature files without a stories file of the scenario's own its stories
- * file (a meta only), and Storybook's config as the plugin's options are now: `asFeatureRun`, a run
+ * file (a meta only, with its title), and Storybook's config as the plugin's options are now: `asFeatureRun`, a run
  * read as a feature file's (the addon's debug links taken out of its output and errors).
  */
 export async function featureStoriesFiles(this: E2EWorld) {
@@ -98,7 +105,7 @@ export async function featureStoriesFiles(this: E2EWorld) {
       // As the scenario's own files (a kept Vitest gets them: `./kept.ts`).
       await this.write(
         storiesFileOf(feature),
-        "export default { render: () => null };\n",
+        `export default { title: ${JSON.stringify(titleOf(feature))}, render: () => null };\n`,
       );
     }
   }

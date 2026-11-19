@@ -21,11 +21,13 @@ import {
   testUtils,
 } from "./storybook/stories/featureRuntimeModule.ts";
 import { storiesModule } from "./storybook/stories/featureStoriesModule.ts";
+import { autoTitleOfStorybook } from "./storybook/stories/storiesTitle.ts";
 import {
   createStorybookPlans,
   type StorybookPlans,
 } from "./storybook/stories/storybookPlans.ts";
 import { inStorybook } from "./storybook/vitest/addon.ts";
+import { storybookOptionsOf } from "./storybook/vitest/storybookOptions.ts";
 import { vitestFromFeature } from "./storybook/vitest/vitestImport.ts";
 import { importSupportCode } from "./support/importSupportCode.ts";
 import { withoutQuery } from "./utils/withoutQuery.ts";
@@ -34,15 +36,24 @@ export const storybookCucumber = ({
   core,
 }: ReturnType<typeof createBrowserPlugin>): Plugin[] => {
   /**
+   * The project's plugins, once Vite resolved its config: in a Storybook project, the preset's
+   * one that carries Storybook's options among them (`./storybook/vitest/storybookOptions.ts`).
+   */
+  let projectPlugins: readonly { name: string }[] = [];
+  /**
    * The Storybook plans, on the plugin's feature plans: made as a Storybook project's hook first
    * needs them (in any other project, never), and told a watching Vitest's file changes from
-   * then on, after the feature plans; the features they say are out of date are rerun.
+   * then on, after the feature plans; the features they say are out of date are rerun. A stories
+   * file's automatic title is Storybook's, by its options (the preset's).
    */
   const createPlans = () => {
     const made = createStorybookPlans({
       plans: core.featurePlans,
       root: core.root,
       configuration: core.configuration,
+      autoTitleOf: autoTitleOfStorybook(() =>
+        storybookOptionsOf(projectPlugins),
+      ),
     });
     core.onFileChange(async (type, file) => {
       const { staleFeatures } = await made.onFileChange(type, file);
@@ -57,6 +68,9 @@ export const storybookCucumber = ({
     name: "vitest-cucumber:storybook",
     // Before Vite's resolver, and before the addon's transform.
     enforce: "pre",
+    configResolved: (config) => {
+      projectPlugins = config.plugins;
+    },
     resolveId(source, importer) {
       if (!inStorybook(this.environment)) {
         return undefined;
