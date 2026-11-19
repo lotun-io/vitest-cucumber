@@ -23,14 +23,19 @@ They can be TypeScript (or TSX): Vite transforms them, with no loader or `requir
 | `wrapPromiseWithTimeout` | ✅ | ✅ | ✅ |
 | `setDefinitionFunctionWrapper` | ✅ | ✅ | ✅ |
 | `this.attach` / `this.log` / `this.link` | ✅ | ⚠️ | ⚠️ |
+| `setDefaultTimeout` | 🔀 | 🔀 | 🔀 |
+| `BeforeAll` / `AfterAll` with `on: "COORDINATOR"` | 🔀 | 🔀 | 🔀 |
 | `@cucumber/cucumber/api`, formatter classes | ✅ | ❌ | ❌ |
-| `setDefaultTimeout` | ❌ | ❌ | ❌ |
 | `setParallelCanAssign` | ❌ | ❌ | ❌ |
-| `BeforeAll` / `AfterAll` with `on: "COORDINATOR"` | ❌ | ❌ | ❌ |
 
 - ⚠️ **Attachments in a page** are strings only: [Attachments](#attachments).
-- ❌ **What isn't supported** fails where it's used, with the plugin's error, and has a Vitest
-  equivalent: [Limitations](/reference/limitations).
+- 🔀 **Not supported, use Vitest's alternative**: `testTimeout` and `hookTimeout` (or a definition's
+  [`timeout`](#timeouts)) for `setDefaultTimeout`, [`globalSetup`](https://vitest.dev/config/globalsetup)
+  for a once-per-run `BeforeAll`/`AfterAll`.
+- ❌ **Not supported.**
+
+What isn't supported fails where it's used, with the plugin's error:
+[Limitations](/reference/limitations).
 
 ## World
 
