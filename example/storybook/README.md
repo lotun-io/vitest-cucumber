@@ -27,9 +27,11 @@ pnpm storybook     # Storybook's UI on http://localhost:6006
   to `@storybook/addon-vitest`, and the feature files in `stories`.
 - [`.storybook/cucumber.ts`](.storybook/cucumber.ts): the plugin's options, read by Storybook and by
   Vitest. `import` lists the support code (steps, hooks, the World).
-- [`.storybook/preview.tsx`](.storybook/preview.tsx): autodocs for every stories file, its docs page
-  Storybook's template with a `Features` block after it (`featuresOf`: the features that run on the
-  page's stories file, as Gherkin), and Gherkin highlighting (`SyntaxHighlighter.registerLanguage`).
+- [`.storybook/preview.tsx`](.storybook/preview.tsx): autodocs for every stories file, with the
+  docs page below as its template.
+- [`.storybook/DocsPage.tsx`](.storybook/DocsPage.tsx): that docs page, Storybook's own template
+  with a `Features` block after it (`featuresOf`: the features that run on the page's stories file,
+  as Gherkin), and Gherkin highlighting (`SyntaxHighlighter.registerLanguage`).
 - [`vite.config.ts`](vite.config.ts): the Vitest project of Storybook's addon, with `cucumber(options)`
   added. `api.allowWrite` keeps the data of attachments. With `TAGS` set, only stories with those tags
   run (`test:smoke`).

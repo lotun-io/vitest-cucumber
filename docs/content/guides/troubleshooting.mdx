@@ -52,6 +52,7 @@ Not here? Ask on [Discord](https://discord.gg/dfJUkmEtAP): [Community](/communit
 | `no story is running` | `story()` was called outside a scenario's step | Call it in a step, or in a World getter a step reads |
 | Storybook's `NoStoryMountedError` | An unmounted story (`{storybook:storyUnmounted}`) that no step mounted | Mount it in a step: [Mounting](/modes/storybook/features#mounting) |
 | Story tests don't show their status in Storybook's sidebar | Their stories file has no literal `title` | Give its meta a `title` |
+| `Failed to generate manifests`, with `SyntaxError: Unexpected token` | An MDX docs page is attached to a feature file (`<Meta of={…} />`), and Storybook's manifests read that file as a stories file | Add `tags={["!manifest"]}` to that `<Meta>`: [Features in docs](/modes/storybook/docs#in-an-mdx-page) |
 | `Storybook's story tests of … aren't declared as the plugin expects` | Your Storybook is newer than the plugin knows | Report it; meanwhile use the Storybook version the plugin was released for |
 
 ### A feature that can't be linked

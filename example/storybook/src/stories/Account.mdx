@@ -2,7 +2,8 @@ import { Markdown, Meta } from "@storybook/addon-docs/blocks";
 import * as AccountFeature from "./Account.feature.md";
 import account from "./Account.feature.md?raw";
 
-<Meta of={AccountFeature} name="Behavior" />
+{/* `!manifest`: Storybook's manifests (its MCP addon's) read the file a docs page is attached to as a stories file. */}
+<Meta of={AccountFeature} name="Behavior" tags={["!manifest"]} />
 
 {/*
   A Markdown feature is a document: rendered as Markdown, not shown as code. Raw HTML off: a

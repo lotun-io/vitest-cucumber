@@ -7,17 +7,26 @@ Storybook's docs are React in every framework, so a block reads them with a hook
 `useSyncExternalStore` takes. In `storybook dev` an open docs page then follows the feature files as
 you save them: a feature's new text, a feature added or deleted.
 
-Both examples need [Storybook's docs addon](https://storybook.js.org/docs/writing-docs/autodocs),
-`@storybook/addon-docs`, in `.storybook/main.ts`'s `addons`: the docs pages and their blocks (`Source`, `Heading`, `useOf`) are its own. The first
-shows on autodocs pages, the ones of stories files tagged `autodocs` (here every one, with the
-preview's `tags`). `featuresOf()` and `onFeaturesChange()` themselves don't depend on the addon.
+Both ways need [Storybook's docs addon](https://storybook.js.org/docs/writing-docs/autodocs),
+`@storybook/addon-docs`, in `.storybook/main.ts`'s `addons`: the docs pages and their blocks (`Source`, `Heading`, `useOf`) are its own.
+`featuresOf()` and `onFeaturesChange()` themselves don't depend on the addon.
 
-```tsx filename=".storybook/preview.tsx"
+## On autodocs pages
+
+Every stories file's docs page gets its features, with a block added to Storybook's docs template.
+It shows on the pages of stories files tagged `autodocs` (here every one, with the preview's `tags`).
+
+Storybook makes a docs page only for a stories file with at least one story of its own. A stories
+file with only a meta has no page to show its features on: the scenarios' stories don't count, as
+the plugin keeps them out of autodocs.
+
+The template is a React component in a file of its own, next to the preview:
+
+```tsx filename=".storybook/DocsPage.tsx"
 import { featuresOf, onFeaturesChange } from "@lotun/vitest-cucumber/storybook";
 import {
   Controls, Description, Heading, Primary, Source, Stories, Subtitle, Title, useOf,
 } from "@storybook/addon-docs/blocks";
-import type { Preview } from "@storybook/react-vite";
 import { useSyncExternalStore } from "react";
 // @ts-expect-error The grammar has no types (drop this line with `@types/react-syntax-highlighter`).
 import gherkin from "react-syntax-highlighter/dist/esm/languages/prism/gherkin";
@@ -41,28 +50,42 @@ const Features = () => {
     <>
       <Heading>Behavior</Heading>
       {features.map(({ fileName, source }) => (
-        <Source key={fileName} code={source} language="gherkin" format={false} />
+        <Source
+          key={fileName}
+          code={source}
+          // @ts-expect-error Registered above: Storybook's types list only its built-in languages.
+          language="gherkin"
+          format={false}
+        />
       ))}
     </>
   );
 };
 
+/** Storybook's own docs page, then the features. */
+export const DocsPage = () => (
+  <>
+    <Title />
+    <Subtitle />
+    <Description />
+    <Primary />
+    <Controls />
+    <Stories />
+    <Features />
+  </>
+);
+```
+
+The preview uses it as every docs page's template:
+
+```tsx filename=".storybook/preview.tsx"
+import type { Preview } from "@storybook/react-vite";
+import { DocsPage } from "./DocsPage";
+
 const preview: Preview = {
   tags: ["autodocs"],
   parameters: {
-    docs: {
-      page: () => (
-        <>
-          <Title />
-          <Subtitle />
-          <Description />
-          <Primary />
-          <Controls />
-          <Stories />
-          <Features />
-        </>
-      ),
-    },
+    docs: { page: DocsPage },
   },
 };
 
@@ -75,14 +98,27 @@ so without it `<Source language="gherkin" />` shows a feature as plain text. It 
 `react-syntax-highlighter` in your dev dependencies (version 15, the one Storybook is built with).
 `storybook/internal/components` is a Storybook internal module: check it when you update Storybook.
 
-One feature in an MDX page, with Vite's `?raw` (highlighted by the same line of the preview):
+This is one way to give Storybook a template. Its docs show the others, an inline function in the
+preview and an MDX template file, which suits a project without JSX:
+[Write a custom template](https://storybook.js.org/docs/writing-docs/autodocs#write-a-custom-template).
 
-```mdx
+## In an MDX page
+
+One feature on a page you write yourself, next to its feature file, with Vite's `?raw`. It's
+highlighted by the `registerLanguage` line [above](#on-autodocs-pages), wherever your preview
+loads it.
+
+```mdx filename="src/stories/Login.mdx"
 import { Meta, Source } from "@storybook/addon-docs/blocks";
 import * as LoginFeature from "./Login.feature";
 import login from "./Login.feature?raw";
 
-<Meta of={LoginFeature} name="Behavior" />
+<Meta of={LoginFeature} name="Behavior" tags={["!manifest"]} />
 
 <Source code={login} language="gherkin" format={false} />
 ```
+
+Keep the `!manifest` tag on a page attached to a feature. Storybook's component manifests (what its
+MCP addon serves) read the file a docs page is attached to as a stories file, and a feature file
+isn't one: without the tag the build prints "Failed to generate manifests" and no component gets a
+manifest. The scenarios' own stories carry the tag already.

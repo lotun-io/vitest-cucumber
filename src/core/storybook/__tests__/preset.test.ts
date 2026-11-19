@@ -123,19 +123,19 @@ describe("Storybook's indexers, and ours for a feature file", () => {
         exportName: "LogIn",
         name: "Log in",
         title: "Cucumber/Login/Feature: Login",
-        tags: ["smoke", "@smoke", "!autodocs", "play-fn"],
+        tags: ["smoke", "@smoke", "!autodocs", "!manifest", "play-fn"],
       },
       {
         exportName: "SignUpThenLogOutWithLogIn",
         name: "Sign up then log out with Log in",
         title: "Cucumber/Login/Feature: Login",
-        tags: ["!autodocs", "play-fn"],
+        tags: ["!autodocs", "!manifest", "play-fn"],
       },
       {
         exportName: "SignUpThenLogOutWithSignUp",
         name: "Sign up then log out with Sign up",
         title: "Cucumber/Login/Feature: Login",
-        tags: ["!autodocs", "play-fn"],
+        tags: ["!autodocs", "!manifest", "play-fn"],
       },
     ]);
   });

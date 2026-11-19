@@ -1,5 +1,11 @@
 # @lotun/vitest-cucumber
 
+## 1.0.0-beta.1
+
+### Patch Changes
+
+- Storybook: scenario stories are tagged `!manifest`
+
 ## 1.0.0-beta.0
 
 ### Major Changes

@@ -2,7 +2,8 @@ import { Meta, Source } from "@storybook/addon-docs/blocks";
 import * as LoginFeature from "./Login.feature";
 import login from "./Login.feature?raw";
 
-<Meta of={LoginFeature} name="Behavior" />
+{/* `!manifest`: Storybook's manifests (its MCP addon's) read the file a docs page is attached to as a stories file. */}
+<Meta of={LoginFeature} name="Behavior" tags={["!manifest"]} />
 
 {/* The feature file as written (Vite's `?raw`), highlighted as Gherkin. */}
 <Source code={login} language="gherkin" format={false} />

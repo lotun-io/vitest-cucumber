@@ -66,7 +66,12 @@ export const exportNamesOf = (links: readonly { name: string }[]) => {
 export interface ScenarioStory extends ScenarioLink {
   /** The module's export. */
   export: string;
-  /** Its tags: the story's own, the pickle's, then `!autodocs` (the meta's come with the meta). */
+  /**
+   * Its tags: the story's own, the pickle's, then `!autodocs` and `!manifest` (the meta's come with
+   * the meta). Last, so they hold whatever the story it runs on is tagged: a scenario's story has
+   * no docs page, and Storybook's manifests read a manifest entry's file as a stories file, which a
+   * feature file isn't (a failure there loses every component's manifest).
+   */
   storyTags: string[];
 }
 
@@ -106,6 +111,7 @@ export const featureStoriesOf = ({
         : (stories.tags[link.exportName] ?? [])),
       ...link.tags,
       "!autodocs",
+      "!manifest",
     ],
   }));
   let relative = slash(path.relative(path.dirname(feature), storiesFile));

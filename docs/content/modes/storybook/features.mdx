@@ -162,6 +162,9 @@ Scenario: Unmounted
 ```
 
 ```ts filename="features/steps/stories.ts"
+import { When } from "@cucumber/cucumber";
+import type { StoryWorld } from "../support/world.ts";
+
 When("I mount the story", async function (this: StoryWorld) {
   await this.story.mount();
 });
