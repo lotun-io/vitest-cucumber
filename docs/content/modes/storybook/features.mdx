@@ -1,11 +1,22 @@
 import { FileTree } from "nextra/components";
+import { StorybookSidebar } from "../../../components/storybook-sidebar";
 
 # Writing features
 
 ## Feature files become stories
 
-A feature file uses the stories file next to it with its name, `X.stories.<ext>` for `X.feature`
-(or `X.feature.md`):
+Keep your feature files where you like:
+
+- **next to their stories files**, as Storybook keeps a component's files together: a feature file
+  uses the stories file next to it with its name, `X.stories.<ext>` for `X.feature` (or
+  `X.feature.md`), with nothing more to write;
+- **in `features/`**, as Cucumber projects keep them (`features/**/*.feature`): each feature names
+  its stories file with a [stories file step](#storybook-steps)
+  (`Given the stories of src/stories/Greeting.stories.ts`).
+
+Both work in one project, with each folder's feature files listed in Storybook's
+[`stories`](/modes/storybook#add-the-addon) (`"../features/**/*.@(feature|feature.md)"` for the
+second). The examples here keep the feature next to its stories file:
 
 <FileTree>
   <FileTree.Folder name="src" defaultOpen>
@@ -25,8 +36,8 @@ A feature file uses the stories file next to it with its name, `X.stories.<ext>`
   </FileTree.Folder>
 </FileTree>
 
-A feature file named any other way, or kept elsewhere (`X.stories.feature` too: it isn't taken as
-`X.stories.<ext>`'s), names its stories file with a [stories file step](#storybook-steps).
+A feature file next to a stories file but named another way needs the stories file step too
+(`X.stories.feature` as well: it isn't taken as `X.stories.<ext>`'s).
 
 Each scenario's story:
 
@@ -102,6 +113,47 @@ export const Grace: Story = {
 
 The Outline gives each row its own story with a column (`<name>`); a row naming `default` would
 render the meta.
+
+In Storybook's UI sidebar, each feature is a group of its own under the stories file's component,
+after that file's docs page and stories. Here two features run on `Header.stories.ts`:
+`Header.feature` next to it, and `features/header/Session.feature`, which names it with a
+[stories file step](#storybook-steps):
+
+<StorybookSidebar
+  tree={[
+    {
+      kind: "root",
+      name: "Example",
+      children: [
+        {
+          kind: "group",
+          name: "Header",
+          children: [
+            { kind: "docs", name: "Docs" },
+            { kind: "story", name: "Logged In" },
+            { kind: "story", name: "Logged Out" },
+            {
+              kind: "component",
+              name: "Feature: Header",
+              children: [
+                { kind: "story", name: "Logged in" },
+                { kind: "story", name: "Logged out" },
+              ],
+            },
+            {
+              kind: "component",
+              name: "Feature: Session",
+              children: [
+                { kind: "story", name: "Logging in" },
+                { kind: "story", name: "The user's name" },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  ]}
+/>
 
 ## Storybook steps
 
