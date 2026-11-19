@@ -1,5 +1,4 @@
 import { FileTree } from "nextra/components";
-import { StorybookSidebar } from "../../../components/storybook-sidebar";
 
 # Writing features
 
@@ -54,6 +53,7 @@ Each scenario's story:
   `Feature:` in `Greeting.feature` is `Feature: Greeting`). Several features on one stories file are
   told apart by their names: give each its own. A `/` in a feature's name is listed as a `|`
   (`Feature: Log in/out` as `Feature: Log in|out`): Storybook splits a title at each `/`.
+  How the sidebar shows it: [Running](/modes/storybook/running#in-storybooks-ui).
 
 The stories file's own stories stay ordinary stories, listed under its title.
 
@@ -113,47 +113,6 @@ export const Grace: Story = {
 
 The Outline gives each row its own story with a column (`<name>`); a row naming `default` would
 render the meta.
-
-In Storybook's UI sidebar, each feature is a group of its own under the stories file's component,
-after that file's docs page and stories. Here two features run on `Header.stories.ts`:
-`Header.feature` next to it, and `features/header/Session.feature`, which names it with a
-[stories file step](#storybook-steps):
-
-<StorybookSidebar
-  tree={[
-    {
-      kind: "root",
-      name: "Example",
-      children: [
-        {
-          kind: "group",
-          name: "Header",
-          children: [
-            { kind: "docs", name: "Docs" },
-            { kind: "story", name: "Logged In" },
-            { kind: "story", name: "Logged Out" },
-            {
-              kind: "component",
-              name: "Feature: Header",
-              children: [
-                { kind: "story", name: "Logged in" },
-                { kind: "story", name: "Logged out" },
-              ],
-            },
-            {
-              kind: "component",
-              name: "Feature: Session",
-              children: [
-                { kind: "story", name: "Logging in" },
-                { kind: "story", name: "The user's name" },
-              ],
-            },
-          ],
-        },
-      ],
-    },
-  ]}
-/>
 
 ## Storybook steps
 

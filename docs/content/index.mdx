@@ -26,7 +26,7 @@ Feature: Cart
 | Mode                                  | Your steps run in            | Use it for                                                     |
 | ------------------------------------- | ---------------------------- | -------------------------------------------------------------- |
 | [Node mode](/modes/node)              | a Vitest worker (Node.js)    | logic, APIs, services, or driving a browser with Playwright    |
-| [Browser mode](/modes/browser)        | a real browser page          | steps that render and click in the DOM                         |
+| [Browser mode](/modes/browser)        | a real browser page, with [Vitest's browser mode](https://vitest.dev/guide/browser/) | the same steps in a real page: rendering and clicking in the DOM |
 | [Storybook](/modes/storybook)         | a story's `play` function    | scenarios as Storybook stories, in Vitest and Storybook's UI   |
 
 All three use the same plugin, the same `@cucumber/cucumber` imports and the same Gherkin.

@@ -1,3 +1,5 @@
+import { StorybookSidebar } from "../../../components/storybook-sidebar";
+
 # Running
 
 ## In Vitest
@@ -29,6 +31,47 @@ npx storybook dev
 Open a scenario's story: its scenario plays, and the Interactions panel shows each Gherkin step with
 what it did (hooks aren't listed). A static build (`storybook build`) plays them the same way, with
 no server.
+
+In the sidebar, each feature is a group of its own under the stories file's component, after that
+file's docs page and stories. Here two features run on `Header.stories.ts`:
+`Header.feature` next to it, and `features/header/Session.feature`, which names it with a
+[stories file step](/modes/storybook/features#storybook-steps):
+
+<StorybookSidebar
+  tree={[
+    {
+      kind: "root",
+      name: "Example",
+      children: [
+        {
+          kind: "group",
+          name: "Header",
+          children: [
+            { kind: "docs", name: "Docs" },
+            { kind: "story", name: "Logged In" },
+            { kind: "story", name: "Logged Out" },
+            {
+              kind: "component",
+              name: "Feature: Header",
+              children: [
+                { kind: "story", name: "Logged in" },
+                { kind: "story", name: "Logged out" },
+              ],
+            },
+            {
+              kind: "component",
+              name: "Feature: Session",
+              children: [
+                { kind: "story", name: "Logging in" },
+                { kind: "story", name: "The user's name" },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  ]}
+/>
 
 **As tests**: the addon's testing widget, at the bottom of the sidebar. "Run tests" runs the
 scenarios' story tests in Vitest, the same tests as `vitest run` above. With its watch mode on (the
