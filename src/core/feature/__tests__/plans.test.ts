@@ -22,7 +22,7 @@ const file = (name: string, content: string) => {
 const plans = () =>
   createFeaturePlans({
     root: () => root,
-    configuration: () =>
+    readConfiguration: () =>
       Promise.resolve(configurationOf({ import: ["support"] })),
   });
 
@@ -164,7 +164,7 @@ test("a configuration that can't be loaded: each plan fails with it, a file's ev
   let fail = false;
   const all = createFeaturePlans({
     root: () => root,
-    configuration: () =>
+    readConfiguration: () =>
       fail
         ? Promise.reject(new Error("No configuration"))
         : Promise.resolve(configurationOf({ import: ["support"] })),
@@ -177,6 +177,8 @@ test("a configuration that can't be loaded: each plan fails with it, a file's ev
   process.on("unhandledRejection", onUnhandled);
   try {
     fail = true;
+    // A run's start: the configuration read again, and it can't be now.
+    all.cache.clear();
     // The list can't be made now: another than the one read, so the host makes things again
     // and each shows the error.
     expect(

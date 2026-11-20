@@ -14,7 +14,7 @@ const config: StorybookConfig = {
     "@storybook/addon-a11y",
     "@storybook/addon-docs",
     "@storybook/addon-mcp",
-    // Feature files as stories, with the options in `./cucumber.ts`.
+    // Feature files as stories, with the options in `./cucumber.config.ts`.
     "@lotun/vitest-cucumber/storybook",
   ],
   framework: "@storybook/react-vite",

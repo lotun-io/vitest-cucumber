@@ -88,8 +88,7 @@ test("a `language` Gherkin doesn't have: the plugin's error", () => {
 
 test("world parameters JSON refuses: the plugin's error", () => {
   expect(errorOf({ worldParameters: { limit: 10n } })).toMatchObject({
-    message:
-      "@lotun/vitest-cucumber: the worldParameters config option can't be converted to JSON",
+    message: `@lotun/vitest-cucumber: the "worldParameters" option can't be converted to JSON`,
   });
 });
 

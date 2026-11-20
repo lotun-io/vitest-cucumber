@@ -36,8 +36,8 @@ const config: StorybookConfig = {
 export default config;
 `,
   ".storybook/preview.ts": "export default {};\n",
-  // The preset's options: the Vitest plugin's.
-  ".storybook/cucumber.ts": `export default ${JSON.stringify({ import: ["features/**/*.ts"], ...options })};\n`,
+  // The Storybook project's options (Storybook's and its story tests': `cucumber()` takes none).
+  ".storybook/cucumber.config.ts": `export default ${JSON.stringify({ import: ["features/**/*.ts"], ...options })};\n`,
 });
 
 /** Writes Storybook's config (`.storybook/`), as the scenario's files (`this.files`: a kept Vitest's too). */

@@ -6,7 +6,6 @@ import { playwright } from "@vitest/browser-playwright";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
-import options from "./.storybook/cucumber.ts";
 
 const dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -25,9 +24,9 @@ export default defineConfig({
             configDir: path.join(dirname, ".storybook"),
             ...(process.env.TAGS && { tags: { include: process.env.TAGS.split(",") } }),
           }),
-          // Feature files as stories (Storybook's `stories` lists them), with the options Storybook
-          // reads too (`.storybook/cucumber.ts`).
-          cucumber(options),
+          // Feature files as stories (Storybook's `stories` lists them). Its options are
+          // `.storybook/cucumber.config.ts`'s, which Storybook reads too.
+          cucumber(),
         ],
         test: {
           name: "storybook",

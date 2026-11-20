@@ -91,7 +91,7 @@ async function keptFiles(this: E2EWorld) {
       },
       CONFIG,
       this.mode === "storybook"
-        ? defaultStorybookConfig(this.pluginOptions)
+        ? defaultStorybookConfig()
         : defaultConfig(this.pluginOptions, this.mode),
     );
   }

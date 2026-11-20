@@ -88,6 +88,8 @@ test("a feature file's stories module in story tests: on a stories file that wri
     "src/stories/Auto.stories.ts",
     "export default {};\nexport const Plain = {};\n",
   );
+  // The Storybook project's options: its config folder's file (`cucumber()` takes none).
+  write(".storybook/cucumber.config.json", '{ "import": ["steps/*.ts"] }');
   const feature = write(
     "src/stories/Auto.feature",
     "Feature: Auto\n  Scenario: Plain\n    Given the Plain story\n",
@@ -102,8 +104,8 @@ test("a feature file's stories module in story tests: on a stories file that wri
   } as unknown as PresetOptions;
   /** The feature's stories module, in a project of `plugins`. */
   const storiesModuleIn = async (plugins: { name: string }[]) => {
-    const browser = createBrowserPlugin({ import: ["steps/*.ts"] });
-    browser.core.configResolved({ root: project });
+    const browser = createBrowserPlugin(undefined);
+    browser.core.configResolved({ root: project, plugins });
     const [plugin] = storybookCucumber(browser) as unknown as [
       {
         configResolved: (config: { plugins: { name: string }[] }) => void;

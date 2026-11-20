@@ -3,7 +3,7 @@
 // server and in a static build alike: no server side. The preset adds a preview annotation (the
 // page's runner, cucumber's BeforeAll and AfterAll: `../../worker/storybook/preview/annotation.ts`;
 // story tests' own in the addon's Vitest runs), the preview's Vite plugin (`./preset/previewPlugin.ts`) and
-// our indexer for `.feature` (`./preset/indexer.ts`). The options are `<configDir>/cucumber.ts`'s. The
+// our indexer for `.feature` (`./preset/indexer.ts`). The options are `<configDir>/cucumber.config.ts`'s. The
 // addon's own Vitest runs load presets too: there, the annotation is story tests' own, the Vitest
 // plugin serves the rest (`../storybookPlugin.ts`). In `storybook dev` it also tells Storybook's
 // index of the feature files whose entries are out of date (`experimental_serverChannel`).
@@ -16,9 +16,9 @@ import type { Options } from "storybook/internal/types";
 import { slash } from "../../utils/slash.ts";
 import { ownModule } from "../utils/ownModule.ts";
 import { featureIndexer, type Indexer } from "./preset/indexer.ts";
-import { optionsFile } from "./preset/optionsFile.ts";
 import { storybookPreviewPlugin } from "./preset/previewPlugin.ts";
 import { type PresetOptions, projectOf } from "./preset/project.ts";
+import { storybookOptionsFile } from "./storybookOptionsFile.ts";
 import { storybookOptionsPlugin } from "./vitest/storybookOptions.ts";
 
 /** A file's import path in Storybook's index: from its working directory, with `./` (its `toImportPath`). */
@@ -90,7 +90,7 @@ export const viteFinal = async (
       plugins: [...(config.plugins ?? []), storybookOptionsPlugin(options)],
     };
   }
-  optionsFile(options.configDir);
+  storybookOptionsFile(options.configDir);
   return {
     ...config,
     plugins: [...(config.plugins ?? []), storybookPreviewPlugin(options)],

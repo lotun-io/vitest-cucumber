@@ -9,7 +9,11 @@ import type { CucumberOptions } from "./types/feature.ts";
 
 export type { CucumberOptions };
 
-export const cucumber = (options: CucumberOptions = {}): Plugin[] => {
+/**
+ * The plugin, with `options`; none given, the project's options file's (`cucumber.config.ts` in its
+ * root; a Storybook project's, `<configDir>/cucumber.config.ts`, which takes no options here).
+ */
+export const cucumber = (options?: CucumberOptions): Plugin[] => {
   const browser = createBrowserPlugin(options);
   // Browser mode's plugin before Storybook's: in a Storybook project, Storybook's `transform` (also
   // `pre`) replaces browser mode's feature test module with the stories' run.

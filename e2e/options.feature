@@ -118,6 +118,249 @@ Feature: Plugin options
       | browser   |
       | storybook |
 
+  # Without options given, a project's are its options file's: `cucumber.config.ts` (or another
+  # extension) in its root, the steps' default `import` none (a Storybook project's file is
+  # `.storybook/cucumber.config.ts`, the one every storybook row here uses).
+  Scenario Outline: Without options given, the plugin reads the project's cucumber.config.ts (<mode>)
+    Given the Vitest config:
+      """
+      import { cucumber } from "@lotun/vitest-cucumber";
+      import { playwright } from "@vitest/browser-playwright";
+
+      export default {
+        plugins: [cucumber()],
+        test: {
+          include: ["features/**/*.feature"],
+          browser: {
+            enabled: <browser>,
+            headless: true,
+            provider: playwright(),
+            instances: [{ browser: "chromium" }],
+            screenshotFailures: false,
+          },
+        },
+      };
+      """
+    And a file named "cucumber.config.ts" with:
+      """
+      import type { CucumberOptions } from "@lotun/vitest-cucumber";
+
+      export default {
+        import: ["features/**/*.ts"],
+        strict: false,
+      } satisfies CucumberOptions;
+      """
+    And a file named "features/pending.ts" with:
+      """
+      import { Given } from "@cucumber/cucumber";
+
+      Given("a pending step", () => "pending");
+      """
+    And a file named "features/a.feature" with:
+      """
+      Feature: A
+        Scenario: pending
+          Given a passing step
+          When a pending step
+      """
+    When I run vitest
+    Then it passes
+    And Vitest reports the tests:
+      | NAME        | STATE   | NOTE                              |
+      | A > pending | skipped | Pending step: When a pending step |
+
+    Examples:
+      | mode    | browser |
+      | node    | false   |
+      | browser | true    |
+
+  # Each project its own options file: node and browser projects the root's `cucumber.config.ts`, a
+  # Storybook project its config folder's (`.storybook/cucumber.config.ts`, which the Storybook
+  # project here has), with a `cucumber()` in each project or one in the root config that every
+  # project inherits. Each file's steps are only its projects': a project that read the other file
+  # would have an undefined step.
+  Scenario Outline: Node, browser and Storybook projects each read their own options file (<plugins>)
+    Given a Storybook project
+    And the Vitest config:
+      """
+      import { cucumber } from "@lotun/vitest-cucumber";
+      import { storybookTest } from "@storybook/addon-vitest/vitest-plugin";
+      import react from "@vitejs/plugin-react";
+      import { playwright } from "@vitest/browser-playwright";
+      import path from "node:path";
+
+      // Each project its own (Vitest names its instances in it).
+      const browser = () => ({
+        enabled: true,
+        headless: true,
+        provider: playwright(),
+        instances: [{ browser: "chromium" as const }],
+        screenshotFailures: false,
+      });
+
+      export default {
+        plugins: [<inherited>],
+        test: {
+          projects: [
+            { extends: true, plugins: [<own>], test: { name: "node", include: ["node/**/*.feature"] } },
+            {
+              extends: true,
+              plugins: [<own>],
+              test: { name: "browser", include: ["browser/**/*.feature"], browser: browser() },
+            },
+            {
+              extends: true,
+              plugins: [
+                react(),
+                storybookTest({ configDir: path.join(import.meta.dirname, ".storybook") }),
+                <own>
+              ],
+              test: { name: "storybook", browser: browser() },
+            },
+          ],
+        },
+      };
+      """
+    And a file named "cucumber.config.ts" with:
+      """
+      export default { import: ["node/**/*.ts"] };
+      """
+    And a file named "node/steps.ts" with:
+      """
+      import { Given } from "@cucumber/cucumber";
+
+      Given("a root options step", () => {});
+      """
+    And a file named "node/a.feature" with:
+      """
+      Feature: Node
+        Scenario: in node
+          Given a root options step
+      """
+    And a file named "browser/b.feature" with:
+      """
+      Feature: Browser
+        Scenario: in the browser
+          Given a root options step
+      """
+    And a file named "features/stories.ts" with:
+      """
+      import { Given } from "@cucumber/cucumber";
+
+      Given("the {storybook:story} story", (_story: string) => {});
+      """
+    And a file named "src/Page.stories.ts" with:
+      """
+      export default { title: "Page", render: () => null };
+      export const Primary = {};
+      """
+    And a file named "src/Page.feature" with:
+      """
+      Feature: Page
+        Scenario: on a story
+          Given the Primary story
+          And a passing step
+      """
+    When I run vitest
+    Then it passes
+    And Vitest reports the tests:
+      | NAME                     | STATE  |
+      | Node > in node           | passed |
+      | Browser > in the browser | passed |
+      | Page > on a story        | passed |
+
+    Examples:
+      | plugins                                 | inherited                                  | own        |
+      | a cucumber() in each project            |                                            | cucumber() |
+      | one in the root, inherited              | cucumber()                                 |            |
+      | one with options in the root, inherited | cucumber({ import: ["node/**/*.ts"] })     |            |
+
+  # A Storybook project always reads its config folder's file, which Storybook's own process reads
+  # too: options given to its `cucumber()` (its own, or one it inherits) aren't used. Here they'd
+  # load no step at all.
+  Scenario Outline: Options given to cucumber() in a Storybook project aren't used (<plugin>)
+    Given a Storybook project
+    And the Vitest config:
+      """
+      import { cucumber } from "@lotun/vitest-cucumber";
+      import { storybookTest } from "@storybook/addon-vitest/vitest-plugin";
+      import react from "@vitejs/plugin-react";
+      import { playwright } from "@vitest/browser-playwright";
+      import path from "node:path";
+
+      export default {
+        plugins: [react(), <inherited>],
+        test: {
+          projects: [
+            {
+              extends: true,
+              plugins: [
+                storybookTest({ configDir: path.join(import.meta.dirname, ".storybook") }),
+                <own>
+              ],
+              test: {
+                name: "stories",
+                browser: {
+                  enabled: true,
+                  headless: true,
+                  provider: playwright(),
+                  instances: [{ browser: "chromium" }],
+                  screenshotFailures: false,
+                },
+              },
+            },
+          ],
+        },
+      };
+      """
+    And a file named "src/Page.stories.ts" with:
+      """
+      export default { title: "Page", render: () => null };
+      """
+    And a file named "src/Page.feature" with:
+      """
+      Feature: Page
+        Scenario: passing
+          Given a passing step
+      """
+    When I run vitest
+    Then it passes
+    And it runs the scenarios:
+      | NAME    | STATUS |
+      | passing | passed |
+
+    Examples:
+      | plugin                   | inherited                               | own                                     |
+      | its own                  |                                         | cucumber({ import: ["nowhere/*.ts"] })  |
+      | inherited from the root  | cucumber({ import: ["nowhere/*.ts"] })  |                                         |
+
+  # Options given are the project's own: its options file isn't read (one that can't load either),
+  # nor in a Storybook project (its file is `.storybook/cucumber.config.ts`).
+  Scenario Outline: With options given, the project's cucumber.config.ts isn't read (<mode>)
+    Given a file named "cucumber.config.ts" with:
+      """
+      export default {
+        import: [
+      };
+      """
+    And a file named "features/a.feature" with:
+      """
+      Feature: A
+        Scenario: passing
+          Given a passing step
+      """
+    When I run vitest in <mode> mode
+    Then it passes
+    And it runs the scenarios:
+      | NAME    | STATUS |
+      | passing | passed |
+
+    Examples:
+      | mode      |
+      | node      |
+      | browser   |
+      | storybook |
+
   # The plugin's options only: cucumber's configuration file isn't read (one that can't load
   # either).
   Scenario Outline: A cucumber config file is ignored (<mode>)
@@ -313,7 +556,7 @@ Feature: Plugin options
     Then it fails
     And the output contains:
       """
-      Error: @lotun/vitest-cucumber: the worldParameters config option can't be converted to JSON
+      Error: @lotun/vitest-cucumber: the "worldParameters" option can't be converted to JSON
       Caused by: TypeError: Do not know how to serialize a BigInt
       """
 

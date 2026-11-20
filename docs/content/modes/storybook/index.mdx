@@ -74,23 +74,23 @@ List your feature files in `stories` (`.feature`, and `.feature.md` for Markdown
 stories file of its own. Story tests run what `stories` lists too. The pattern covers both places a
 feature file may be in: [next to its stories file, or in `features/`](/modes/storybook/features#feature-files-become-stories).
 
-### Put the options in `.storybook/cucumber.ts`
+### Put the options in `.storybook/cucumber.config.ts`
 
-Storybook and Vitest share one set of options, in this file's default export:
+Storybook and its story tests read the same options, from this file in your Storybook config folder:
 
-```ts filename=".storybook/cucumber.ts"
+```ts filename=".storybook/cucumber.config.ts"
 import type { CucumberOptions } from "@lotun/vitest-cucumber";
 
-const options: CucumberOptions = {
+export default {
   import: ["features/**/*.ts"],
-};
-
-export default options;
+} satisfies CucumberOptions;
 ```
 
-Storybook won't start without it. Node loads it as it is (Node's own TypeScript support): import
-other files with their extension, and no `paths` aliases. `import` is resolved from the directory
-Storybook starts in, your project's root.
+Storybook won't start without it. It's the folder `storybookTest({ configDir })` names, so a project
+with several Storybooks has one file in each. Like any options file it can be `.ts`, `.mts`, `.cts`,
+`.js`, `.mjs`, `.cjs` or `.json`, and Node loads it as it is:
+[Config file](/reference/options#config-file). `import` is resolved from the directory Storybook
+starts in, your project's root.
 
 ### Add the plugin to the Storybook test project
 
@@ -102,7 +102,6 @@ import react from "@vitejs/plugin-react";
 import { playwright } from "@vitest/browser-playwright";
 import path from "node:path";
 import { defineConfig } from "vite";
-import options from "./.storybook/cucumber.ts";
 
 export default defineConfig({
   plugins: [react()],
@@ -112,7 +111,7 @@ export default defineConfig({
         extends: true,
         plugins: [
           storybookTest({ configDir: path.join(import.meta.dirname, ".storybook") }),
-          cucumber(options),
+          cucumber(),
         ],
         test: {
           name: "storybook",
@@ -128,6 +127,11 @@ export default defineConfig({
   },
 });
 ```
+
+A Storybook project always reads `.storybook/cucumber.config.ts`, which Storybook's own process reads
+too, so `cucumber()` takes no options there. Options passed to it anyway, or inherited from a
+`cucumber({ … })` in the root config (`extends: true`), aren't used. The other projects keep the
+options they're given.
 
 ### Keep a classic preview
 

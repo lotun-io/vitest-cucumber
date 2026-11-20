@@ -130,40 +130,48 @@ interface ProjectConfig {
 
 /** Whether `plugins` has the plugin's (a `vitest-cucumber:` one, its array's). */
 const hasCucumber = (plugins: Plugins[] = []): boolean =>
-  plugins
-    .flat(Infinity)
-    .some(
-      (plugin) =>
-        typeof plugin === "object" &&
-        plugin !== null &&
-        String((plugin as { name?: unknown }).name).startsWith(
-          "vitest-cucumber:",
-        ),
-    );
+  plugins.flat(Infinity).some((plugin) => isCucumber(plugin));
+
+/** Whether `plugin` is one of the plugin's (`vitest-cucumber:`). */
+const isCucumber = (plugin: unknown) =>
+  typeof plugin === "object" &&
+  plugin !== null &&
+  String((plugin as { name?: unknown }).name).startsWith("vitest-cucumber:");
 
 /**
  * A scenario's config as a Storybook project's (`storybook` mode, `./storybookProject.ts`): each of
  * its projects with the plugin (the root config, or an inline project) is the addon's, `before`
  * (`react()`) and `after` (`storybookTest()`) around its own plugins, in `browser` (Chromium: its
  * own browser options kept), without its `include` (the addon's test files are Storybook's
- * `stories`: it ignores one, with a warning); any other project is as it is.
+ * `stories`: it ignores one, with a warning); any other project is as it is. Its `cucumber(…)` is
+ * `cucumber()` there (`plugin`): a Storybook project's options are `.storybook/cucumber.config.ts`'s,
+ * the harness's default ones (a scenario's own config in storybook mode passes those).
  */
 export const asStorybook = (
   config: ProjectConfig,
   {
     before,
     after,
+    plugin,
     browser,
-  }: { before: Plugins[]; after: Plugins[]; browser: Record<string, unknown> },
+  }: {
+    before: Plugins[];
+    after: Plugins[];
+    plugin: () => Plugins[];
+    browser: Record<string, unknown>;
+  },
 ): ProjectConfig => {
   const project = <Project extends ProjectConfig>(config: Project): Project => {
     if (!hasCucumber(config.plugins)) {
       return config;
     }
     const { include: _include, ...test } = config.test ?? {};
+    const others = (config.plugins ?? [])
+      .flat(Infinity)
+      .filter((own) => !isCucumber(own));
     return {
       ...config,
-      plugins: [...before, ...(config.plugins ?? []), ...after],
+      plugins: [...before, ...others, ...plugin(), ...after],
       test: {
         ...test,
         browser: { ...browser, ...config.test?.browser, enabled: true },
@@ -193,7 +201,8 @@ export const asStorybook = (
  */
 const configWrapper = (provider?: string) =>
   provider
-    ? `import { storybookTest } from "@storybook/addon-vitest/vitest-plugin";
+    ? `import { cucumber } from "@lotun/vitest-cucumber";
+import { storybookTest } from "@storybook/addon-vitest/vitest-plugin";
 import react from "@vitejs/plugin-react";
 import { playwright } from "@vitest/browser-playwright";
 import path from "node:path";
@@ -205,6 +214,7 @@ export default () =>
     asStorybook(typeof config === "function" ? config() : config, {
       before: [react()],
       after: [storybookTest({ configDir: path.join(import.meta.dirname, ".storybook") })],
+      plugin: () => cucumber(),
       browser: {
         headless: true,
         provider: ${provider},

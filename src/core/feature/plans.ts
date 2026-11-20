@@ -71,15 +71,21 @@ export const failedPlan = (error: unknown): FailedPlan => ({
   error: error instanceof Error ? error : new Error(String(error)),
 });
 
-/** The feature plans of the project at `root`, with the user's `configuration`. */
+/**
+ * The feature plans of the project at `root`, with the user's configuration (`readConfiguration`
+ * reads it: their options, given or their options file's, a part of the plans read again at each
+ * run's start).
+ */
 export const createFeaturePlans = ({
   root,
-  configuration,
+  readConfiguration,
 }: {
   root: () => string;
-  configuration: () => Promise<Configuration>;
+  readConfiguration: () => Promise<Configuration>;
 }) => {
   const cache = createPlanCache();
+  /** The user's configuration. */
+  const configuration = cache.single({ make: readConfiguration });
 
   /** Feature file `file` as it is on disk: its text, its uri, and the configuration. */
   const read = async (file: string) => {
@@ -155,6 +161,8 @@ export const createFeaturePlans = ({
     /** Feature file `file` planned: its parse, the run's options, the support files. */
     vitestPlanOf: (file: string): Promise<VitestPlan | FailedPlan> =>
       vitestOf(file),
+    /** The user's configuration: their options, with cucumber's defaults. */
+    configuration,
     /** The support files, in order. */
     supportFiles,
     /**

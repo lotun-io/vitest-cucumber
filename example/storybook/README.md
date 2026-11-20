@@ -25,16 +25,16 @@ pnpm storybook     # Storybook's UI on http://localhost:6006
 
 - [`.storybook/main.ts`](.storybook/main.ts): `@lotun/vitest-cucumber/storybook` in `addons`, next
   to `@storybook/addon-vitest`, and the feature files in `stories`.
-- [`.storybook/cucumber.ts`](.storybook/cucumber.ts): the plugin's options, read by Storybook and by
-  Vitest. `import` lists the support code (steps, hooks, the World).
+- [`.storybook/cucumber.config.ts`](.storybook/cucumber.config.ts): the plugin's options, read by
+  Storybook and by its story tests. `import` lists the support code (steps, hooks, the World).
 - [`.storybook/preview.tsx`](.storybook/preview.tsx): autodocs for every stories file, with the
   docs page below as its template.
 - [`.storybook/DocsPage.tsx`](.storybook/DocsPage.tsx): that docs page, Storybook's own template
   with a `Features` block after it (`featuresOf`: the features that run on the page's stories file,
   as Gherkin), and Gherkin highlighting (`SyntaxHighlighter.registerLanguage`).
-- [`vite.config.ts`](vite.config.ts): the Vitest project of Storybook's addon, with `cucumber(options)`
-  added. `api.allowWrite` keeps the data of attachments. With `TAGS` set, only stories with those tags
-  run (`test:smoke`).
+- [`vite.config.ts`](vite.config.ts): the Vitest project of Storybook's addon, with `cucumber()`
+  added (its options are `.storybook/cucumber.config.ts`'s). `api.allowWrite` keeps the data of
+  attachments. With `TAGS` set, only stories with those tags run (`test:smoke`).
 
 ## What each story shows
 
@@ -52,7 +52,7 @@ pnpm storybook     # Storybook's UI on http://localhost:6006
 
 ## The support code
 
-[`features/`](features/) holds the support code, as `import` in `.storybook/cucumber.ts` lists it
+[`features/`](features/) holds the support code, as `import` in `.storybook/cucumber.config.ts` lists it
 (`features/**/*.ts`): the step definitions in [`features/steps/`](features/steps/), the World and the
 hooks in [`features/support/`](features/support/). The Storybook steps
 ([`features/steps/stories.ts`](features/steps/stories.ts)) link a scenario to its story with the

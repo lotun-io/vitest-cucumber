@@ -1,6 +1,7 @@
 // Storybook: a Storybook project's cucumber, by its config folder (one per process: the preset's
 // preview plugin and its indexer share it, in Storybook's own process and in the addon's Vitest,
-// which loads presets too): its root, its configuration (the options file's) and its feature
+// which loads presets too): its root, its configuration (its options file's, the one its story
+// tests read too: `../storybookOptionsFile.ts`) and its feature
 // files' plans (`../../feature/plans.ts`, and Storybook's on them:
 // `../stories/storybookPlans.ts`), with Storybook's automatic titles (`../stories/storiesTitle.ts`:
 // its `stories`, as its presets give them).
@@ -9,10 +10,18 @@ import type { Options } from "storybook/internal/types";
 import type { FeatureSource } from "../../../types/storybook.ts";
 import { slash } from "../../../utils/slash.ts";
 import { createFeaturePlans } from "../../feature/plans.ts";
-import { configurationOf, type Configuration } from "../../plugin/options.ts";
+import { configurationOf } from "../../plugin/options.ts";
+import { optionsIn } from "../../plugin/optionsFile.ts";
 import { autoTitleOfStorybook } from "../stories/storiesTitle.ts";
 import { createStorybookPlans } from "../stories/storybookPlans.ts";
-import { optionsOf } from "./optionsFile.ts";
+import { storybookOptionsFile } from "../storybookOptionsFile.ts";
+
+/**
+ * The configuration of the Storybook project of `configDir`: its options file's
+ * (`<configDir>/cucumber.config.ts`), read once (`storybook dev` reads it again as it restarts).
+ */
+const configurationIn = async (configDir: string) =>
+  configurationOf(await optionsIn(storybookOptionsFile(configDir)));
 
 /** Storybook's options to a preset's functions: its config folder and its presets among them. */
 export type PresetOptions = Pick<Options, "configDir" | "presets">;
@@ -25,9 +34,6 @@ const createProject = (options: PresetOptions) => {
   // The Storybook project's folder, where its config folder is (`storybook dev` runs there; the
   // addon's Vitest, which loads presets too, may run elsewhere: the workspace's root).
   const root = path.dirname(path.resolve(configDir));
-  let configuration: Promise<Configuration> | undefined;
-  const loaded = () =>
-    (configuration ??= optionsOf(configDir).then(configurationOf));
   /** `storybook dev`: what its dev server makes again as the linked features change (the features map: `./devWatch.ts`). */
   let linkedFeaturesChanged: (() => void | Promise<void>) | undefined;
   /**
@@ -35,11 +41,14 @@ const createProject = (options: PresetOptions) => {
    * server channel hook, the only one that can reach it).
    */
   const indexers = new Set<(features: readonly string[]) => Promise<void>>();
-  const plans = createFeaturePlans({ root: () => root, configuration: loaded });
+  const plans = createFeaturePlans({
+    root: () => root,
+    readConfiguration: () => configurationIn(configDir),
+  });
   const storybookPlans = createStorybookPlans({
     plans,
     root: () => root,
-    configuration: loaded,
+    configuration: plans.configuration,
     autoTitleOf: autoTitleOfStorybook(() => options),
     onLinkedFeaturesChanged: () => {
       void linkedFeaturesChanged?.();

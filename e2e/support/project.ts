@@ -66,12 +66,11 @@ export default defineConfig(() => ({
 
 /**
  * The default config of a Storybook project (`storybook` mode): the addon's Vitest project,
- * the plugin with the scenario's options; Storybook's own config in `.storybook/` (see
- * `./storybookProject.ts`).
+ * the plugin with no options (the scenario's are in `.storybook/cucumber.config.ts`, with
+ * Storybook's own config: see `./storybookProject.ts`).
  */
-export const defaultStorybookConfig = (
-  options: E2EWorld["pluginOptions"],
-) => `import { cucumber } from "@lotun/vitest-cucumber";
+export const defaultStorybookConfig =
+  () => `import { cucumber } from "@lotun/vitest-cucumber";
 import { storybookTest } from "@storybook/addon-vitest/vitest-plugin";
 import react from "@vitejs/plugin-react";
 import { playwright } from "@vitest/browser-playwright";
@@ -81,7 +80,7 @@ import { defineConfig } from "vitest/config";
 export default defineConfig(() => ({
   plugins: [
     react(),
-    ${pluginsCode(options)}
+    cucumber(),
     storybookTest({ configDir: path.join(import.meta.dirname, ".storybook") }),
   ],
   resolve: { dedupe: ["react", "react-dom"] },
@@ -123,7 +122,7 @@ export async function writeDefaultConfig(this: E2EWorld, mode: string) {
   }
   if (this.mode === "storybook") {
     await useStorybookProject.call(this);
-    await writeConfig(this, CONFIG, defaultStorybookConfig(this.pluginOptions));
+    await writeConfig(this, CONFIG, defaultStorybookConfig());
     return;
   }
   await writeConfig(this, CONFIG, defaultConfig(this.pluginOptions, this.mode));

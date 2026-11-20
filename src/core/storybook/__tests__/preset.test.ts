@@ -36,7 +36,8 @@ const project = mkdtempSync(path.join(tmpdir(), "preset-"));
 const configDir = path.join(project, ".storybook");
 for (const [name, content] of Object.entries({
   // From the project's folder (an absolute path from `path.join` isn't a glob on Windows).
-  ".storybook/cucumber.mjs": 'export default { import: ["steps/*.ts"] };\n',
+  ".storybook/cucumber.config.mjs":
+    'export default { import: ["steps/*.ts"] };\n',
   "steps/stories.ts": `Given("the {storybook:story} story", (story) => {});
 Given("the stories of {storybook:storiesFile}", (file) => {});`,
   "src/Login.stories.ts": `import type { Meta, StoryObj } from "@storybook/react-vite";

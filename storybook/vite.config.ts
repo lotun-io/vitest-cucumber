@@ -12,7 +12,6 @@ import { playwright } from "@vitest/browser-playwright";
 import path from "node:path";
 import { defineConfig } from "vite";
 import { nodeSources } from "../vitest.nodeSources.ts";
-import featuresOptions from "./.storybook/cucumber.ts";
 
 const repo = path.join(import.meta.dirname, "..");
 
@@ -23,7 +22,8 @@ export default defineConfig({
     storybookTest({
       configDir: path.join(import.meta.dirname, ".storybook"),
     }),
-    cucumber(featuresOptions),
+    // Its options are `.storybook/cucumber.config.ts`'s, which Storybook reads too.
+    cucumber(),
     // The repo's coverage of the plugin's modules, as its suite measures them (Vitest only).
     ...(process.env.VITEST ? [nodeSources(`${repo}/src/`)] : []),
   ],

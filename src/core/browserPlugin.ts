@@ -16,7 +16,7 @@ import { type Environment, inStorybook } from "./storybook/vitest/addon.ts";
 import { ownModule } from "./utils/ownModule.ts";
 
 /** Browser mode's hooks, and the shared plugin (`core`) they're built on. */
-export const createBrowserPlugin = (options: CucumberOptions) => {
+export const createBrowserPlugin = (options: CucumberOptions | undefined) => {
   const core = createPlugin(options, {
     platform: ownModule("worker/browser/platform"),
   });

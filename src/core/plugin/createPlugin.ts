@@ -25,7 +25,7 @@ import { withoutQuery } from "../utils/withoutQuery.ts";
 import { colorsOf } from "./colors.ts";
 import { cucumberVersion } from "./cucumberVersion.ts";
 import { frameFilterOf, internalDirectories } from "./frames.ts";
-import { configurationOf, type Configuration } from "./options.ts";
+import { configurationOfProject } from "./projectOptions.ts";
 import { declareTags } from "./tags.ts";
 import { createVitestState } from "./vitestState.ts";
 import { createVitestWatcher, type FileChange } from "./vitestWatcher.ts";
@@ -41,7 +41,7 @@ type FileChangeListener = (type: FileChange, file: string) => Promise<void>;
  * the plugin's runtime runs (`../../worker/runner/`).
  */
 export const createPlugin = (
-  options: CucumberOptions,
+  given: CucumberOptions | undefined,
   {
     platform,
     commandServer = false,
@@ -53,11 +53,22 @@ export const createPlugin = (
   },
 ) => {
   let root = process.cwd();
-  let configuration: Configuration | undefined;
-  // Async: a wrong option is the plans' to report, as a failed plan.
-  const loaded = async () => (configuration ??= configurationOf(options));
-  /** What main knows of each feature file: its tags, its plan (`../feature/plans.ts`). */
-  const plans = createFeaturePlans({ root: () => root, configuration: loaded });
+  /** The project's plugins, as Vite resolved its config (a Storybook project's options are Storybook's). */
+  let plugins: readonly { name: string }[] = [];
+  /**
+   * Whether errors' stacks are filtered (not with `backtrace`): the run's options decide, set as
+   * it starts (Vitest's frame filter asks as it prints an error, and can't wait).
+   */
+  let filtering = true;
+  /**
+   * What main knows of each feature file: its tags, its plan (`../feature/plans.ts`), made with
+   * the project's options (given, or its options file's: `./projectOptions.ts`, read again at
+   * each run's start; a wrong option or file is the plans' to report, as a failed plan).
+   */
+  const plans = createFeaturePlans({
+    root: () => root,
+    readConfiguration: () => configurationOfProject(given, { root, plugins }),
+  });
   /** A watching Vitest: how feature files' modules are made again (`./watchReruns.ts`). */
   const reruns = createWatchReruns(() => vitestState.current());
   /** What a plugin built on this one does for a file's event, after this one's own. */
@@ -117,8 +128,13 @@ export const createPlugin = (
   ): Promise<PlannedFeature[]> => {
     // A new run reads the disk: whatever was read for the last one is dropped, and each thing is
     // read once for all this run's files (their modules' transforms too). Nothing else says what
-    // changed without a watcher (a Vitest run again through its API).
+    // changed without a watcher (a Vitest run again through its API). The options too: the
+    // run's own, read again with the rest (none read: the plans' errors, filtered as usual).
     plans.cache.clear();
+    filtering = await plans.configuration().then(
+      ({ backtrace }) => !backtrace,
+      () => true,
+    );
     const features = await Promise.all(
       specifications.map(async ({ project, moduleId }) => {
         // A feature file (in a Storybook project, its stories module: its scenarios' story tests have
@@ -181,8 +197,8 @@ export const createPlugin = (
   return {
     /** The project's root, cucumber's `cwd`. */
     root: () => root,
-    /** The user's configuration, as cucumber resolves it. */
-    configuration: loaded,
+    /** The user's configuration: their options, with cucumber's defaults. */
+    configuration: plans.configuration,
     /** The feature files' plans (see `../feature/plans.ts`). */
     featurePlans: plans,
     /**
@@ -200,14 +216,20 @@ export const createPlugin = (
     config: (userConfig: UserConfig): UserConfig => ({
       test: {
         // Set here, before Vitest resolves the config, because the browser server copies it then.
+        // Filtering unless `backtrace`: the options aren't read yet (a file's may not be found
+        // before Vite resolves the project), but the run's are by the time an error is printed.
         onStackTrace: frameFilterOf(
           userConfig.test?.onStackTrace,
-          !options.backtrace,
+          () => filtering,
         ),
       },
     }),
-    configResolved: (config: { root: string }) => {
+    configResolved: (config: {
+      root: string;
+      plugins: readonly { name: string }[];
+    }) => {
       root = config.root;
+      plugins = config.plugins;
     },
     configureVitest: async ({
       vitest,

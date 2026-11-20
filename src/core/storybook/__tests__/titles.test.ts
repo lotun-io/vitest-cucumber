@@ -55,7 +55,8 @@ const storybookProject = (
   const project = mkdtempSync(path.join(tmpdir(), "titles-"));
   projects.push(project);
   for (const [name, content] of Object.entries({
-    ".storybook/cucumber.mjs": 'export default { import: ["steps/*.ts"] };\n',
+    ".storybook/cucumber.config.mjs":
+      'export default { import: ["steps/*.ts"] };\n',
     "steps/stories.ts": steps,
     ...files,
   })) {

@@ -61,7 +61,7 @@ describe("frameFilterOf (each error's frames, in order, as Vitest asks)", () => 
   };
 
   test("the user's frames, cut at the first internal one", () => {
-    const filter = frameFilterOf(undefined, true);
+    const filter = frameFilterOf(undefined, () => true);
     expect(
       kept(filter, [
         user("/p/steps.ts"),
@@ -73,7 +73,7 @@ describe("frameFilterOf (each error's frames, in order, as Vitest asks)", () => 
   });
 
   test("an error whose first frame is internal (e.g. cucumber's timeout): kept whole", () => {
-    const filter = frameFilterOf(undefined, true);
+    const filter = frameFilterOf(undefined, () => true);
     expect(kept(filter, [internal, user("/p/steps.ts")])).toEqual([
       internal,
       user("/p/steps.ts"),
@@ -81,13 +81,13 @@ describe("frameFilterOf (each error's frames, in order, as Vitest asks)", () => 
   });
 
   test("each error its own: one cut doesn't cut the next", () => {
-    const filter = frameFilterOf(undefined, true);
+    const filter = frameFilterOf(undefined, () => true);
     kept(filter, [user("/p/a.ts"), internal]);
     expect(kept(filter, [user("/p/b.ts"), user("/p/c.ts")])).toHaveLength(2);
   });
 
   test("without filtering (`backtrace`): every frame", () => {
-    const filter = frameFilterOf(undefined, false);
+    const filter = frameFilterOf(undefined, () => false);
     expect(
       kept(filter, [user("/p/a.ts"), internal, user("/p/b.ts")]),
     ).toHaveLength(3);
@@ -96,7 +96,7 @@ describe("frameFilterOf (each error's frames, in order, as Vitest asks)", () => 
   test("the user's `onStackTrace` first: its `false` leaves a frame out, ours then applies", () => {
     const filter = frameFilterOf(
       (_error, { file }) => !file.endsWith("/helper.ts"),
-      true,
+      () => true,
     );
     expect(
       kept(filter, [
@@ -111,7 +111,7 @@ describe("frameFilterOf (each error's frames, in order, as Vitest asks)", () => 
   test("the user's `onStackTrace` without filtering: only theirs applies", () => {
     const filter = frameFilterOf(
       (_error, { file }) => !file.endsWith("/helper.ts"),
-      false,
+      () => false,
     );
     expect(kept(filter, [user("/p/helper.ts"), internal])).toEqual([internal]);
   });
