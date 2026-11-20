@@ -2,7 +2,8 @@ import { Callout } from "nextra/components";
 
 # Support code
 
-Your step definitions, hooks, World and parameter types use `@cucumber/cucumber`'s API, unchanged.
+Your step definitions, hooks, World and parameter types use
+[`@cucumber/cucumber`](https://github.com/cucumber/cucumber-js)'s API, unchanged.
 The plugin loads the files the [`import`](/reference/options#import) option lists, in every mode.
 They can be TypeScript (or TSX): Vite transforms them, with no loader or `requireModule` to set up.
 
@@ -70,9 +71,9 @@ cucumber({
 }),
 ```
 
-They must be JSON: every feature file fails otherwise (e.g. with a `BigInt`). To share other values
-(a `Map`, a `Date`), set them on `this.parameters` in a `BeforeAll`: every World of that worker gets a
-copy.
+They go through JSON: a value JSON can't hold fails every feature file (a `BigInt`, a cycle), and one
+it changes arrives changed (a `Date` as a string, a `Map` as `{}`). To share such values, set them on
+`this.parameters` in a `BeforeAll`: every World of that worker gets a copy.
 
 ## Hooks
 

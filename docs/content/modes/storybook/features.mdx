@@ -166,14 +166,20 @@ steps match. Each one, and what to do:
 
 ## Mounting
 
-A scenario's story is rendered before its steps, as Storybook renders a story before its `play`. A
-scenario on an unmounted story (`Given the unmounted ThePage story`) isn't: a step of yours mounts
-it, after any setup before it:
+A scenario's story is rendered before its steps, as Storybook renders a story before its `play`:
+
+```gherkin
+Scenario: Mounted
+  Given the ThePage story
+  Then I see the page
+```
+
+A scenario on an unmounted story isn't: a step of yours mounts it, after any setup before it:
 
 ```gherkin
 Scenario: Unmounted
   Given the unmounted ThePage story
-  Given the API answers with an error
+  And the API answers with an error
   When I mount the story
   Then I see the error message
 ```

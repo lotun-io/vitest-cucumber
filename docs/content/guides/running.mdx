@@ -73,17 +73,25 @@ npx vitest run --tagsFilter "@smoke && !@slow"   # by Gherkin tag expression
 npx vitest run -t "Cart > Checkout"              # by name: feature > rule > outline > scenario
 ```
 
-- **By line**: a scenario's line runs it, an outline's line runs all its examples, an example row's
-  line runs that row. A line with no scenario fails with
+- **[By line](https://vitest.dev/guide/filtering#filtering-by-line-number)**: a scenario's line runs
+  it, an outline's line runs all its examples, an example row's line runs that row. A line with no
+  scenario fails with
   `No test found in features/cart.feature in line 12`.
-- **By tag**: Gherkin tags are Vitest [tags](https://vitest.dev/guide/test-tags), `@` included, and
-  inherited as in Cucumber (a Feature's, a Rule's and an Examples block's tags apply to their
-  scenarios). You don't need to declare them in `test.tags`.
-- **By name**: `-t` matches the full name, so `-t "Arithmetic > Doubling"` runs every scenario of
-  that rule.
+- **[By tag](https://vitest.dev/guide/filtering#filtering-by-tags)**: Gherkin tags are Vitest
+  [tags](https://vitest.dev/guide/test-tags), `@` included, and inherited as in Cucumber (a
+  Feature's, a Rule's and an Examples block's tags apply to their scenarios). You don't need to
+  declare them in `test.tags`.
+- **[By name](https://vitest.dev/guide/filtering#filtering-by-test-name)**: `-t` matches the full
+  name, so `-t "Arithmetic > Doubling"` runs every scenario of that rule.
 
-To list the scenarios without running them: `npx vitest list --staticParse=false` (Vitest's default
-reads test files without running them, and finds no test in a feature file).
+To list the scenarios without running them:
+
+```bash
+npx vitest list --staticParse=false
+```
+
+The flag is needed: Vitest's default reads test files without running them, and finds no test in a
+feature file.
 
 ## Tag options
 
@@ -117,8 +125,12 @@ without running.
 
 ## Bail
 
-`npx vitest run --bail 1` stops at the first failure (Cucumber's `--fail-fast`): the rest of the file
-isn't run and later files don't start.
+```bash
+npx vitest run --bail 1
+```
+
+Stops at the first failure (Cucumber's `--fail-fast`): the rest of the file isn't run and later
+files don't start.
 
 ## Parallel runs
 
@@ -129,7 +141,13 @@ in file order, even with `sequence.concurrent`. Each worker loads the support co
 
 ## Watch mode
 
-`npx vitest` watches:
+```bash
+npx vitest        # watch mode
+npx vitest run    # once
+```
+
+These are Vitest's own [commands](https://vitest.dev/guide/cli#commands). Without `run`, Vitest
+keeps watching and reruns what a change affects:
 
 - editing a feature file reruns it, with its new or renamed scenarios;
 - editing a step definition, hook, World or any module they import reruns the feature files that

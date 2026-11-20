@@ -26,9 +26,15 @@ real browser page, where they can render, click and read the DOM. It's the same 
   </Tabs.Tab>
 </Tabs>
 
-Install the browser once: `npx playwright install chromium`, or `npx playwright install` for
-Chromium, Firefox and WebKit. On CI, or a Linux machine that never ran a browser, add `--with-deps`:
-it also installs the system libraries the browsers need.
+Install the browser once:
+
+```bash
+npx playwright install chromium               # Chromium only
+npx playwright install                        # Chromium, Firefox and WebKit
+npx playwright install --with-deps chromium   # with the system libraries the browser needs
+```
+
+Use `--with-deps` on CI, or on a Linux machine that never ran a browser.
 
 The rest of the setup is Vitest's own: its
 [Playwright provider page](https://vitest.dev/config/browser/playwright) covers the provider's

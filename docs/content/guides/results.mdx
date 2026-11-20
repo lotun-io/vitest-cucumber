@@ -55,9 +55,12 @@ code frame points at the step's line in the feature file before your own frames:
 ## Undefined, pending and ambiguous steps
 
 The test's error is the step's text, followed by the scenario's summary, as Cucumber's summary
-formatter prints it:
+formatter prints it.
+
+**An undefined step**: no definition matches.
 
 ```ansi
+[41m[1m FAIL [22m[49m features/checkout.feature[2m:2[22m[2m > [22mCheckout[2m > [22mPaying by card
 [31m[1mError[22m: When I pay with "card"
 
 [34mUndefined steps:[31m
@@ -71,14 +74,83 @@ When('I pay with {string}', function (string) {
 });[0m
 ```
 
-The summary lists, in Cucumber's order, `Pending steps:` (with their definition's location),
-`Undefined steps:`, `Ambiguous steps:` (with every matching definition), parameter types used but
-not defined, and snippets. It's in color when Vitest's output is.
+**A pending step**: its definition returned `"pending"`.
+
+```ansi
+[41m[1m FAIL [22m[49m features/checkout.feature[2m:6[22m[2m > [22mCheckout[2m > [22mUsing a coupon
+[31m[1mError[22m: When I apply the coupon "SAVE10"
+
+[36mPending steps:[31m
+  [36m[1mWhen [22mI apply the coupon [1m"SAVE10"[22m[31m [90m# features/steps/checkout.ts:5[31m[39m[0m
+```
+
+**An ambiguous step**: more than one definition matches.
+
+```ansi
+[41m[1m FAIL [22m[49m features/checkout.feature[2m:10[22m[2m > [22mCheckout[2m > [22mChecking the total
+[31m[1mError[22m: Then the total is 5
+
+[35mAmbiguous steps:[31m
+  [35m[1mThen [22mthe total is 5[31m
+      Multiple matching step definitions found:
+        • the total is {int} [90m# features/steps/checkout.ts:9[31m
+        • ^the total is (\d+)$ [90m# features/steps/checkout.ts:11[31m[39m[0m
+```
+
+**An undefined parameter type**: a definition uses `{currency}`, which nothing defines.
+
+```ansi
+[41m[1m FAIL [22m[49m features/checkout.feature[2m:14[22m[2m > [22mCheckout[2m > [22mPaying in another currency
+[31m[1mError[22m: When I pay in euro
+
+[34mUndefined steps:[31m
+  [34m[1mWhen [22mI pay in euro[31m
+
+[34mThese parameters are missing a parameter type definition:[31m
+  'currency' in 'I pay in {currency}'
+
+You can implement missing steps with the snippets below:
+
+When('I pay in euro', function () {
+  // Write code here that turns the phrase above into concrete actions
+  return 'pending';
+});[0m
+```
+
+A scenario with several of these has one summary, in Cucumber's order: `Pending steps:`,
+`Undefined steps:`, `Ambiguous steps:`, the parameter types used but not defined, then the
+snippets. It's in color when Vitest's output is.
 
 ## Attachments
 
 `this.log(text)`, `this.link(url)` and `this.attach(data, mediaType)` become the test's
 [annotations](https://vitest.dev/guide/test-annotations), in the order they ran, hooks included:
+
+```ts filename="features/steps/checkout.ts"
+When("I pay with {string}", function (method: string) {
+  this.log(`Paying with ${method}`);
+  this.link("https://example.com/orders/42");
+  this.attach(JSON.stringify({ total: 5 }), "application/json");
+});
+```
+
+Vitest prints them when a test fails. To see them for every test, passing ones too, use its
+verbose reporter:
+
+```bash
+npx vitest run --reporter=verbose
+```
+
+```ansi
+ [32m✓[39m features/checkout.feature[2m:2[22m[2m > [22mCheckout[2m > [22mPaying by card[32m 11[2mms[22m[39m
+
+   [34m❯[39m [1mlog[22m
+     [34m↳[39m Paying with card
+   [34m❯[39m [1mlink[22m
+     [34m↳[39m https://example.com/orders/42
+   [34m❯[39m [1mattachment[22m
+     [34m↳[39m application/json[0m
+```
 
 | Call                          | Annotation                                             |
 | ----------------------------- | ------------------------------------------------------ |
@@ -86,8 +158,8 @@ not defined, and snippets. It's in color when Vitest's output is.
 | `this.link("https://…")`      | type `link`, the URL                                   |
 | `this.attach(data, type)`     | type `attachment`, the file name or media type, data attached |
 
-The default reporter prints a failed test's annotations; the verbose reporter, every test's; JUnit,
-HTML and the UI include them. A retried scenario keeps every attempt's.
+The JUnit and HTML reporters and Vitest's UI include them too. A retried scenario keeps every
+attempt's.
 
 ## When a file fails before its scenarios run
 

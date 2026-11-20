@@ -6,10 +6,23 @@ import { Callout, FileTree, Steps, Tabs } from "nextra/components";
 
 - Node.js 24 or 26
 - Vitest 5
-- `@cucumber/cucumber` 13.3 or later 13.x
+- [`@cucumber/cucumber`](https://github.com/cucumber/cucumber-js) 13.3 or later 13.x
 
 The package is ESM only: your Vitest config must load as an ES module (`"type": "module"` in the
 nearest `package.json`, or a `vitest.config.mts`).
+
+The steps below create these files:
+
+<FileTree>
+  <FileTree.Folder name="features" defaultOpen>
+    <FileTree.Folder name="steps" defaultOpen>
+      <FileTree.File name="calculator.ts" />
+    </FileTree.Folder>
+    <FileTree.File name="calculator.feature" />
+  </FileTree.Folder>
+  <FileTree.File name="package.json" />
+  <FileTree.File name="vitest.config.ts" />
+</FileTree>
 
 <Steps>
 
@@ -99,54 +112,12 @@ npx vitest run    # once
 ```
 
 ```ansi
- [32m✓[39m features/calculator.feature[2m:2[22m[2m > [22mCalculator[2m > [22mAdding two numbers[32m 6[2mms[22m[39m[0m
+ [32m✓[39m features/calculator.feature [2m([22m[2m1 test[22m[2m)[22m[32m 61[2mms[22m[39m
+   [32m✓[39m Calculator [2m(1)[22m
+     [32m✓[39m Adding two numbers[32m 8[2mms[22m[39m[0m
 ```
-
-That's `npx vitest run --reporter=verbose`, which lists every scenario; the default reporter lists
-the feature files.
 
 </Steps>
-
-<FileTree>
-  <FileTree.Folder name="features" defaultOpen>
-    <FileTree.Folder name="steps" defaultOpen>
-      <FileTree.File name="calculator.ts" />
-    </FileTree.Folder>
-    <FileTree.File name="calculator.feature" />
-  </FileTree.Folder>
-  <FileTree.File name="package.json" />
-  <FileTree.File name="vitest.config.ts" />
-</FileTree>
-
-## A step you haven't written yet
-
-Add `And I see the result` to the scenario and run again: the test fails with Cucumber's summary
-and a snippet to start from.
-
-```ansi
-[41m[1m FAIL [22m[49m features/calculator.feature[2m:2[22m[2m > [22mCalculator[2m > [22mAdding two numbers
-[31m[1mError[22m: And I see the result
-
-[34mUndefined steps:[31m
-  [34m[1mAnd [22mI see the result[31m
-
-You can implement missing steps with the snippets below:
-
-Then('I see the result', function () {
-  // Write code here that turns the phrase above into concrete actions
-  return 'pending';
-});
-[39m
-[36m [2m❯[22m features/calculator.feature:[2m6:5[22m[39m
-    [90m  4|[39m     When I add 3
-    [90m  5|[39m     Then the result is 5
-    [90m  6|[39m     And I see the result
-    [90m   |[39m     [31m^[39m
-    [90m  7|[39m[0m
-```
-
-The failed test's header names the scenario's line (`:2`), and the code frame points at the step
-in the feature file.
 
 ## Next
 

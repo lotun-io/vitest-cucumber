@@ -2,8 +2,9 @@
 
 Run [Cucumber](https://cucumber.io/) feature files as [Vitest](https://vitest.dev/) tests.
 
-You write Gherkin and step definitions with `@cucumber/cucumber`'s API, as you would for
-Cucumber's CLI. The plugin turns each feature file into a Vitest test file: every scenario, and every
+You write Gherkin and step definitions with
+[`@cucumber/cucumber`](https://github.com/cucumber/cucumber-js)'s API, as you would for Cucumber's
+CLI. The plugin turns each feature file into a Vitest test file: every scenario, and every
 row of a Scenario Outline, is a Vitest test. Vitest finds, filters, retries, runs and reports them;
 your steps run with Cucumber's own semantics (step matching, hooks, World, timeouts, statuses).
 
@@ -33,13 +34,22 @@ All three use the same plugin, the same `@cucumber/cucumber` imports and the sam
 
 ## What you get from Vitest
 
-- **Filters**: a scenario by its line (`cart.feature:3`), Gherkin tags (`--tagsFilter "@smoke"`),
-  names (`-t "Cart > Adding an item"`).
-- **Watch mode**: editing a feature file, a step definition or anything it imports reruns what
-  depends on it.
-- **Parallel runs**: feature files spread across Vitest's workers.
-- **Retries**, **bail**, **coverage**, Vitest's reporters and its UI.
-- **Failures at the Gherkin line**: a failing step's error points at its line in the feature file,
-  and undefined steps come with Cucumber's snippets.
+- **[Filters](/guides/running#filtering)**: one scenario by its line, by Gherkin tags or by name.
+
+  ```bash
+  npx vitest run features/cart.feature             # one feature file
+  npx vitest run features/cart.feature:2           # the scenario, outline or example row at line 2
+  npx vitest run --tagsFilter "@smoke && !@slow"   # by Gherkin tag expression
+  npx vitest run -t "Cart > Adding an item"        # by name: feature > rule > outline > scenario
+  ```
+
+- **[Watch mode](/guides/running#watch-mode)**: editing a feature file, a step definition or
+  anything it imports reruns what depends on it.
+- **[Parallel runs](/guides/running#parallel-runs)**: feature files spread across Vitest's workers.
+- **[Retries](/guides/running#retries)**, **[bail](/guides/running#bail)**,
+  **[coverage](/guides/running#coverage)**, Vitest's reporters and its UI.
+- **[Failures at the Gherkin line](/guides/results#a-failing-step)**: a failing step's error points
+  at its line in the feature file, and undefined steps come with
+  [Cucumber's snippets](/guides/results#undefined-pending-and-ambiguous-steps).
 
 Start with [Getting started](/getting-started).
