@@ -26,18 +26,17 @@
 // `storybook dev`'s features map).
 // One ask doesn't wait for the host: Storybook's indexer's, which its own watcher may bring
 // before the file's event, so its feature file is taken as changed first.
-import type { IConfiguration } from "@cucumber/cucumber/api";
 import { existsSync } from "node:fs";
 import type { RunOptions } from "../../../types/feature.ts";
 import { slash } from "../../../utils/slash.ts";
 import { isFeatureFile } from "../../feature/featureFile.ts";
 import {
-  type FailedPlan,
   failedPlan,
+  type FailedPlan,
   type FeaturePlans,
   type VitestPlan,
 } from "../../feature/plans.ts";
-import { runOptionsOf } from "../../plugin/options.ts";
+import { runOptionsOf, type Configuration } from "../../plugin/options.ts";
 import { featureLinksOf, isStoriesFile } from "./featureLinks.ts";
 import {
   indexEntriesOf,
@@ -103,7 +102,7 @@ export const createStorybookPlans = ({
     "vitestPlanOf" | "fileOf" | "supportFiles" | "onFileChange" | "cache"
   >;
   root: () => string;
-  configuration: () => Promise<IConfiguration>;
+  configuration: () => Promise<Configuration>;
   /** Storybook's automatic title of a stories file (`./storiesTitle.ts`): the host knows its `stories`. */
   autoTitleOf: AutoTitleOf;
   /**

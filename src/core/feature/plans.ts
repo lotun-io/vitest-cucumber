@@ -21,7 +21,6 @@
 // - a file event of a watching host (`onFileChange`: a watching Vitest, `storybook dev`): a
 //   feature file's text is dropped, and the support files are listed again as a file is added
 //   or removed. What it gives back is what's left for the host to do.
-import type { IConfiguration } from "@cucumber/cucumber/api";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import type {
@@ -32,7 +31,7 @@ import type {
 import { quietError } from "../../utils/errors.ts";
 import { parseErrorMessage } from "../../utils/parseErrors.ts";
 import { slash } from "../../utils/slash.ts";
-import { runOptionsOf } from "../plugin/options.ts";
+import { runOptionsOf, type Configuration } from "../plugin/options.ts";
 import { supportFilesOf } from "../support/supportFiles.ts";
 import { fileCache } from "../utils/fileCache.ts";
 import { isFeatureFile } from "./featureFile.ts";
@@ -78,7 +77,7 @@ export const createFeaturePlans = ({
   configuration,
 }: {
   root: () => string;
-  configuration: () => Promise<IConfiguration>;
+  configuration: () => Promise<Configuration>;
 }) => {
   const cache = createPlanCache();
 

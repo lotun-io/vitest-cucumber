@@ -9,7 +9,7 @@ import type { Options } from "storybook/internal/types";
 import type { FeatureSource } from "../../../types/storybook.ts";
 import { slash } from "../../../utils/slash.ts";
 import { createFeaturePlans } from "../../feature/plans.ts";
-import { configurationOf } from "../../plugin/options.ts";
+import { configurationOf, type Configuration } from "../../plugin/options.ts";
 import { autoTitleOfStorybook } from "../stories/storiesTitle.ts";
 import { createStorybookPlans } from "../stories/storybookPlans.ts";
 import { optionsOf } from "./optionsFile.ts";
@@ -25,11 +25,9 @@ const createProject = (options: PresetOptions) => {
   // The Storybook project's folder, where its config folder is (`storybook dev` runs there; the
   // addon's Vitest, which loads presets too, may run elsewhere: the workspace's root).
   const root = path.dirname(path.resolve(configDir));
-  let configuration: ReturnType<typeof configurationOf> | undefined;
+  let configuration: Promise<Configuration> | undefined;
   const loaded = () =>
-    (configuration ??= optionsOf(configDir).then((options) =>
-      configurationOf(options, root),
-    ));
+    (configuration ??= optionsOf(configDir).then(configurationOf));
   /** `storybook dev`: what its dev server makes again as the linked features change (the features map: `./devWatch.ts`). */
   let linkedFeaturesChanged: (() => void | Promise<void>) | undefined;
   /**

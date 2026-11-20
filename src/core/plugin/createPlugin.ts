@@ -2,7 +2,6 @@
 // file becomes a Vitest test module with a test per scenario, its plan made from its Gherkin as
 // cucumber parses it (`../feature/plan.ts`).
 // Vitest does all the reporting: cucumber writes nothing.
-import type { IConfiguration } from "@cucumber/cucumber/api";
 import path from "node:path";
 import type { ViteUserConfig as UserConfig } from "vitest/config";
 import type {
@@ -21,12 +20,12 @@ import {
   type TagsPlan,
 } from "../feature/plans.ts";
 import type { PlannedFeature } from "../runs/runStart.ts";
-import { type ProjectSource, testRunsOf } from "../runs/testRuns.ts";
+import { testRunsOf, type ProjectSource } from "../runs/testRuns.ts";
 import { withoutQuery } from "../utils/withoutQuery.ts";
 import { colorsOf } from "./colors.ts";
 import { cucumberVersion } from "./cucumberVersion.ts";
 import { frameFilterOf, internalDirectories } from "./frames.ts";
-import { configurationOf } from "./options.ts";
+import { configurationOf, type Configuration } from "./options.ts";
 import { declareTags } from "./tags.ts";
 import { createVitestState } from "./vitestState.ts";
 import { createVitestWatcher, type FileChange } from "./vitestWatcher.ts";
@@ -54,8 +53,9 @@ export const createPlugin = (
   },
 ) => {
   let root = process.cwd();
-  let configuration: Promise<IConfiguration> | undefined;
-  const loaded = () => (configuration ??= configurationOf(options, root));
+  let configuration: Configuration | undefined;
+  // Async: a wrong option is the plans' to report, as a failed plan.
+  const loaded = async () => (configuration ??= configurationOf(options));
   /** What main knows of each feature file: its tags, its plan (`../feature/plans.ts`). */
   const plans = createFeaturePlans({ root: () => root, configuration: loaded });
   /** A watching Vitest: how feature files' modules are made again (`./watchReruns.ts`). */

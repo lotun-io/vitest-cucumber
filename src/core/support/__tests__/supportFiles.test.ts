@@ -1,8 +1,8 @@
-import type { IConfiguration } from "@cucumber/cucumber/api";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, expect, test } from "vitest";
+import { configurationOf, type Configuration } from "../../plugin/options.ts";
 import { supportFilesOf } from "../supportFiles.ts";
 
 let root = "";
@@ -24,11 +24,10 @@ const files = (...names: string[]) => {
 };
 
 /** A configuration with these `import` globs. */
-const importing = (...globs: string[]) =>
-  ({ import: globs }) as unknown as IConfiguration;
+const importing = (...globs: string[]) => configurationOf({ import: globs });
 
 /** The support files found, relative to the project, with `/`. */
-const supportFiles = async (configuration: IConfiguration) =>
+const supportFiles = async (configuration: Configuration) =>
   (await supportFilesOf(root, configuration)).map((file) =>
     path.relative(root, file).split(path.sep).join("/"),
   );

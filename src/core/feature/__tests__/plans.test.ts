@@ -1,9 +1,9 @@
-import type { IConfiguration } from "@cucumber/cucumber/api";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterAll, expect, test } from "vitest";
 import { slash } from "../../../utils/slash.ts";
+import { configurationOf } from "../../plugin/options.ts";
 import { createFeaturePlans } from "../plans.ts";
 
 const root = mkdtempSync(path.join(tmpdir(), "plans-"));
@@ -23,10 +23,7 @@ const plans = () =>
   createFeaturePlans({
     root: () => root,
     configuration: () =>
-      Promise.resolve({
-        import: ["support"],
-        require: [],
-      } as unknown as IConfiguration),
+      Promise.resolve(configurationOf({ import: ["support"] })),
   });
 
 const tagged = "@smoke\nFeature: A\n  @one\n  Scenario: s\n    Given a step\n";
@@ -170,10 +167,7 @@ test("a configuration that can't be loaded: each plan fails with it, a file's ev
     configuration: () =>
       fail
         ? Promise.reject(new Error("No configuration"))
-        : Promise.resolve({
-            import: ["support"],
-            require: [],
-          } as unknown as IConfiguration),
+        : Promise.resolve(configurationOf({ import: ["support"] })),
   });
   await all.vitestPlanOf(id);
   const unhandled: unknown[] = [];

@@ -1,10 +1,10 @@
-import type { IConfiguration } from "@cucumber/cucumber/api";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterAll, expect, test } from "vitest";
 import { slash } from "../../../../utils/slash.ts";
 import { createFeaturePlans } from "../../../feature/plans.ts";
+import { configurationOf } from "../../../plugin/options.ts";
 import { createStorybookPlans } from "../storybookPlans.ts";
 
 const root = mkdtempSync(path.join(tmpdir(), "storybook-plans-"));
@@ -33,10 +33,7 @@ const tagged = "@smoke\nFeature: A\n  @one\n  Scenario: s\n    Given a step\n";
  */
 const project = () => {
   const configuration = () =>
-    Promise.resolve({
-      import: ["support"],
-      require: [],
-    } as unknown as IConfiguration);
+    Promise.resolve(configurationOf({ import: ["support"] }));
   const plans = createFeaturePlans({ root: () => root, configuration });
   const counted = { linkedChanges: 0 };
   const storybook = createStorybookPlans({
