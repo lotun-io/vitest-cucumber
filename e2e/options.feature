@@ -270,10 +270,10 @@ Feature: Plugin options
       | Page > on a story        | passed |
 
     Examples:
-      | plugins                                 | inherited                                  | own        |
-      | a cucumber() in each project            |                                            | cucumber() |
-      | one in the root, inherited              | cucumber()                                 |            |
-      | one with options in the root, inherited | cucumber({ import: ["node/**/*.ts"] })     |            |
+      | plugins                                 | inherited                              | own        |
+      | a cucumber() in each project            |                                        | cucumber() |
+      | one in the root, inherited              | cucumber()                             |            |
+      | one with options in the root, inherited | cucumber({ import: ["node/**/*.ts"] }) |            |
 
   # A Storybook project always reads its config folder's file, which Storybook's own process reads
   # too: options given to its `cucumber()` (its own, or one it inherits) aren't used. Here they'd
@@ -330,9 +330,9 @@ Feature: Plugin options
       | passing | passed |
 
     Examples:
-      | plugin                   | inherited                               | own                                     |
-      | its own                  |                                         | cucumber({ import: ["nowhere/*.ts"] })  |
-      | inherited from the root  | cucumber({ import: ["nowhere/*.ts"] })  |                                         |
+      | plugin                  | inherited                              | own                                    |
+      | its own                 |                                        | cucumber({ import: ["nowhere/*.ts"] }) |
+      | inherited from the root | cucumber({ import: ["nowhere/*.ts"] }) |                                        |
 
   # Options given are the project's own: its options file isn't read (one that can't load either),
   # nor in a Storybook project (its file is `.storybook/cucumber.config.ts`).
