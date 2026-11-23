@@ -197,3 +197,31 @@ Feature: Storybook errors
     Then its stories show:
       | STORY                     | STATUS | SHOWS            |
       | page-feature-page--a-step | FAIL   | Undefined steps: |
+
+  # Two feature files on one stories file with the same name would share its title, and their
+  # stories' ids: the one linked second fails, naming the other (the user's call, 2026-11-20).
+  # Storybook's index links every feature file, so its build always stops.
+  Scenario: Two feature files on one stories file with the same name fail
+    Given a file named "features/steps.ts" with:
+      """
+      import { Given } from "@cucumber/cucumber";
+      Given("a step", () => {});
+      """
+    And a file named "src/Page.feature.md" with:
+      """
+      # Feature: Page
+
+      ## Scenario: Another step
+
+      * Given a step
+      """
+    When I run vitest
+    Then it fails
+    And the output contains:
+      """
+      src/Page.stories.ts already has a "Feature: Page"
+      """
+    And building its Storybook fails with:
+      """
+      already has a
+      """

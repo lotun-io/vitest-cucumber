@@ -26,9 +26,8 @@ const storyOf = (story: unknown): object => {
 /**
  * A stories file's meta as a feature's stories module's: without the stories it selects
  * (`includeStories`, `excludeStories`: they'd select the module's), its `play` (a scenario plays
- * only its steps) or its `id` (Storybook's run time makes the stories' ids from a meta's `id` before
- * its title, `normalizeComponentAnnotations`; the index, which can't read the spread, from the
- * feature's title: an `id` would make them disagree, and share the stories file's ids).
+ * only its steps) or its `id` (the module writes the feature's own: its stories' ids, whatever
+ * their titles, `../../core/storybook/stories/featureStories.ts`).
  */
 const metaOf = (meta: unknown): object => {
   if (typeof meta !== "object" || meta === null) {

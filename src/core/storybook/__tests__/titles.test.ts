@@ -99,7 +99,7 @@ const storybookProject = (
 };
 
 describe("a stories file that writes its title", () => {
-  test("the feature next to it: its title, then the feature's label", async () => {
+  test("the feature next to it: its title, then the feature's label, then the scenario's own (its place in the tree)", async () => {
     const { indexOf, titleOf } = storybookProject(stories, {
       "src/Button.stories.ts": storiesFile("Example/Button"),
       "src/Button.feature": feature("Button"),
@@ -110,6 +110,10 @@ describe("a stories file that writes its title", () => {
     expect(await indexOf("src/Button.feature")).toEqual([
       {
         title: "Example/Button/Feature: Button",
+        id: "example-button-feature-button--vitest-cucumber-feature",
+      },
+      {
+        title: "Example/Button/Feature: Button/Plain",
         id: "example-button-feature-button--plain",
       },
     ]);
@@ -127,6 +131,10 @@ describe("a stories file that writes its title", () => {
     expect(await indexOf("features/kept.feature")).toEqual([
       {
         title: "Kept/As written/Feature: Kept",
+        id: "kept-as-written-feature-kept--vitest-cucumber-feature",
+      },
+      {
+        title: "Kept/As written/Feature: Kept/Plain",
         id: "kept-as-written-feature-kept--plain",
       },
     ]);
@@ -151,6 +159,10 @@ describe("a stories file that writes no title: Storybook's automatic one", () =>
     sibling: [
       {
         title: "parts/Card/Feature: Card",
+        id: "parts-card-feature-card--vitest-cucumber-feature",
+      },
+      {
+        title: "parts/Card/Feature: Card/Plain",
         // Not its stories file's story of the same name (`parts-card--plain`).
         id: "parts-card-feature-card--plain",
       },
@@ -158,12 +170,20 @@ describe("a stories file that writes no title: Storybook's automatic one", () =>
     markdown: [
       {
         title: "parts/Card/Feature: Card in Markdown",
+        id: "parts-card-feature-card-in-markdown--vitest-cucumber-feature",
+      },
+      {
+        title: "parts/Card/Feature: Card in Markdown/Plain",
         id: "parts-card-feature-card-in-markdown--plain",
       },
     ],
     away: [
       {
         title: "parts/Card/Feature: Away",
+        id: "parts-card-feature-away--vitest-cucumber-feature",
+      },
+      {
+        title: "parts/Card/Feature: Away/Plain",
         id: "parts-card-feature-away--plain",
       },
     ],
@@ -229,14 +249,23 @@ describe("a `titlePrefix` on Storybook's `stories`", () => {
     expect(await indexOf("src/Button.feature")).toEqual([
       {
         title: "App/Example/Button/Feature: Button",
-        id: "app-example-button-feature-button--plain",
+        id: "example-button-feature-button--vitest-cucumber-feature",
+      },
+      {
+        title: "App/Example/Button/Feature: Button/Plain",
+        // Its id the meta's (the module's title, without the prefix Storybook adds to the entry's).
+        id: "example-button-feature-button--plain",
       },
     ]);
     expect(titleOf("src/parts/Card.stories.ts")).toBe("App/parts/Card");
     expect(await indexOf("src/parts/Card.feature")).toEqual([
       {
         title: "App/parts/Card/Feature: Card",
-        id: "app-parts-card-feature-card--plain",
+        id: "parts-card-feature-card--vitest-cucumber-feature",
+      },
+      {
+        title: "App/parts/Card/Feature: Card/Plain",
+        id: "parts-card-feature-card--plain",
       },
     ]);
   });
@@ -250,12 +279,20 @@ describe("a `titlePrefix` on Storybook's `stories`", () => {
     expect(await indexOf("src/parts/Card.feature")).toEqual([
       {
         title: "parts/Card/Feature: Card",
+        id: "parts-card-feature-card--vitest-cucumber-feature",
+      },
+      {
+        title: "parts/Card/Feature: Card/Plain",
         id: "parts-card-feature-card--plain",
       },
     ]);
     expect(await indexOf("src/Button.feature")).toEqual([
       {
         title: "Example/Button/Feature: Button",
+        id: "example-button-feature-button--vitest-cucumber-feature",
+      },
+      {
+        title: "Example/Button/Feature: Button/Plain",
         id: "example-button-feature-button--plain",
       },
     ]);

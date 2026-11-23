@@ -145,22 +145,31 @@ describe("Storybook's indexers, and ours for a feature file", () => {
         tags,
       })),
     ).toEqual([
+      // The feature's own story: its title the feature's (a docs page attached to it takes it).
+      {
+        exportName: "__vitestCucumberFeature",
+        name: "Vitest Cucumber Feature",
+        title: "Cucumber/Login/Feature: Login",
+        tags: ["!dev", "!test", "!autodocs", "!manifest"],
+      },
       {
         exportName: "LogIn",
         name: "Log in",
-        title: "Cucumber/Login/Feature: Login",
+        title: "Cucumber/Login/Feature: Login/Log in",
         tags: ["smoke", "@smoke", "!autodocs", "!manifest", "play-fn"],
       },
       {
         exportName: "SignUpThenLogOutWithLogIn",
         name: "Sign up then log out with Log in",
-        title: "Cucumber/Login/Feature: Login",
+        title:
+          "Cucumber/Login/Feature: Login/Sign up then log out with <first>",
         tags: ["!autodocs", "!manifest", "play-fn"],
       },
       {
         exportName: "SignUpThenLogOutWithSignUp",
         name: "Sign up then log out with Sign up",
-        title: "Cucumber/Login/Feature: Login",
+        title:
+          "Cucumber/Login/Feature: Login/Sign up then log out with <first>",
         tags: ["!autodocs", "!manifest", "play-fn"],
       },
     ]);
@@ -176,6 +185,10 @@ describe("Storybook's indexers, and ours for a feature file", () => {
     expect(entries?.map(({ title, __id }) => ({ title, __id }))).toEqual([
       {
         title: "parts/Card/Feature: Card",
+        __id: "parts-card-feature-card--vitest-cucumber-feature",
+      },
+      {
+        title: "parts/Card/Feature: Card/Plain",
         __id: "parts-card-feature-card--plain",
       },
     ]);
@@ -217,7 +230,7 @@ describe("a broken feature file (here a story its stories file doesn't have)", (
         await indexer?.createIndex(path.join(project, "src/Login.feature"), {
           makeTitle,
         }),
-      ).toHaveLength(3);
+      ).toHaveLength(4);
     } finally {
       vi.unstubAllEnvs();
     }

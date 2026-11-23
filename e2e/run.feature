@@ -47,6 +47,43 @@ Feature: Running feature files
       | node    |
       | browser |
 
+  # A name left empty: an unnamed feature has no suite (Vitest prints its file), a rule, scenario or
+  # outline is named by its keyword as written, an example of an unnamed outline by its language's
+  # `Example` keyword (the user's calls, 2026-11-20: `core/feature/featureTree.ts`).
+  Scenario Outline: Empty names: no feature suite, the keywords, `Example` (<mode>)
+    Given a file named "features/a.feature" with:
+      """
+      Feature:
+        Scenario:
+          Given a passing step
+
+        Scenario Outline:
+          Given a passing step
+
+          Examples:
+            | n |
+            | 1 |
+            | 2 |
+
+        Rule:
+          Example:
+            Given a passing step
+      """
+    When I run vitest in <mode> mode
+    Then it passes
+    And Vitest reports the tests:
+      | NAME                       | STATE  |
+      | Scenario                   | passed |
+      | Scenario Outline > Example | passed |
+      | Scenario Outline > Example | passed |
+      | Rule > Example             | passed |
+
+    Examples:
+      | mode      |
+      | node      |
+      | browser   |
+      | storybook |
+
   # A test runs its scenario by line, not by name: two scenarios with one name are two tests, each
   # with its own steps.
   Scenario Outline: Two scenarios with the same name each run their own steps (<mode>)

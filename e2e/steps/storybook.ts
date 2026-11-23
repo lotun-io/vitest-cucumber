@@ -5,6 +5,7 @@
 // compared with what a table says.
 import type { DataTable } from "@cucumber/cucumber";
 import { Given, Then, When } from "@cucumber/cucumber";
+import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { expect } from "vitest";
 import { writeDefaultConfig } from "../support/project.ts";
@@ -100,3 +101,28 @@ Then(
     }
   },
 );
+
+/** An index entry's title and name (Storybook's `index.json`). */
+interface IndexEntry {
+  title: string;
+  name: string;
+}
+
+// Storybook's index (the dev server's, if the scenario started one, else the static build's): one
+// row per story, its id (`STORY`), its `TITLE` (its place in the sidebar) and its `NAME`.
+Then("its index lists:", async function (this: E2EWorld, table: DataTable) {
+  const text = this.storybookDev
+    ? await (await fetch(`${this.storybookDev.url}/index.json`)).text()
+    : await readFile(
+        path.join(this.dir, "storybook-static/index.json"),
+        "utf8",
+      );
+  const { entries }: { entries: Record<string, IndexEntry | undefined> } =
+    JSON.parse(text);
+  expect(
+    table.hashes().map(({ STORY = "" }) => {
+      const entry = entries[STORY];
+      return { STORY, TITLE: entry?.title, NAME: entry?.name };
+    }),
+  ).toEqual(table.hashes());
+});

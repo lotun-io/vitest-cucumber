@@ -27,7 +27,7 @@ interface Located {
   column: number;
 }
 
-/** A Vitest suite: a feature, a rule or a scenario outline. */
+/** A Vitest suite: a feature (an unnamed one: `""`, no suite), a rule or a scenario outline. */
 export interface FeatureSuite extends Located {
   children: (FeatureSuite | FeatureTest)[];
 }
@@ -36,6 +36,8 @@ export interface FeatureSuite extends Located {
 export interface FeatureTest extends Located {
   /** The pickle's tags (including the feature's, rule's and examples'). */
   tags: string[];
+  /** An outline's example (its suite's child), not a scenario. */
+  isExample?: true;
 }
 
 /** The options a run follows: of cucumber's resolved configuration, what the runtime reads. */

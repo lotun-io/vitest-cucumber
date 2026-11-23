@@ -66,7 +66,12 @@ test("a stories module: its code; with an error: the host's failing lines, then 
     options: {},
     supportFiles: [],
     storybookSteps: false,
-    stories: { code: "the code", title: "T/Feature: A", label: "Feature: A" },
+    stories: {
+      code: "the code",
+      title: "T/Feature: A",
+      label: "Feature: A",
+      titles: {},
+    },
   };
   expect(storiesModule(made)).toBe("the code");
   expect(storiesModulePreview(made)).toBe("the code");
@@ -91,7 +96,12 @@ test("a feature module, from its feature's plan: story tests' exports the runtim
     options: {},
     supportFiles: ["/p/steps.ts"],
     storybookSteps: true,
-    stories: { code: "the code", title: "T/Feature: A", label: "Feature: A" },
+    stories: {
+      code: "the code",
+      title: "T/Feature: A",
+      label: "Feature: A",
+      titles: {},
+    },
   };
   const own = (module: string) => JSON.stringify(ownModule(module));
   expect(featureModule({ cwd: "/p", plan })).toBe(

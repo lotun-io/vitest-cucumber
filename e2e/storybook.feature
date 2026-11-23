@@ -8,7 +8,10 @@ Feature: Storybook
   failing (skipped, logging, after BeforeAll); `Failures` fail one way each (failing, undefined,
   pending, ambiguous); `Attachments` attach, `Hooks` run Before and After hooks (one failing), `Args`
   are an Outline's rows, each on its own story (its `args`), `Account` a Markdown feature, `Story`
-  a step reading its story, a story's own `play` not run, an unmounted story a step mounts. Every case
+  a step reading its story, a story's own `play` not run, an unmounted story a step mounts, `Unnamed`
+  a feature whose names are all empty. Each story is listed in Storybook's sidebar as Vitest's tree
+  has its test: its title the feature's, then its rule's, then its outline's (an example's) or its
+  own (a scenario's: the sidebar shows the story alone), its id the feature's title's. Every case
   but the ones breaking the page (those: `storybookErrors.feature`), in one project: its story tests
   (Vitest) and its preview (a static build) each compared with what's expected.
 
@@ -172,6 +175,19 @@ Feature: Storybook
       };
 
       export const ThePage: Story = {};
+      """
+    And a file named "src/Unnamed.stories.ts" with:
+      """
+      import type { Meta } from "@storybook/react-vite";
+      import { Page } from "./Page";
+
+      // The stories file of `Unnamed.feature`: its meta, every scenario's.
+      const meta = {
+        title: "Unnamed",
+        component: Page,
+      } satisfies Meta<typeof Page>;
+
+      export default meta;
       """
     And a file named "src/Login.feature" with:
       """
@@ -338,6 +354,27 @@ Feature: Storybook
           Then I see no button
           When I mount the story
           Then I see the "Log in" button
+      """
+    And a file named "src/Unnamed.feature" with:
+      """
+      Feature:
+
+        Scenario:
+          Given I see the "Log in" button
+
+        Scenario Outline:
+          When I click the "<button>" button
+          Then I see the "Log out" button
+
+          Examples:
+            | button  |
+            | Log in  |
+            | Sign up |
+
+        Rule:
+
+          Scenario:
+            Given I see the "Log in" button
       """
     And a file named "features/world.ts" with:
       """
@@ -517,6 +554,10 @@ Feature: Storybook
       | Story > The running story                                                     | passed  |
       | Story > Its own play                                                          | passed  |
       | Story > Unmounted                                                             | passed  |
+      | Scenario                                                                      | passed  |
+      | Scenario Outline > Example                                                    | passed  |
+      | Scenario Outline > Example                                                    | passed  |
+      | Rule > Scenario                                                               | passed  |
     And the test "Failures > Failing" fails with:
       """
       Unable to find an accessible element with the role "button" and name "Nope"
@@ -597,3 +638,16 @@ Feature: Storybook
       | story-feature-story--the-running-story                          | PASS   | Then the story is named "The running story"                                 |                 |
       | story-feature-story--its-own-play                               | PASS   | Then the story's own play didn't run                                        |                 |
       | story-feature-story--unmounted                                  | PASS   | When I mount the story                                                      |                 |
+      | unnamed-feature-unnamed--scenario                               | PASS   | Given I see the "Log in" button                                             |                 |
+      | unnamed-feature-unnamed--scenario-2                             | PASS   | When I click the "Log in" button                                            |                 |
+      | unnamed-feature-unnamed--scenario-3                             | PASS   | When I click the "Sign up" button                                           |                 |
+      | unnamed-feature-unnamed--scenario-4                             | PASS   | Given I see the "Log in" button                                             |                 |
+    And its index lists:
+      | STORY                                                      | TITLE                                                                                   | NAME                     |
+      | cucumber-login-feature-login--log-in                       | Cucumber/Login/Feature: Login/Log in                                                    | Log in                   |
+      | cucumber-account-feature-account--sign-up                  | Cucumber/Account/Feature: Account/Sign up                                               | Sign up                  |
+      | cucumber-account-feature-account--log-out-after-log-in     | Cucumber/Account/Feature: Account/Log out after <button>                                | Log out after Log in     |
+      | cucumber-account-feature-account--log-out-after-signing-up | Cucumber/Account/Feature: Account/A signed-up user can log out/Log out after signing up | Log out after signing up |
+      | unnamed-feature-unnamed--scenario                          | Unnamed/Feature: Unnamed/Scenario                                                       | Scenario                 |
+      | unnamed-feature-unnamed--scenario-2                        | Unnamed/Feature: Unnamed/Scenario Outline                                               | Example                  |
+      | unnamed-feature-unnamed--scenario-4                        | Unnamed/Feature: Unnamed/Rule/Scenario                                                  | Scenario                 |

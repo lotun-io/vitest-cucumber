@@ -215,7 +215,8 @@ test("storybookIndexPlanOf: its Storybook plan and its index entries, with the t
           title,
         }));
   expect(entriesOf(plan)).toEqual([
-    { exportName: "SignIn", title: "Prefix/T/Feature: Login" },
+    { exportName: "__vitestCucumberFeature", title: "Prefix/T/Feature: Login" },
+    { exportName: "SignIn", title: "Prefix/T/Feature: Login/Sign in" },
   ]);
   // The plan its modules are written from is the one it made.
   expect(plan).toMatchObject(await storybook.storybookPlanOf(id));
@@ -227,12 +228,16 @@ test("storybookIndexPlanOf: its Storybook plan and its index entries, with the t
         (title) => `Other/${title ?? ""}`,
       ),
     ),
-  ).toEqual([{ exportName: "SignIn", title: "Other/T/Feature: Login" }]);
+  ).toEqual([
+    { exportName: "__vitestCucumberFeature", title: "Other/T/Feature: Login" },
+    { exportName: "SignIn", title: "Other/T/Feature: Login/Sign in" },
+  ]);
   // The file changed, its event not there yet (Storybook's own watcher asks first): read now.
   writeFileSync(id, "Feature: Login\n  Scenario: Sign out\n    Given a step\n");
   const changed = await storybook.storybookIndexPlanOf(id, makeTitle);
   expect(entriesOf(changed)).toEqual([
-    { exportName: "SignOut", title: "Prefix/T/Feature: Login" },
+    { exportName: "__vitestCucumberFeature", title: "Prefix/T/Feature: Login" },
+    { exportName: "SignOut", title: "Prefix/T/Feature: Login/Sign out" },
   ]);
   // Its other plans are made from the same reading.
   expect(changed).toMatchObject(await storybook.storybookPlanOf(id));
@@ -380,4 +385,64 @@ test("a touch changes nothing: a stories file's event with its text as read, and
     staleFeatures: [id],
   });
   expect(await fileChanged("change", id)).toEqual(nothing);
+});
+
+test("two features on one stories file with the same label: refused, each naming the other once both are linked; one renamed or deleted, the other is the host's to make again", async () => {
+  const one = file(
+    "src/Dup.feature",
+    "Feature: Login\n  Scenario: s\n    Given a step\n",
+  );
+  const two = file(
+    "src/Dup.feature.md",
+    "# Feature: Login\n\n## Scenario: s\n* Given a step\n",
+  );
+  stories("src/Dup.stories.ts", ["S"]);
+  const { storybook, fileChanged } = project();
+  const refused = (feature: string, other: string) => ({
+    error: {
+      message: expect.stringContaining(
+        `${feature}: src/Dup.stories.ts already has a "Feature: Login" (${other}): give one of them another name`,
+      ) as string,
+    },
+  });
+  const errorOf = async (feature: string) => {
+    const plan = await storybook.storybookPlanOf(feature);
+    return "error" in plan ? plan.error.message : undefined;
+  };
+  // The first linked: no other yet.
+  expect(await errorOf(one)).toBeUndefined();
+  expect(await storybook.storybookPlanOf(two)).toMatchObject(
+    refused("src/Dup.feature.md", "src/Dup.feature"),
+  );
+  // Both linked: both refused.
+  expect(await storybook.storybookPlanOf(one)).toMatchObject(
+    refused("src/Dup.feature", "src/Dup.feature.md"),
+  );
+  // Its text edited, its label the same: no other to make again.
+  file("src/Dup.feature", "Feature: Login\n  Scenario: t\n    Given a step\n");
+  expect(await fileChanged("change", one)).toEqual({
+    ...nothing,
+    docsChanged: true,
+  });
+  // Renamed: the other to make again; neither refused.
+  file(
+    "src/Dup.feature",
+    "Feature: Login again\n  Scenario: t\n    Given a step\n",
+  );
+  expect(await fileChanged("change", one)).toEqual({
+    ...nothing,
+    staleFeatures: [two],
+    docsChanged: true,
+  });
+  expect(await errorOf(one)).toBeUndefined();
+  expect(await errorOf(two)).toBeUndefined();
+  // The same label again, then the other deleted: the one left to make again, not refused.
+  file("src/Dup.feature", "Feature: Login\n  Scenario: t\n    Given a step\n");
+  await fileChanged("change", one);
+  expect(await errorOf(two)).toContain("already has");
+  rmSync(two);
+  expect(await fileChanged("unlink", two)).toMatchObject({
+    staleFeatures: [one],
+  });
+  expect(await errorOf(one)).toBeUndefined();
 });

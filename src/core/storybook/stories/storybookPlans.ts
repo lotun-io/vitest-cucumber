@@ -26,6 +26,13 @@
 // `storybook dev`'s features map).
 // One ask doesn't wait for the host: Storybook's indexer's, which its own watcher may bring
 // before the file's event, so its feature file is taken as changed first.
+//
+// Two feature files on one stories file with the same label (`Feature: Login`) would share their
+// title and ids in Storybook: refused (the user's call, 2026-11-20), the feature's link error
+// naming the other, checked against the features on its stories file linked so far (Storybook's
+// index links every one; a run of some files sees theirs). A feature's label is kept as its plan
+// was made with: at an event, another label, or a feature deleted, has the others on its stories
+// file made again (the error is theirs to drop, or to have).
 import { existsSync } from "node:fs";
 import type { RunOptions } from "../../../types/feature.ts";
 import { slash } from "../../../utils/slash.ts";
@@ -38,6 +45,7 @@ import {
 } from "../../feature/plans.ts";
 import { runOptionsOf, type Configuration } from "../../plugin/options.ts";
 import { featureLinksOf, isStoriesFile } from "./featureLinks.ts";
+import { featureLabelOf } from "./featureStories.ts";
 import {
   indexEntriesOf,
   type IndexInput,
@@ -69,7 +77,13 @@ export interface StorybookPlan extends VitestPlan {
   /** Whether a support file has a Storybook step: its page then defines their parameter types. */
   storybookSteps: boolean;
   /** Its stories module: its code, its title (its stories file's, then its label), its label. */
-  stories: { code: string; title: string; label: string };
+  /** Its stories module: its code, its title and label, each story's own title by export. */
+  stories: {
+    code: string;
+    title: string;
+    label: string;
+    titles: Record<string, string>;
+  };
 }
 
 /** A feature file indexed for Storybook: its Storybook plan, and its index entries. */
@@ -127,6 +141,34 @@ export const createStorybookPlans = ({
   const texts = plans.cache.of<string>();
   /** Which feature file runs on which stories file, both ways (their paths with `/`). */
   const links = plans.cache.keep(createStoriesLinks(onLinkedFeaturesChanged));
+  /** Each Storybook feature file's label (`Feature: <name>`), as its plan was last made with. */
+  const labels = plans.cache.of<string>();
+
+  /** Reads feature file `file`'s label (its plan's error, if it fails). */
+  const readLabel = (file: string) => async () => {
+    const plan = await plans.vitestPlanOf(file);
+    if ("error" in plan) {
+      throw plan.error;
+    }
+    return featureLabelOf(plan.gherkin.document, file);
+  };
+  /** The other feature files on feature file `feature`'s stories file (with `/`), as linked so far. */
+  const othersOf = (feature: string) => {
+    const storiesFile = links.storiesFileOf(feature);
+    return storiesFile === undefined
+      ? []
+      : links.featuresOf(storiesFile).filter((other) => other !== feature);
+  };
+  /** The other feature files on `feature`'s stories file with its `label`, by path (one failing: none). */
+  const sameLabelOf = async (feature: string, label: string) => {
+    const others = othersOf(feature);
+    const theirs = await Promise.all(
+      others.map((other) =>
+        labels(other, readLabel(other)).catch(() => undefined),
+      ),
+    );
+    return others.filter((_, index) => theirs[index] === label).sort();
+  };
 
   /** Stories file `file`'s stories, as Storybook reads them. */
   const storiesOf = async (file: string): Promise<StoriesOf> =>
@@ -161,10 +203,13 @@ export const createStorybookPlans = ({
       slash(file),
       linked.storiesFile === undefined ? undefined : slash(linked.storiesFile),
     );
+    const label = featureLabelOf(plan.gherkin.document, file);
+    await labels(slash(file), async () => label);
     return storybookPlanFrom({
       feature: file,
       plan,
       linked,
+      sameLabel: await sameLabelOf(slash(file), label),
       stepErrors: by.errors,
       storybookSteps: by.used,
       root: root(),
@@ -228,8 +273,9 @@ export const createStorybookPlans = ({
     /**
      * The host's watcher reports `file` added, changed or deleted (`type`), the feature plans
      * told first. By what the file is:
-     * - a feature file: deleted, it's forgotten; else `docsChanged` if its text is another and
-     *   it runs on a stories file.
+     * - a feature file: deleted, it's forgotten, the others on its stories file in `staleFeatures`;
+     *   else `docsChanged` if its text is another and it runs on a stories file, and the others on
+     *   its stories file in `staleFeatures` if its label is another (a same label is refused).
      * - a stories file (by its name, or one a feature runs on): changed with another text, added
      *   or deleted, the feature files it concerns are in `staleFeatures`.
      * - a support file changed, or any file added or removed (the support files may be others):
@@ -242,14 +288,20 @@ export const createStorybookPlans = ({
     ): Promise<StorybookFileChanged> => {
       const id = slash(file);
       if (isFeatureFile(id)) {
+        const others = othersOf(id);
         if (type === "unlink") {
           links.unlink(id);
           texts.drop(id);
-          return { staleFeatures: [], docsChanged: false };
+          labels.drop(id);
+          return { staleFeatures: others, docsChanged: false };
         }
         const linked = links.storiesFileOf(id) !== undefined;
         const textChanged = await texts.changed(id, readText(id));
-        return { staleFeatures: [], docsChanged: textChanged && linked };
+        const labelChanged = await labels.changed(id, readLabel(id));
+        return {
+          staleFeatures: labelChanged ? others : [],
+          docsChanged: textChanged && linked,
+        };
       }
       let storiesChanged = false;
       if (isStoriesFile(id) || links.featuresOf(id).length > 0) {

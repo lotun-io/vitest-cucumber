@@ -1,3 +1,4 @@
+import { sanitize } from "storybook/internal/csf";
 import { expect, test } from "vitest";
 import { planOf } from "../../../feature/plan.ts";
 import { featureLabelOf, featureStoriesOf } from "../featureStories.ts";
@@ -43,24 +44,94 @@ test("a feature's label: its keyword and name, as written; no name, its file's b
   ).toBe("Feature: Log in|out");
 });
 
-test("the meta is the stories file's (its parameters spread with it), its title the stories file's then the feature's label, nothing else of the plugin's added", () => {
-  const source = 'Feature: Login\n  Scenario: Log in\n    Given a "step"\n';
-  const { gherkin } = planOf(source, "src/Login.feature", "en");
+/** Feature file `src/Login.feature` (its Gherkin `source`) as stories: every pickle a link, on no story. */
+const storiesOf = (source: string) => {
+  const { gherkin, featureTree } = planOf(source, "src/Login.feature", "en");
   if (!gherkin) {
     throw new Error("no Gherkin");
   }
-  const { code } = featureStoriesOf({
+  return featureStoriesOf({
     feature: "/p/src/Login.feature",
     document: gherkin.document,
+    tree: featureTree,
     storiesFile: "/p/src/Login.stories.ts",
     storiesTitle: "Example/Login",
     stories: { exports: [], factories: false, metaTags: [], tags: {} },
-    links: [],
+    links: gherkin.pickles.map(({ name, location, tags }) => ({
+      feature: "/p/src/Login.feature",
+      line: location?.line ?? 0,
+      name,
+      tags: tags.map((tag) => tag.name),
+      storiesFile: "/p/src/Login.stories.ts",
+      unmounted: false,
+    })),
     featureModule: "/p/feature",
+    idOf: sanitize,
   });
+};
+
+test("the meta is the stories file's (its parameters spread with it), its id and title the feature's, nothing else of the plugin's added", () => {
+  const { code } = storiesOf("Feature: Login\n");
   expect(code).toContain(
     "  ...__cucumberFeature.metaOf(__cucumberStories.default),",
   );
+  expect(code).toContain('  id: "example-login-feature-login",');
   expect(code).toContain('  title: "Example/Login/Feature: Login",');
   expect(code).not.toContain("parameters");
+});
+
+test("each story's title its place in Vitest's tree, its name its test's (a scenario's the same text as its title's last part)", () => {
+  const { scenarios, titles } = storiesOf(`Feature: Login
+
+  Scenario: Log in/out
+    Given a step
+
+  Rule: Logged in
+
+    Scenario: Log out
+      Given a step
+
+    Scenario Outline: Log out after <button>
+      Given a step
+
+      Examples:
+        | button |
+        | Save   |
+
+  Rule:
+
+    Scenario Outline:
+      Given a step
+
+      Examples:
+        | n |
+        | 1 |
+`);
+  expect(
+    scenarios.map(({ export: exportName, name, title }) => [
+      exportName,
+      name,
+      title,
+    ]),
+  ).toEqual([
+    ["LogInOut", "Log in|out", "Example/Login/Feature: Login/Log in|out"],
+    ["LogOut", "Log out", "Example/Login/Feature: Login/Logged in/Log out"],
+    [
+      "LogOutAfterSave",
+      "Log out after Save",
+      "Example/Login/Feature: Login/Logged in/Log out after <button>",
+    ],
+    [
+      "Scenario",
+      "Example",
+      "Example/Login/Feature: Login/Rule/Scenario Outline",
+    ],
+  ]);
+  // The feature's own story too: its title the feature's.
+  expect(titles).toEqual({
+    __vitestCucumberFeature: "Example/Login/Feature: Login",
+    ...Object.fromEntries(
+      scenarios.map(({ export: exportName, title }) => [exportName, title]),
+    ),
+  });
 });
