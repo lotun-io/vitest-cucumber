@@ -1,6 +1,7 @@
 // A scenario's project as a Storybook project (`tmp/e2e/<scenario>/`), as a user's: its own Vitest
 // config (the addon's project: `./project.ts`'s `defaultStorybookConfig`), its Storybook config
-// (`.storybook/`), its `node_modules` `storybook/`'s (Storybook, React, the plugin from `src/`).
+// (`.storybook/`: the plugin's addon entry with the scenario's options), its `node_modules`
+// `storybook/`'s (Storybook, React, the plugin from `src/`).
 // Its stories are its feature files (`.storybook/main.ts`, a glob): each one a stories module of its
 // own, on the stories file next to it; in `storybook` mode, each feature file (anywhere but
 // `node_modules`) without a stories file next to it is given one (a meta only, `<name>.stories.tsx`:
@@ -25,19 +26,22 @@ export const storybookPackage = path.resolve("storybook");
  * pnpm's linked packages (it hangs).
  */
 export const storybookFiles = (options: E2EWorld["pluginOptions"]) => ({
-  ".storybook/main.ts": `import type { StorybookConfig } from "@storybook/react-vite";
+  // The plugin's addon entry, with the scenario's options (Storybook's and its story tests').
+  ".storybook/main.ts": `import { cucumber } from "@lotun/vitest-cucumber/storybook/node";
+import type { StorybookConfig } from "@storybook/react-vite";
 
 const config: StorybookConfig = {
   stories: ["../{features,src,specs}/**/*.{feature,feature.md}"],
-  addons: ["@storybook/addon-vitest", "@lotun/vitest-cucumber/storybook"],
+  addons: [
+    "@storybook/addon-vitest",
+    cucumber(${JSON.stringify({ import: ["features/**/*.ts"], ...options })}),
+  ],
   framework: "@storybook/react-vite",
 };
 
 export default config;
 `,
   ".storybook/preview.ts": "export default {};\n",
-  // The Storybook project's options (Storybook's and its story tests': `cucumber()` takes none).
-  ".storybook/cucumber.config.ts": `export default ${JSON.stringify({ import: ["features/**/*.ts"], ...options })};\n`,
 });
 
 /** Writes Storybook's config (`.storybook/`), as the scenario's files (`this.files`: a kept Vitest's too). */

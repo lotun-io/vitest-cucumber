@@ -30,7 +30,7 @@ export const runStory = async (
 ) => {
   if (!runner) {
     throw pluginError(
-      "no cucumber runner in this page (is `@lotun/vitest-cucumber/storybook` in Storybook's addons, and `cucumber()` in the Vitest config?)",
+      "no cucumber runner in this page (is `cucumber({ … })` from `@lotun/vitest-cucumber/storybook/node` in Storybook's addons?)",
       { quiet: true },
     );
   }

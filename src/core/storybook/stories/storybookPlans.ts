@@ -116,7 +116,7 @@ export const createStorybookPlans = ({
     "vitestPlanOf" | "fileOf" | "supportFiles" | "onFileChange" | "cache"
   >;
   root: () => string;
-  configuration: () => Promise<Configuration>;
+  configuration: Configuration;
   /** Storybook's automatic title of a stories file (`./storiesTitle.ts`): the host knows its `stories`. */
   autoTitleOf: AutoTitleOf;
   /**
@@ -254,15 +254,14 @@ export const createStorybookPlans = ({
     },
     /**
      * What the project's support code is loaded with (Storybook's preview's support module:
-     * `../preset/supportModule.ts`), or why it can't be (the configuration can't be loaded, the
-     * support files can't be listed).
+     * `../preset/supportModule.ts`), or why it can't be (the support files can't be listed).
      */
     storybookSupportPlanOf: async (): Promise<
       StorybookSupportPlan | FailedPlan
     > => {
       try {
         return {
-          options: runOptionsOf(await configuration()),
+          options: runOptionsOf(configuration),
           supportFiles: await plans.supportFiles(),
           storybookSteps: (await steps()).used,
         };

@@ -65,13 +65,12 @@ export default defineConfig(() => ({
 };
 
 /**
- * The default config of a Storybook project (`storybook` mode): the addon's Vitest project,
- * the plugin with no options (the scenario's are in `.storybook/cucumber.config.ts`, with
- * Storybook's own config: see `./storybookProject.ts`).
+ * The default config of a Storybook project (`storybook` mode): the addon's Vitest project, without
+ * `cucumber()` (the plugin comes from its addon entry in `.storybook/main.ts`, with the scenario's
+ * options: see `./storybookProject.ts`).
  */
 export const defaultStorybookConfig =
-  () => `import { cucumber } from "@lotun/vitest-cucumber";
-import { storybookTest } from "@storybook/addon-vitest/vitest-plugin";
+  () => `import { storybookTest } from "@storybook/addon-vitest/vitest-plugin";
 import react from "@vitejs/plugin-react";
 import { playwright } from "@vitest/browser-playwright";
 import path from "node:path";
@@ -80,7 +79,6 @@ import { defineConfig } from "vitest/config";
 export default defineConfig(() => ({
   plugins: [
     react(),
-    cucumber(),
     storybookTest({ configDir: path.join(import.meta.dirname, ".storybook") }),
   ],
   resolve: { dedupe: ["react", "react-dom"] },

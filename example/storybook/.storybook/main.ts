@@ -1,3 +1,4 @@
+import { cucumber } from "@lotun/vitest-cucumber/storybook/node";
 import type { StorybookConfig } from "@storybook/react-vite";
 
 const config: StorybookConfig = {
@@ -14,8 +15,9 @@ const config: StorybookConfig = {
     "@storybook/addon-a11y",
     "@storybook/addon-docs",
     "@storybook/addon-mcp",
-    // Feature files as stories, with the options in `./cucumber.config.ts`.
-    "@lotun/vitest-cucumber/storybook",
+    // Feature files as stories, with the plugin's options (for Storybook and its story tests):
+    // `import` lists the support code.
+    cucumber({ import: ["features/**/*.ts"] }),
   ],
   framework: "@storybook/react-vite",
 };

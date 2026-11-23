@@ -145,6 +145,18 @@ export const runResult = (
  * `messages` if given (`./messages.ts`: a reporter of its own); its output is recorded until `end`, which restores this
  * process.
  */
+/**
+ * Vitest couldn't start (its config failed to load, a project to be set up): its output, then the
+ * error as Vitest's command line prints it ("Startup Error", then `console.error`'s inspection).
+ */
+export class StartupError extends Error {
+  readonly output: string;
+  constructor(output: string, cause: unknown) {
+    super(cause instanceof Error ? cause.message : String(cause), { cause });
+    this.output = `${output}\nStartup Error\n${inspect(cause)}\n`;
+  }
+}
+
 export async function startSession(
   this: E2EWorld,
   {
@@ -198,9 +210,9 @@ export async function startSession(
       { stdout: output.stream, stderr: output.stream },
     );
     return { vitest, output, end };
-  } catch (err) {
+  } catch (error) {
     end();
-    throw err;
+    throw new StartupError(output.text(), error);
   } finally {
     process.argv = argv;
   }

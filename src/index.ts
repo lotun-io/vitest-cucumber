@@ -1,25 +1,19 @@
-// The plugin's entry point: Vite plugins. Node mode's and browser mode's each apply only to
-// their own kind of project; Storybook's only to a project with Storybook's addon (`storybookTest()`),
-// on top of browser mode's, which it shares.
+// The plugin's entry point for node and browser projects: Vite plugins, node mode's and browser
+// mode's, each applying only to its own kind of project (`test.browser.enabled`). Storybook projects
+// get theirs from the plugin's Storybook addon (`./core/storybook/preset.ts`), never from here.
 import type { Plugin } from "vitest/config";
-import { browserCucumber, createBrowserPlugin } from "./core/browserPlugin.ts";
-import { nodeCucumber } from "./core/nodePlugin.ts";
-import { storybookCucumber } from "./core/storybookPlugin.ts";
+import { createBrowserPlugin } from "./core/browserPlugin.ts";
+import { createNodePlugin } from "./core/nodePlugin.ts";
 import type { CucumberOptions } from "./types/feature.ts";
 
 export type { CucumberOptions };
 
 /**
- * The plugin, with `options`; none given, the project's options file's (`cucumber.config.ts` in its
- * root; a Storybook project's, `<configDir>/cucumber.config.ts`, which takes no options here).
+ * The plugin for node and browser projects (by the project's `test.browser.enabled`), with its
+ * options (none: cucumber's defaults). A Storybook project gets it from its addon instead:
+ * `cucumber({ … })` from `@lotun/vitest-cucumber/storybook/node` in `.storybook/main.ts`.
  */
-export const cucumber = (options?: CucumberOptions): Plugin[] => {
-  const browser = createBrowserPlugin(options);
-  // Browser mode's plugin before Storybook's: in a Storybook project, Storybook's `transform` (also
-  // `pre`) replaces browser mode's feature test module with the stories' run.
-  return [
-    nodeCucumber(options),
-    browserCucumber(browser),
-    ...storybookCucumber(browser),
-  ];
-};
+export const cucumber = (options?: CucumberOptions): Plugin[] => [
+  createNodePlugin(options),
+  createBrowserPlugin(options),
+];

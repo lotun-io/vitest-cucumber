@@ -25,7 +25,7 @@ import { withoutQuery } from "../utils/withoutQuery.ts";
 import { colorsOf } from "./colors.ts";
 import { cucumberVersion } from "./cucumberVersion.ts";
 import { frameFilterOf, internalDirectories } from "./frames.ts";
-import { configurationOfProject } from "./projectOptions.ts";
+import { configurationOf } from "./options.ts";
 import { declareTags } from "./tags.ts";
 import { createVitestState } from "./vitestState.ts";
 import { createVitestWatcher, type FileChange } from "./vitestWatcher.ts";
@@ -36,9 +36,10 @@ type FileChangeListener = (type: FileChange, file: string) => Promise<void>;
 
 /**
  * The shared hooks, which each mode's plugin calls from its own, plus what the modes need from them
- * (`root`, `configuration`, …). `platform` is the path of the mode's `Platform` module, which
- * every feature module imports; feature modules carry the file's Gherkin document and pickles, which
- * the plugin's runtime runs (`../../worker/runner/`).
+ * (`root`, `configuration`, …), with the user's options (`given`: none, cucumber's defaults; a
+ * wrong one throws here, as the plugin is made). `platform` is the path of the mode's `Platform`
+ * module, which every feature module imports; feature modules carry the file's Gherkin document and
+ * pickles, which the plugin's runtime runs (`../../worker/runner/`).
  */
 export const createPlugin = (
   given: CucumberOptions | undefined,
@@ -53,22 +54,10 @@ export const createPlugin = (
   },
 ) => {
   let root = process.cwd();
-  /** The project's plugins, as Vite resolved its config (a Storybook project's options are Storybook's). */
-  let plugins: readonly { name: string }[] = [];
-  /**
-   * Whether errors' stacks are filtered (not with `backtrace`): the run's options decide, set as
-   * it starts (Vitest's frame filter asks as it prints an error, and can't wait).
-   */
-  let filtering = true;
-  /**
-   * What main knows of each feature file: its tags, its plan (`../feature/plans.ts`), made with
-   * the project's options (given, or its options file's: `./projectOptions.ts`, read again at
-   * each run's start; a wrong option or file is the plans' to report, as a failed plan).
-   */
-  const plans = createFeaturePlans({
-    root: () => root,
-    readConfiguration: () => configurationOfProject(given, { root, plugins }),
-  });
+  /** The user's configuration: their options, with cucumber's defaults. */
+  const configuration = configurationOf(given ?? {});
+  /** What main knows of each feature file: its tags, its plan (`../feature/plans.ts`). */
+  const plans = createFeaturePlans({ root: () => root, configuration });
   /** A watching Vitest: how feature files' modules are made again (`./watchReruns.ts`). */
   const reruns = createWatchReruns(() => vitestState.current());
   /** What a plugin built on this one does for a file's event, after this one's own. */
@@ -77,6 +66,8 @@ export const createPlugin = (
   const vitestState = createVitestState(() => {
     plans.cache.dispose();
   });
+  /** Whether a Vitest set up a project with this plugin (`configureVitest`, which only Vitest calls). */
+  const inVitest = () => vitestState.current() !== undefined;
   /** The commands from the workers and pages to main (`../commands/commands.ts`). */
   const commands = createCommands({ cwd: () => root });
   /**
@@ -128,13 +119,8 @@ export const createPlugin = (
   ): Promise<PlannedFeature[]> => {
     // A new run reads the disk: whatever was read for the last one is dropped, and each thing is
     // read once for all this run's files (their modules' transforms too). Nothing else says what
-    // changed without a watcher (a Vitest run again through its API). The options too: the
-    // run's own, read again with the rest (none read: the plans' errors, filtered as usual).
+    // changed without a watcher (a Vitest run again through its API).
     plans.cache.clear();
-    filtering = await plans.configuration().then(
-      ({ backtrace }) => !backtrace,
-      () => true,
-    );
     const features = await Promise.all(
       specifications.map(async ({ project, moduleId }) => {
         // A feature file (in a Storybook project, its stories module: its scenarios' story tests have
@@ -198,7 +184,7 @@ export const createPlugin = (
     /** The project's root, cucumber's `cwd`. */
     root: () => root,
     /** The user's configuration: their options, with cucumber's defaults. */
-    configuration: plans.configuration,
+    configuration,
     /** The feature files' plans (see `../feature/plans.ts`). */
     featurePlans: plans,
     /**
@@ -216,20 +202,15 @@ export const createPlugin = (
     config: (userConfig: UserConfig): UserConfig => ({
       test: {
         // Set here, before Vitest resolves the config, because the browser server copies it then.
-        // Filtering unless `backtrace`: the options aren't read yet (a file's may not be found
-        // before Vite resolves the project), but the run's are by the time an error is printed.
+        // Filtering unless `backtrace`.
         onStackTrace: frameFilterOf(
           userConfig.test?.onStackTrace,
-          () => filtering,
+          !configuration.backtrace,
         ),
       },
     }),
-    configResolved: (config: {
-      root: string;
-      plugins: readonly { name: string }[];
-    }) => {
+    configResolved: (config: { root: string }) => {
       root = config.root;
-      plugins = config.plugins;
     },
     configureVitest: async ({
       vitest,
@@ -258,12 +239,14 @@ export const createPlugin = (
       );
     },
     /**
-     * Turns a feature file into its test module (from its plan, not the code given). Not in a
-     * Storybook project (browser mode's hook skips it there: `../browserPlugin.ts`), where it's
-     * its stories module (`../storybookPlugin.ts`).
+     * Turns a feature file into its test module (from its plan, not the code given). A Storybook
+     * project's plugins don't use it: there it's its stories module (`../storybookPlugin.ts`).
      */
     transform: async (_code: string, id: string) => {
-      if (!isFeatureFile(id)) {
+      // Only Vitest runs a feature module: elsewhere (Storybook's builder, which runs a Vite
+      // config's root plugins too) it's left as it is, a Storybook preview's being the preset's to
+      // make (`../storybook/preset/previewPlugin.ts`).
+      if (!isFeatureFile(id) || !inVitest()) {
         return undefined;
       }
       return {

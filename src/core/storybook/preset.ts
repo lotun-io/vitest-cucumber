@@ -3,9 +3,10 @@
 // server and in a static build alike: no server side. The preset adds a preview annotation (the
 // page's runner, cucumber's BeforeAll and AfterAll: `../../worker/storybook/preview/annotation.ts`;
 // story tests' own in the addon's Vitest runs), the preview's Vite plugin (`./preset/previewPlugin.ts`) and
-// our indexer for `.feature` (`./preset/indexer.ts`). The options are `<configDir>/cucumber.config.ts`'s. The
-// addon's own Vitest runs load presets too: there, the annotation is story tests' own, the Vitest
-// plugin serves the rest (`../storybookPlugin.ts`). In `storybook dev` it also tells Storybook's
+// our indexer for `.feature` (`./preset/indexer.ts`). Its options are its addon entry's
+// (`cucumber({ … })` in `.storybook/main.ts`: `./addon.ts`). The addon's own
+// Vitest runs load presets too: there, the annotation is story tests' own, and its `viteFinal` gives
+// the Storybook project's plugins (`../storybookPlugin.ts`). In `storybook dev` it also tells Storybook's
 // index of the feature files whose entries are out of date (`experimental_serverChannel`).
 // Storybook loads this module, no one else: its imports of Storybook's are static.
 import path from "node:path";
@@ -14,12 +15,11 @@ import { STORY_INDEX_INVALIDATED } from "storybook/internal/core-events";
 import type { StoryIndexGenerator } from "storybook/internal/core-server";
 import type { Options } from "storybook/internal/types";
 import { slash } from "../../utils/slash.ts";
+import { createStorybookPlugin } from "../storybookPlugin.ts";
 import { ownModule } from "../utils/ownModule.ts";
 import { featureIndexer, type Indexer } from "./preset/indexer.ts";
 import { storybookPreviewPlugin } from "./preset/previewPlugin.ts";
 import { type PresetOptions, projectOf } from "./preset/project.ts";
-import { storybookOptionsFile } from "./storybookOptionsFile.ts";
-import { storybookOptionsPlugin } from "./vitest/storybookOptions.ts";
 
 /** A file's import path in Storybook's index: from its working directory, with `./` (its `toImportPath`). */
 const importPathOf = (file: string) => {
@@ -75,24 +75,19 @@ export const previewAnnotations = (entries: string[] = []) => [
 ];
 
 /**
- * The preview's Vite config, as Storybook serves or builds it: the preview plugin. No options file
- * stops Storybook (dev or build), with the file to add. In the addon's Vitest runs, where the
- * Vitest plugin does that, only the plugin that carries Storybook's options to it (the addon adds
- * a preset's `viteFinal` plugins to its Vitest project: `./vitest/storybookOptions.ts`).
+ * The Vite config's plugins: as Storybook serves or builds its preview, the preview plugin; in the
+ * addon's Vitest runs (which add a preset's `viteFinal` plugins to the Storybook project), the
+ * project's story tests' plugins, from Storybook's options (the addon entry's among them).
  */
 export const viteFinal = async (
   config: { plugins?: unknown[] },
   options: PresetOptions,
-) => {
-  if (process.env.VITEST) {
-    return {
-      ...config,
-      plugins: [...(config.plugins ?? []), storybookOptionsPlugin(options)],
-    };
-  }
-  storybookOptionsFile(options.configDir);
-  return {
-    ...config,
-    plugins: [...(config.plugins ?? []), storybookPreviewPlugin(options)],
-  };
-};
+) => ({
+  ...config,
+  plugins: [
+    ...(config.plugins ?? []),
+    ...(process.env.VITEST
+      ? createStorybookPlugin(options)
+      : [storybookPreviewPlugin(options)]),
+  ],
+});

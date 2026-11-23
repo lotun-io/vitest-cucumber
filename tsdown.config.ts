@@ -12,6 +12,7 @@ export default defineConfig([
       entry: [
         "src/index.ts",
         "src/worker/storybook/index.ts",
+        "src/core/storybook/node.ts",
         "src/core/storybook/preset.ts",
       ],
     },

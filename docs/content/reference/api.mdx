@@ -8,16 +8,35 @@
 cucumber(options?: CucumberOptions): Plugin[]
 ```
 
-The Vite plugin: feature files as Vitest tests. Its options: [Options](/reference/options).
+The Vite plugin for node and browser mode: feature files as Vitest tests. Its options:
+[Options](/reference/options). A Storybook project doesn't use it: it gets the plugin from its addon
+(below).
 
 ### `CucumberOptions`
 
 The type of `cucumber()`'s options.
 
+## `@lotun/vitest-cucumber/storybook/node`
+
+For `.storybook/main.ts`, which Storybook runs in Node ([Storybook](/modes/storybook)).
+
+### `cucumber()` (Storybook)
+
+```ts
+cucumber(options?: CucumberOptions): { name: string; options: object }
+```
+
+The plugin's Storybook addon, with its [options](/reference/options), in `.storybook/main.ts`'s
+`addons`: `cucumber({ import: ["features/**/*.ts"] })`. It gives Storybook and its story tests the
+plugin.
+
+### `CucumberOptions` (Storybook)
+
+The type of its options, the same as `@lotun/vitest-cucumber`'s.
+
 ## `@lotun/vitest-cucumber/storybook`
 
-In `.storybook/main.ts`'s `addons`, the Storybook preset ([Storybook](/modes/storybook)). Its
-exports, for support code and docs:
+What support code and docs blocks use, in the page:
 
 ### `story()`
 

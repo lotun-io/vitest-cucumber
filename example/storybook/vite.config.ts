@@ -1,5 +1,4 @@
 /// <reference types="vitest/config" />
-import { cucumber } from "@lotun/vitest-cucumber";
 import { storybookTest } from "@storybook/addon-vitest/vitest-plugin";
 import react from "@vitejs/plugin-react";
 import { playwright } from "@vitest/browser-playwright";
@@ -24,9 +23,8 @@ export default defineConfig({
             configDir: path.join(dirname, ".storybook"),
             ...(process.env.TAGS && { tags: { include: process.env.TAGS.split(",") } }),
           }),
-          // Feature files as stories (Storybook's `stories` lists them). Its options are
-          // `.storybook/cucumber.config.ts`'s, which Storybook reads too.
-          cucumber(),
+          // No cucumber() here: the plugin's addon in `.storybook/main.ts` gives this project its
+          // plugins, with its options.
         ],
         test: {
           name: "storybook",

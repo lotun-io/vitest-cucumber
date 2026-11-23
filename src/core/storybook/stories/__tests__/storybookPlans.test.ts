@@ -32,16 +32,13 @@ const tagged = "@smoke\nFeature: A\n  @one\n  Scenario: s\n    Given a step\n";
  * folder's, `import`), told a file's event as a host tells them: the feature plans first.
  */
 const project = () => {
-  const plans = createFeaturePlans({
-    root: () => root,
-    readConfiguration: () =>
-      Promise.resolve(configurationOf({ import: ["support"] })),
-  });
+  const configuration = configurationOf({ import: ["support"] });
+  const plans = createFeaturePlans({ root: () => root, configuration });
   const counted = { linkedChanges: 0 };
   const storybook = createStorybookPlans({
     plans,
     root: () => root,
-    configuration: plans.configuration,
+    configuration,
     // Every stories file here writes its title.
     autoTitleOf: () => Promise.resolve(undefined),
     onLinkedFeaturesChanged: () => {

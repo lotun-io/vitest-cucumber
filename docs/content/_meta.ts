@@ -6,4 +6,5 @@ export default {
   reference: "Reference",
   examples: "Examples",
   community: "Community",
+  changelog: "Changelog",
 };

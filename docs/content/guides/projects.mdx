@@ -45,6 +45,11 @@ npx vitest run --project browser
 Each project's root is its Cucumber working directory: `import` globs and feature file paths are
 relative to it. A project with its own `root` has its own support code.
 
+A Storybook test project gets the plugin from its addon in `.storybook/main.ts`
+([Storybook](/modes/storybook#configure)) and must not inherit this `cucumber()`. An inline project
+inherits the config that declares it unless it sets `extends: false`: set that on the Storybook
+project, or give the node and browser projects their own `cucumber()` in their `plugins`.
+
 ## Feature files and unit tests together
 
 Only `.feature` and `.feature.md` files become scenarios. Any other test file a project includes

@@ -1,6 +1,7 @@
-// `@lotun/vitest-cucumber/storybook`: what steps use: `story()`, the running story; what docs use:
-// `featuresOf()`, a stories file's feature files, and `onFeaturesChange()`, told as they change
-// (`./features.ts`). The Storybook steps' parameter
+// `@lotun/vitest-cucumber/storybook`, the page's (`.storybook/main.ts` uses
+// `@lotun/vitest-cucumber/storybook/node`: `../../core/storybook/node.ts`): what steps use: `story()`, the
+// running story; what docs use: `featuresOf()`, a stories file's feature files, and
+// `onFeaturesChange()`, told as they change (`./features.ts`). The Storybook steps' parameter
 // types need no export: the runtime defines them (`../runner/supportCode.ts`). A feature file
 // is a stories module of its own, each scenario a story on a story of its stories file
 // (`../../core/storybook/stories/featureStories.ts`). No import of Vitest's or

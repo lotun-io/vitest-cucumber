@@ -8,7 +8,12 @@ import type { Envelope } from "@cucumber/messages";
 import type { CliOptions } from "vitest/node";
 import { checkPluginModules } from "./config.ts";
 import { keptFor, runDirFor, runKept } from "./kept.ts";
-import { collectGarbage, runResult, startSession } from "./run.ts";
+import {
+  collectGarbage,
+  runResult,
+  startSession,
+  StartupError,
+} from "./run.ts";
 import { featureStoriesFiles } from "./storybookProject.ts";
 import type { E2EWorld, RunResult } from "./world.ts";
 
@@ -36,15 +41,33 @@ export async function runVitest(
   this.result = asFeatureRun ? await asFeatureRun(result) : result;
 }
 
-/** A new Vitest's run in the project `dir` (see `startSession`), closed after it. */
+/**
+ * A new Vitest's run in the project `dir` (see `startSession`), closed after it. One that can't
+ * start is a failed run with no tests, its output the error's (`StartupError`), as Vitest's command
+ * line exits.
+ */
 const runOnce = async (
   dir: string,
   options: { filters?: string[]; options?: CliOptions; messages?: Envelope[] },
 ): Promise<RunResult> => {
-  const { vitest, output, end } = await startSession.call(
-    { dir } as E2EWorld,
-    options,
-  );
+  const session = await startSession
+    .call({ dir } as E2EWorld, options)
+    .catch((error: unknown) => {
+      if (error instanceof StartupError) {
+        return error;
+      }
+      throw error;
+    });
+  if (session instanceof StartupError) {
+    return {
+      dir,
+      exitCode: 1,
+      output: session.output,
+      modules: new Map(),
+      tests: [],
+    };
+  }
+  const { vitest, output, end } = session;
   try {
     const result = runResult(vitest, dir, { exitCode: 0, output: "" });
     checkPluginModules(vitest);

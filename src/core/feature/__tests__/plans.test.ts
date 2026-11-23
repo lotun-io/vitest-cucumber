@@ -22,8 +22,7 @@ const file = (name: string, content: string) => {
 const plans = () =>
   createFeaturePlans({
     root: () => root,
-    readConfiguration: () =>
-      Promise.resolve(configurationOf({ import: ["support"] })),
+    configuration: configurationOf({ import: ["support"] }),
   });
 
 const tagged = "@smoke\nFeature: A\n  @one\n  Scenario: s\n    Given a step\n";
@@ -157,40 +156,4 @@ test("nothing throws: a file that can't be read is a failed plan, the error its 
   await all.onFileChange("add", id);
   expect(await all.vitestPlanOf(id)).toMatchObject({ uri: "missing.feature" });
   rmSync(id);
-});
-
-test("a configuration that can't be loaded: each plan fails with it, a file's event says the list is another, no rejection unhandled", async () => {
-  const id = file("fails/a.feature", tagged);
-  let fail = false;
-  const all = createFeaturePlans({
-    root: () => root,
-    readConfiguration: () =>
-      fail
-        ? Promise.reject(new Error("No configuration"))
-        : Promise.resolve(configurationOf({ import: ["support"] })),
-  });
-  await all.vitestPlanOf(id);
-  const unhandled: unknown[] = [];
-  const onUnhandled = (reason: unknown) => {
-    unhandled.push(reason);
-  };
-  process.on("unhandledRejection", onUnhandled);
-  try {
-    fail = true;
-    // A run's start: the configuration read again, and it can't be now.
-    all.cache.clear();
-    // The list can't be made now: another than the one read, so the host makes things again
-    // and each shows the error.
-    expect(
-      await all.onFileChange("add", path.join(root, "fails/x.ts")),
-    ).toEqual({ supportFilesChanged: true });
-    await all.onFileChange("change", id);
-    expect(await all.vitestPlanOf(id)).toMatchObject({
-      error: { message: "No configuration" },
-    });
-    await new Promise((resolve) => setTimeout(resolve, 20));
-    expect(unhandled).toEqual([]);
-  } finally {
-    process.off("unhandledRejection", onUnhandled);
-  }
 });

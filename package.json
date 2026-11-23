@@ -1,6 +1,6 @@
 {
   "name": "@lotun/vitest-cucumber",
-  "version": "1.0.0-beta.3",
+  "version": "1.0.0-beta.4",
   "description": "Vitest plugin for Cucumber",
   "license": "MIT",
   "homepage": "https://lotun-io.github.io/vitest-cucumber/",
@@ -29,6 +29,9 @@
     "./storybook": {
       "import": "./src/worker/storybook/index.ts"
     },
+    "./storybook/node": {
+      "import": "./src/core/storybook/node.ts"
+    },
     "./storybook/preset": {
       "import": "./src/core/storybook/preset.ts"
     }
@@ -42,6 +45,10 @@
       "./storybook": {
         "import": "./dist/worker/storybook/index.mjs",
         "types": "./dist/worker/storybook/index.d.mts"
+      },
+      "./storybook/node": {
+        "import": "./dist/core/storybook/node.mjs",
+        "types": "./dist/core/storybook/node.d.mts"
       },
       "./storybook/preset": {
         "import": "./dist/core/storybook/preset.mjs",

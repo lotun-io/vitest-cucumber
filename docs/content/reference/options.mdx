@@ -19,39 +19,33 @@ same meaning:
 | `language`        | `string`   | `"en"`  | The default Gherkin language (`# language:` in a file wins) |
 | `worldParameters` | `object`   | `{}`    | Each World's `this.parameters`; must be JSON |
 
-## Config file
+## Where the options go
 
-Instead of passing the options to `cucumber()`, you can keep them in `cucumber.config.ts` in the
-project's root, as its default export, and call `cucumber()` with no options:
+- **Node and browser mode**: `cucumber(options)` from `@lotun/vitest-cucumber`, in the project's
+  `plugins`.
+- **Storybook**: `cucumber(options)` from `@lotun/vitest-cucumber/storybook/node`, in the `addons` of
+  `.storybook/main.ts`, for Storybook and its story tests alike:
+  [Setup](/modes/storybook#configure).
 
-```ts filename="cucumber.config.ts"
+The plugin reads no options file. To keep the options in a file of their own, or share them between
+projects, export them from a module and import it:
+
+```ts filename="cucumber.options.ts"
 import type { CucumberOptions } from "@lotun/vitest-cucumber";
 
-export default {
+export const options = {
   import: ["features/**/*.ts"],
 } satisfies CucumberOptions;
 ```
 
 ```ts filename="vitest.config.ts"
-plugins: [cucumber()],
+import { options } from "./cucumber.options.ts";
+
+plugins: [cucumber(options)],
 ```
 
-- **One or the other**: `cucumber()` with no options reads the file; `cucumber(options)` uses those
-  options and doesn't read it. To use another file, import it: `cucumber(options)` with
-  `import options from "./e2e/cucumber.config.ts"`.
-- **Its name**: `cucumber.config` with one of these extensions, the first found in this order:
-  `.ts`, `.mts`, `.cts`, `.js`, `.mjs`, `.cjs`, `.json`. In `.cts` and `.cjs` it's
-  `module.exports = { … }`. A JSON file holds the options object itself.
-- **The project's root**: each Vitest project's `root`. Several projects with the same root share
-  the file, whether each has its own `cucumber()` or they all inherit one from the root config.
-- **In Storybook**, the options are always `.storybook/cucumber.config.ts` (your Storybook config
-  folder's): options passed to `cucumber()` there aren't used.
-  [Setup](/modes/storybook#put-the-options-in-storybookcucumberconfigts).
-- **Node loads it as it is**, with its own TypeScript support: erasable syntax only (no `enum`), imports
-  with their extension, no `paths` aliases. In a project without `"type": "module"`, name it
-  `cucumber.config.mts`.
-- **Each run reads it again**: in watch mode, an edit applies from the next rerun (saving the file
-  alone doesn't start one). Modules it imports keep their first version until Vitest restarts.
+A wrong option (an `import` that isn't an array of strings, a `language` Gherkin doesn't have)
+fails as `cucumber()` is called. The options are read once: changing them takes a restart.
 
 ## import
 

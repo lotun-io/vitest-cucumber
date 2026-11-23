@@ -1,8 +1,10 @@
 // Browser mode: cucumber runs in the page (`../worker/browser/`), from feature modules that carry
 // their pickles. On top of the shared plugin, this registers the browser command the page asks main
 // through (`../types/commands.ts`: locations, messages) and swaps the page's `@cucumber/cucumber` for
-// the plugin's stand-in. `createBrowserPlugin` gives the hooks with what they're built on, for a
-// plugin that extends browser mode (`./storybookPlugin.ts`).
+// the plugin's stand-in. `createBrowserHooks` gives the hooks with what they're built on, without
+// the feature files' transform: a Storybook project's plugins use the hooks alone, its feature
+// files being its stories modules (`./storybookPlugin.ts`); `createBrowserPlugin` is browser
+// mode's plugin on them.
 import type { Plugin, ViteUserConfig as UserConfig } from "vitest/config";
 import type { CucumberOptions } from "../types/feature.ts";
 import type {} from "../types/providedContext.ts";
@@ -12,11 +14,11 @@ import {
   resolvePageCucumber,
 } from "./browser/pageModules.ts";
 import { createPlugin } from "./plugin/createPlugin.ts";
-import { type Environment, inStorybook } from "./storybook/vitest/addon.ts";
+import { checkNotInStorybookProject } from "./plugin/storybookProjectCheck.ts";
 import { ownModule } from "./utils/ownModule.ts";
 
 /** Browser mode's hooks, and the shared plugin (`core`) they're built on. */
-export const createBrowserPlugin = (options: CucumberOptions | undefined) => {
+export const createBrowserHooks = (options: CucumberOptions | undefined) => {
   const core = createPlugin(options, {
     platform: ownModule("worker/browser/platform"),
   });
@@ -41,24 +43,28 @@ export const createBrowserPlugin = (options: CucumberOptions | undefined) => {
     configResolved: core.configResolved,
     configureVitest: core.configureVitest,
     resolveId: resolvePageCucumber,
-    // A Storybook project's feature file is its stories module, the Storybook plugin's to write
-    // (`./storybookPlugin.ts`): no test module made here to be replaced.
-    transform(this: { environment: Environment }, code: string, id: string) {
-      return inStorybook(this.environment)
-        ? undefined
-        : core.transform(code, id);
-    },
   };
   return { core, hooks };
 };
 
-/** Browser mode's plugin, of `createBrowserPlugin`'s hooks. */
-export const browserCucumber = ({
-  hooks,
-}: ReturnType<typeof createBrowserPlugin>): Plugin => ({
-  name: "vitest-cucumber:browser",
-  apply: (userConfig) => Boolean(userConfig.test?.browser?.enabled),
-  // Before Vite's resolver, so `resolveId` wins.
-  enforce: "pre",
-  ...hooks,
-});
+/**
+ * Browser mode's plugin (`cucumber()`'s, in a browser project): its hooks and its feature files'
+ * transform; refused in a Storybook project, which gets its plugins from its addon.
+ */
+export const createBrowserPlugin = (
+  options: CucumberOptions | undefined,
+): Plugin => {
+  const { core, hooks } = createBrowserHooks(options);
+  return {
+    name: "vitest-cucumber:browser",
+    apply: (userConfig) => Boolean(userConfig.test?.browser?.enabled),
+    // Before Vite's resolver, so `resolveId` wins.
+    enforce: "pre",
+    ...hooks,
+    configResolved: (config) => {
+      checkNotInStorybookProject(config.plugins);
+      hooks.configResolved(config);
+    },
+    transform: core.transform,
+  };
+};

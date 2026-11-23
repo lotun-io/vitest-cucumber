@@ -7,7 +7,10 @@ import type {} from "../types/providedContext.ts";
 import { createPlugin } from "./plugin/createPlugin.ts";
 import { ownModule } from "./utils/ownModule.ts";
 
-export const nodeCucumber = (options: CucumberOptions | undefined): Plugin => {
+/** Node mode's plugin (`cucumber()`'s, in a node project: `test.browser.enabled` unset). */
+export const createNodePlugin = (
+  options: CucumberOptions | undefined,
+): Plugin => {
   const core = createPlugin(options, {
     platform: ownModule("worker/node/platform"),
     commandServer: true,

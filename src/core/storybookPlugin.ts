@@ -1,18 +1,22 @@
-// Storybook: `cucumber()`'s part for the Vitest project of Storybook's addon (`storybookTest()`), on
-// top of browser mode (`./browserPlugin.ts`, whose `core` it shares). Its hooks act only in an
-// environment of a project with the addon's plugin (`./storybook/vitest/addon.ts`'s `inStorybook`):
-// there, a feature file (a test file: the project's `include` comes from
-// Storybook's `stories`) is its stories module (`./storybook/stories/featureStories.ts`: its stories file's
-// meta, a story per scenario), instead of browser mode's test module (whose `transform` leaves a
-// Storybook project's feature files alone: `./browserPlugin.ts`), and its feature module is served
-// (`./storybook/stories/featureRuntimeModule.ts`, which loads the support code with the project's root and the run's
-// options); anywhere else, nothing. The story tests are the addon's, from the stories module (its
-// transform runs after this one), handed to the plugin's runtime: the module's import of the addon's
-// test utilities resolved to its feature module, its Vitest import the feature module's `vitest`, and
-// the feature's tests declared after the addon's (`./storybook/vitest/vitestImport.ts`).
+// Storybook: a Storybook project's plugins in its story tests (the addon's Vitest runs), which the
+// preset gives (its `viteFinal`: the addon adds a preset's plugins to its Vitest project, so only a
+// Storybook project has these), from Storybook's options (the addon entry's among them: the
+// plugin's options). Browser mode's hooks (`./browserPlugin.ts`), without its transform: a feature
+// file (a test file: the project's `include` comes from Storybook's `stories`) is its stories module
+// (`./storybook/stories/featureStories.ts`: its stories file's meta, a story per scenario), and its
+// feature module is served (`./storybook/stories/featureRuntimeModule.ts`, which loads the support
+// code with the project's root and the run's options). The story tests are the addon's, from the
+// stories module (its transform runs between these two plugins'), handed to the plugin's runtime:
+// the module's import of the addon's test utilities resolved to its feature module, its Vitest
+// import the feature module's `vitest`, and the feature's tests declared after the addon's
+// (`./storybook/vitest/vitestImport.ts`).
 import type { Plugin } from "vitest/config";
-import type { createBrowserPlugin } from "./browserPlugin.ts";
+import { createBrowserHooks } from "./browserPlugin.ts";
 import { isFeatureFile } from "./feature/featureFile.ts";
+import {
+  cucumberOptionsOf,
+  type PresetOptions,
+} from "./storybook/preset/project.ts";
 import {
   featureFileOf,
   featureModule,
@@ -22,59 +26,36 @@ import {
 } from "./storybook/stories/featureRuntimeModule.ts";
 import { storiesModule } from "./storybook/stories/featureStoriesModule.ts";
 import { autoTitleOfStorybook } from "./storybook/stories/storiesTitle.ts";
-import {
-  createStorybookPlans,
-  type StorybookPlans,
-} from "./storybook/stories/storybookPlans.ts";
-import { inStorybook } from "./storybook/vitest/addon.ts";
-import { storybookOptionsOf } from "./storybook/vitest/storybookOptions.ts";
+import { createStorybookPlans } from "./storybook/stories/storybookPlans.ts";
 import { vitestFromFeature } from "./storybook/vitest/vitestImport.ts";
 import { importSupportCode } from "./support/importSupportCode.ts";
 import { withoutQuery } from "./utils/withoutQuery.ts";
 
-export const storybookCucumber = ({
-  core,
-}: ReturnType<typeof createBrowserPlugin>): Plugin[] => {
+/** A Storybook project's plugins in story tests, from Storybook's `options` (the preset's). */
+export const createStorybookPlugin = (options: PresetOptions): Plugin[] => {
+  const { core, hooks } = createBrowserHooks(cucumberOptionsOf(options));
   /**
-   * The project's plugins, once Vite resolved its config: in a Storybook project, the preset's
-   * one that carries Storybook's options among them (`./storybook/vitest/storybookOptions.ts`).
+   * The Storybook plans, on the plugin's feature plans, told a watching Vitest's file changes after
+   * the feature plans; the features they say are out of date are rerun. A stories file's automatic
+   * title is Storybook's, by its options.
    */
-  let projectPlugins: readonly { name: string }[] = [];
-  /**
-   * The Storybook plans, on the plugin's feature plans: made as a Storybook project's hook first
-   * needs them (in any other project, never), and told a watching Vitest's file changes from
-   * then on, after the feature plans; the features they say are out of date are rerun. A stories
-   * file's automatic title is Storybook's, by its options (the preset's).
-   */
-  const createPlans = () => {
-    const made = createStorybookPlans({
-      plans: core.featurePlans,
-      root: core.root,
-      configuration: core.configuration,
-      autoTitleOf: autoTitleOfStorybook(() =>
-        storybookOptionsOf(projectPlugins),
-      ),
-    });
-    core.onFileChange(async (type, file) => {
-      const { staleFeatures } = await made.onFileChange(type, file);
-      staleFeatures.forEach(core.rerun);
-    });
-    return made;
-  };
-  let plans: StorybookPlans | undefined;
-  const storybookPlans = () => (plans ??= createPlans());
-  /** The plugin in a Storybook project's environments (none elsewhere). */
-  const environmentPlugin: Plugin = {
+  const plans = createStorybookPlans({
+    plans: core.featurePlans,
+    root: core.root,
+    configuration: core.configuration,
+    autoTitleOf: autoTitleOfStorybook(() => options),
+  });
+  core.onFileChange(async (type, file) => {
+    const { staleFeatures } = await plans.onFileChange(type, file);
+    staleFeatures.forEach(core.rerun);
+  });
+
+  /** A feature file as its stories module, and its feature module. */
+  const storiesPlugin: Plugin = {
     name: "vitest-cucumber:storybook",
     // Before Vite's resolver, and before the addon's transform.
     enforce: "pre",
-    configResolved: (config) => {
-      projectPlugins = config.plugins;
-    },
     resolveId(source, importer) {
-      if (!inStorybook(this.environment)) {
-        return undefined;
-      }
       // A feature module's id (a stories module's imports of it).
       if (featureFileOf(source)) {
         return source;
@@ -83,27 +64,23 @@ export const storybookCucumber = ({
       return storyTestsModuleId(source, importer);
     },
     async load(id) {
-      if (!inStorybook(this.environment)) {
-        return undefined;
-      }
       const file = featureFileOf(id);
       if (file) {
         // From what its stories module was made (one reading of the file for both).
         return featureModule({
           cwd: core.root(),
-          plan: await storybookPlans().storybookPlanOf(file),
+          plan: await plans.storybookPlanOf(file),
         });
       }
       return undefined;
     },
-    // A feature file: its stories module (browser mode's transform leaves it alone here).
     async transform(_code, id) {
-      if (!inStorybook(this.environment) || !isFeatureFile(id)) {
+      if (!isFeatureFile(id)) {
         return undefined;
       }
       // One that can't be made (its parse errors, its links): its file fails with the error.
-      const code = storiesModule(await storybookPlans().storybookPlanOf(id));
-      // No map: none fits this code (browser mode's is a one-line map of the feature file).
+      const code = storiesModule(await plans.storybookPlanOf(id));
+      // No map: none fits this code.
       return { code, map: { mappings: "" } };
     },
   };
@@ -115,16 +92,12 @@ export const storybookCucumber = ({
     enforce: "post",
     async transform(code, id) {
       const file = withoutQuery(id);
-      if (
-        !inStorybook(this.environment) ||
-        id !== file ||
-        !isFeatureFile(file)
-      ) {
+      if (id !== file || !isFeatureFile(file)) {
         return undefined;
       }
       // The support files, from what its stories module was made (one reading for both); a
       // feature that can't be used has no story tests here.
-      const plan = await storybookPlans().storybookPlanOf(file);
+      const plan = await plans.storybookPlanOf(file);
       return vitestFromFeature({
         code,
         file,
@@ -137,5 +110,10 @@ export const storybookCucumber = ({
     },
   };
 
-  return [environmentPlugin, testsPlugin];
+  return [
+    // Browser mode's hooks: its config, the page's `@cucumber/cucumber`, the project set up.
+    { name: "vitest-cucumber:browser", enforce: "pre", ...hooks },
+    storiesPlugin,
+    testsPlugin,
+  ];
 };

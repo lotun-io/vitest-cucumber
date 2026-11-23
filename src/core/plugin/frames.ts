@@ -33,22 +33,22 @@ export const isInternalFile = (file: string) =>
 type FrameFilter = NonNullable<TestProject["config"]["onStackTrace"]>;
 
 /**
- * The project's `onStackTrace`: the user's filter first, then ours while `filtering()` (not with
- * cucumber's `backtrace`: asked as an error is printed, once the options are read). Vitest asks
+ * The project's `onStackTrace`: the user's filter first, then ours if `filtering` (not with
+ * cucumber's `backtrace`). Vitest asks
  * frame by frame, in order, once per error, so each error keeps a state: `open` (only user frames
  * so far), `cut` (past the first internal frame), or `keep` (its first frame was internal). Set in
  * the `config` hook, before Vitest resolves it, because the browser server copies it at that point.
  */
 export const frameFilterOf = (
   onStackTrace: FrameFilter | undefined,
-  filtering: () => boolean,
+  filtering: boolean,
 ): FrameFilter => {
   const states = new WeakMap<object, "open" | "cut" | "keep">();
   return (error, frame) => {
     if (onStackTrace?.(error, frame) === false) {
       return false;
     }
-    if (!filtering()) {
+    if (!filtering) {
       return true;
     }
     const state = states.get(error);

@@ -6,9 +6,10 @@
 //   messages, its test module).
 // Storybook's plans are built on these (`../storybook/stories/storybookPlans.ts`), from what
 // these give any caller: nothing of Storybook is here.
-// None throws: whatever goes wrong (the file doesn't parse or can't be read, the configuration
-// can't be loaded) is its plan's `error` (`FailedPlan`), and a failed feature file's module
-// throws it where it runs (`./featureModule.ts`): one path for every error.
+// None throws: whatever goes wrong (the file doesn't parse or can't be read) is its plan's `error`
+// (`FailedPlan`), and a failed feature file's module throws it where it runs (`./featureModule.ts`):
+// one path for every error. The user's configuration is a value, made as the plugin is (a wrong
+// option stops Vitest or Storybook as they start: `../plugin/options.ts`).
 //
 // The cache is the parts a plan is made of, never a plan (`cache`, `./planCache.ts`): a
 // feature file's text and the support files' list, read at the first ask and the same from then
@@ -71,32 +72,25 @@ export const failedPlan = (error: unknown): FailedPlan => ({
   error: error instanceof Error ? error : new Error(String(error)),
 });
 
-/**
- * The feature plans of the project at `root`, with the user's configuration (`readConfiguration`
- * reads it: their options, given or their options file's, a part of the plans read again at each
- * run's start).
- */
+/** The feature plans of the project at `root`, with the user's `configuration` (their options, with cucumber's defaults). */
 export const createFeaturePlans = ({
   root,
-  readConfiguration,
+  configuration,
 }: {
   root: () => string;
-  readConfiguration: () => Promise<Configuration>;
+  configuration: Configuration;
 }) => {
   const cache = createPlanCache();
-  /** The user's configuration. */
-  const configuration = cache.single({ make: readConfiguration });
+  /** The run's options, from the configuration. */
+  const options = runOptionsOf(configuration);
 
-  /** Feature file `file` as it is on disk: its text, its uri, and the configuration. */
-  const read = async (file: string) => {
-    const loaded = await configuration();
-    return {
-      content: await readFile(file, "utf8"),
-      uri: slash(path.relative(root(), file)),
-      language: loaded.language ?? "en",
-      options: runOptionsOf(loaded),
-    };
-  };
+  /** Feature file `file` as it is on disk: its text and its uri, with the feature files' language and the run's options. */
+  const read = async (file: string) => ({
+    content: await readFile(file, "utf8"),
+    uri: slash(path.relative(root(), file)),
+    language: configuration.language,
+    options,
+  });
   type FeatureFile = Awaited<ReturnType<typeof read>>;
 
   // The parts, as read from disk.
@@ -105,11 +99,11 @@ export const createFeaturePlans = ({
   const tagsByText = cache.keep(fileCache<TagsPlan>());
   const parsedByText = cache.keep(fileCache<Parsed | FailedPlan>());
 
-  /** Feature file `file`'s text and configuration. */
+  /** Feature file `file`'s text, its uri, the language and the run's options. */
   const readOf = (file: string) => reads(slash(file), () => read(file));
   /** The support files' list. */
   const supportFiles = cache.single({
-    make: async () => supportFilesOf(root(), await configuration()),
+    make: async () => supportFilesOf(root(), configuration),
     same: (a, b) => a.join("\n") === b.join("\n"),
   });
 

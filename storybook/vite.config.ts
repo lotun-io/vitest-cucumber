@@ -4,8 +4,9 @@
 // each feature file a stories module of its own, on the stories file next to it (a meta only, virtual:
 // `../vitest.virtualStories.ts`), with the features' own support code: the root suite's `storybook`
 // project, next to `node` and `browser` (the scenarios' Storybook projects, in `tmp/e2e/`, link this
-// package's `node_modules`). Storybook's builder reads its Vite options too.
-import { cucumber } from "@lotun/vitest-cucumber";
+// package's `node_modules`). The plugin comes from its addon in `.storybook/main.ts` (with its
+// options), whose preset gives this project its plugins. Storybook's builder reads its Vite options
+// too.
 import { storybookTest } from "@storybook/addon-vitest/vitest-plugin";
 import react from "@vitejs/plugin-react";
 import { playwright } from "@vitest/browser-playwright";
@@ -22,8 +23,6 @@ export default defineConfig({
     storybookTest({
       configDir: path.join(import.meta.dirname, ".storybook"),
     }),
-    // Its options are `.storybook/cucumber.config.ts`'s, which Storybook reads too.
-    cucumber(),
     // The repo's coverage of the plugin's modules, as its suite measures them (Vitest only).
     ...(process.env.VITEST ? [nodeSources(`${repo}/src/`)] : []),
   ],

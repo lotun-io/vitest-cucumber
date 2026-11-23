@@ -6,7 +6,7 @@
 // title a feature's stories module writes, as to any written title (a stories file's literal one
 // is taken as written too). Both hosts make them from Storybook's options (its config folder,
 // its presets' `stories`: `autoTitleOfStorybook`): the preset has them (`../preset/project.ts`),
-// story tests get the preset's (`../vitest/storybookOptions.ts`).
+// story tests get the same ones, the preset's (`../../storybookPlugin.ts`, from its `viteFinal`).
 import type { StoriesEntry } from "storybook/internal/types";
 import type { PresetOptions } from "../preset/project.ts";
 

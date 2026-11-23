@@ -26,18 +26,14 @@ import {
   mayBePreviewSupport,
   previewSupportId,
 } from "../preset/supportModule.ts";
-import { storybookOptionsOf } from "../vitest/storybookOptions.ts";
 
 /**
- * A Storybook project of the test's own: its options file (its support code, a Storybook step), a stories
- * file and its feature file.
+ * A Storybook project of the test's own: its support code (a Storybook step), a stories file and its
+ * feature file.
  */
 const project = mkdtempSync(path.join(tmpdir(), "preset-"));
 const configDir = path.join(project, ".storybook");
 for (const [name, content] of Object.entries({
-  // From the project's folder (an absolute path from `path.join` isn't a glob on Windows).
-  ".storybook/cucumber.config.mjs":
-    'export default { import: ["steps/*.ts"] };\n',
   "steps/stories.ts": `Given("the {storybook:story} story", (story) => {});
 Given("the stories of {storybook:storiesFile}", (file) => {});`,
   "src/Login.stories.ts": `import type { Meta, StoryObj } from "@storybook/react-vite";
@@ -98,9 +94,14 @@ afterAll(() => {
 
 const makeTitle = (title?: string) => title ?? "Auto";
 
-/** Storybook's options to the preset's functions: its config folder, its presets (their `stories`). */
+/**
+ * Storybook's options to the preset's functions: its config folder, its presets (their `stories`),
+ * the addon entry's options (the plugin's: its support files, from the project's folder; an
+ * absolute path from `path.join` isn't a glob on Windows).
+ */
 const options = {
   configDir,
+  vitestCucumber: { import: ["steps/*.ts"] },
   presets: {
     apply: (name: string) =>
       Promise.resolve(
@@ -237,12 +238,25 @@ describe("a broken feature file (here a story its stories file doesn't have)", (
   });
 });
 
-test("in the addon's Vitest runs (`VITEST` set), `viteFinal` gives only the plugin that carries Storybook's options to the Vitest plugin", async () => {
+test("`viteFinal` adds the project's plugins to the config's: in the addon's Vitest runs (`VITEST` set) story tests' (`../../storybookPlugin.ts`), in Storybook's own process the preview's", async () => {
+  const existing = { name: "existing" };
   vi.stubEnv("VITEST", "true");
-  const config = await viteFinal({ plugins: [] }, options);
+  const tests = await viteFinal({ plugins: [existing] }, options);
+  vi.stubEnv("VITEST", "");
+  const preview = await viteFinal({ plugins: [existing] }, options);
   vi.unstubAllEnvs();
-  expect(config.plugins).toHaveLength(1);
-  expect(storybookOptionsOf([config.plugins?.[0] as Plugin])).toBe(options);
+  const names = (plugins: unknown[] | undefined) =>
+    (plugins as { name: string }[] | undefined)?.map(({ name }) => name);
+  expect(names(tests.plugins)).toEqual([
+    "existing",
+    "vitest-cucumber:browser",
+    "vitest-cucumber:storybook",
+    "vitest-cucumber:storybook-tests",
+  ]);
+  expect(names(preview.plugins)).toEqual([
+    "existing",
+    "vitest-cucumber:storybook-preview",
+  ]);
 });
 
 describe("each Storybook page's own modules", () => {

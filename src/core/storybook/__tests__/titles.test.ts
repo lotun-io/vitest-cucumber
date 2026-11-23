@@ -55,8 +55,6 @@ const storybookProject = (
   const project = mkdtempSync(path.join(tmpdir(), "titles-"));
   projects.push(project);
   for (const [name, content] of Object.entries({
-    ".storybook/cucumber.config.mjs":
-      'export default { import: ["steps/*.ts"] };\n',
     "steps/stories.ts": steps,
     ...files,
   })) {
@@ -70,6 +68,7 @@ const storybookProject = (
       apply: (name: string) =>
         Promise.resolve(name === "stories" ? entries : undefined),
     },
+    vitestCucumber: { import: ["steps/*.ts"] },
   } as unknown as PresetOptions;
   /** Storybook's title of `file`, `written` in it or not; none: no `stories` pattern matches it. */
   const titleOf = (file: string, written?: string) =>

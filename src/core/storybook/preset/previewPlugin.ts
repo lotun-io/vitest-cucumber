@@ -117,8 +117,8 @@ export const storybookPreviewPlugin = (options: PresetOptions): Plugin => {
       }
       if (id === previewSupportId) {
         const plan = await plans.storybookSupportPlanOf();
-        // The project's cucumber setup can't be loaded (no options file, a broken one): nothing
-        // can run, so it fails loudly: a build stops, `storybook dev` reports the error.
+        // The project's support code can't be listed or read (its files, their Storybook steps):
+        // nothing can run, so it fails loudly: a build stops, `storybook dev` reports the error.
         if ("error" in plan) {
           throw plan.error;
         }

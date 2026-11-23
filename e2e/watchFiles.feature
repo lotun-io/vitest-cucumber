@@ -195,57 +195,6 @@ Feature: Watch mode: files
       | node    | false   |
       | browser | true    |
 
-  # The options file is read again at each run's start, as everything a run reads from disk: an
-  # edit of it applies from the next rerun (saving it alone starts none: Vitest doesn't watch it).
-  Scenario Outline: The project's cucumber.config.ts edited applies from the next rerun (<mode>)
-    Given the Vitest config:
-      """
-      import { cucumber } from "@lotun/vitest-cucumber";
-      import { playwright } from "@vitest/browser-playwright";
-
-      export default {
-        plugins: [cucumber()],
-        test: {
-          include: ["features/**/*.feature"],
-          browser: {
-            enabled: <browser>,
-            headless: true,
-            provider: playwright(),
-            instances: [{ browser: "chromium" }],
-            screenshotFailures: false,
-          },
-        },
-      };
-      """
-    And a file named "cucumber.config.json" with:
-      """
-      { "import": ["features/**/*.ts"] }
-      """
-    When I start vitest in watch mode
-    Then it runs the scenarios:
-      | NAME     | STATUS |
-      | changing | failed |
-    # Written as it watches: no rerun of its own.
-    Given a file named "cucumber.config.json" with:
-      """
-      { "import": ["features/**/*.ts"], "dryRun": true }
-      """
-    When I change the file "features/a.feature" to:
-      """
-      Feature: A
-        # Saved again: its rerun has the new options.
-        Scenario: changing
-          Given a changing step
-      """
-    Then it runs the scenarios:
-      | NAME     | STATUS  |
-      | changing | skipped |
-
-    Examples:
-      | mode    | browser |
-      | node    | false   |
-      | browser | true    |
-
   # A feature's stories module is made from its stories file too: Vitest reruns a changed test file
   # alone (a stories file is one), so the plugin has Vitest take its features as changed, rerun with it. In `src/`: a
   # stories file of the scenario's own (`.ts`) out of the support code's `features/**/*.ts`.

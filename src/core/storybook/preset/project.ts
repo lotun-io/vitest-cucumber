@@ -1,32 +1,30 @@
 // Storybook: a Storybook project's cucumber, by its config folder (one per process: the preset's
 // preview plugin and its indexer share it, in Storybook's own process and in the addon's Vitest,
-// which loads presets too): its root, its configuration (its options file's, the one its story
-// tests read too: `../storybookOptionsFile.ts`) and its feature
+// which loads presets too): its root, its configuration (the addon entry's options, `cucumber({ … })`
+// in `.storybook/main.ts`: `../addon.ts`) and its feature
 // files' plans (`../../feature/plans.ts`, and Storybook's on them:
 // `../stories/storybookPlans.ts`), with Storybook's automatic titles (`../stories/storiesTitle.ts`:
 // its `stories`, as its presets give them).
 import path from "node:path";
 import type { Options } from "storybook/internal/types";
+import type { CucumberOptions } from "../../../types/feature.ts";
 import type { FeatureSource } from "../../../types/storybook.ts";
 import { slash } from "../../../utils/slash.ts";
 import { createFeaturePlans } from "../../feature/plans.ts";
 import { configurationOf } from "../../plugin/options.ts";
-import { optionsIn } from "../../plugin/optionsFile.ts";
+import { addonOptionsKey, type AddonOptions } from "../addon.ts";
 import { autoTitleOfStorybook } from "../stories/storiesTitle.ts";
 import { createStorybookPlans } from "../stories/storybookPlans.ts";
-import { storybookOptionsFile } from "../storybookOptionsFile.ts";
 
-/**
- * The configuration of the Storybook project of `configDir`: its options file's
- * (`<configDir>/cucumber.config.ts`), read once (`storybook dev` reads it again as it restarts).
- */
-const configurationIn = async (configDir: string) =>
-  configurationOf(await optionsIn(storybookOptionsFile(configDir)));
+/** Storybook's options to a preset's functions: its config folder, its presets, the addon entry's options. */
+export type PresetOptions = Pick<Options, "configDir" | "presets"> &
+  AddonOptions;
 
-/** Storybook's options to a preset's functions: its config folder and its presets among them. */
-export type PresetOptions = Pick<Options, "configDir" | "presets">;
+/** The plugin's options: the addon entry's (none given: cucumber's defaults). */
+export const cucumberOptionsOf = (options: PresetOptions): CucumberOptions =>
+  options[addonOptionsKey] ?? {};
 
-/** A Storybook project's cucumber: its configuration (the options file's) and its plans. */
+/** A Storybook project's cucumber: its configuration (the addon entry's options) and its plans. */
 const projects = new Map<string, ReturnType<typeof createProject>>();
 
 const createProject = (options: PresetOptions) => {
@@ -41,14 +39,12 @@ const createProject = (options: PresetOptions) => {
    * server channel hook, the only one that can reach it).
    */
   const indexers = new Set<(features: readonly string[]) => Promise<void>>();
-  const plans = createFeaturePlans({
-    root: () => root,
-    readConfiguration: () => configurationIn(configDir),
-  });
+  const configuration = configurationOf(cucumberOptionsOf(options));
+  const plans = createFeaturePlans({ root: () => root, configuration });
   const storybookPlans = createStorybookPlans({
     plans,
     root: () => root,
-    configuration: plans.configuration,
+    configuration,
     autoTitleOf: autoTitleOfStorybook(() => options),
     onLinkedFeaturesChanged: () => {
       void linkedFeaturesChanged?.();

@@ -225,3 +225,53 @@ Feature: Storybook errors
       """
       already has a
       """
+
+  # A Storybook project gets the plugin from its addon entry in `.storybook/main.ts` (the preset
+  # gives its story tests' plugins): a `cucumber()` in its Vitest config too, its own or the root's
+  # it inherits (an inline project does unless it sets `extends: false`), would make every feature file twice, so the run fails with what
+  # to do.
+  Scenario Outline: cucumber() in a Storybook project's Vitest config fails the run (<plugin>)
+    Given the Vitest config:
+      """
+      import { cucumber } from "@lotun/vitest-cucumber";
+      import { storybookTest } from "@storybook/addon-vitest/vitest-plugin";
+      import react from "@vitejs/plugin-react";
+      import { playwright } from "@vitest/browser-playwright";
+      import path from "node:path";
+
+      export default {
+        plugins: [react(), <inherited>],
+        test: {
+          projects: [
+            {
+              extends: true,
+              plugins: [
+                storybookTest({ configDir: path.join(import.meta.dirname, ".storybook") }),
+                <own>
+              ],
+              test: {
+                name: "stories",
+                browser: {
+                  enabled: true,
+                  headless: true,
+                  provider: playwright(),
+                  instances: [{ browser: "chromium" }],
+                  screenshotFailures: false,
+                },
+              },
+            },
+          ],
+        },
+      };
+      """
+    When I run vitest
+    Then it fails
+    And the output contains:
+      """
+      @lotun/vitest-cucumber: remove cucumber() from this Storybook project
+      """
+
+    Examples:
+      | plugin                  | inherited  | own        |
+      | its own                 |            | cucumber() |
+      | inherited from the root | cucumber() |            |

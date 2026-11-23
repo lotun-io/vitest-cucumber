@@ -144,20 +144,18 @@ const isCucumber = (plugin: unknown) =>
  * (`react()`) and `after` (`storybookTest()`) around its own plugins, in `browser` (Chromium: its
  * own browser options kept), without its `include` (the addon's test files are Storybook's
  * `stories`: it ignores one, with a warning); any other project is as it is. Its `cucumber(…)` is
- * `cucumber()` there (`plugin`): a Storybook project's options are `.storybook/cucumber.config.ts`'s,
- * the harness's default ones (a scenario's own config in storybook mode passes those).
+ * taken out: a Storybook project gets the plugin from its addon entry in `.storybook/main.ts`, with
+ * the harness's default options (a scenario's own config in storybook mode passes those).
  */
 export const asStorybook = (
   config: ProjectConfig,
   {
     before,
     after,
-    plugin,
     browser,
   }: {
     before: Plugins[];
     after: Plugins[];
-    plugin: () => Plugins[];
     browser: Record<string, unknown>;
   },
 ): ProjectConfig => {
@@ -171,7 +169,7 @@ export const asStorybook = (
       .filter((own) => !isCucumber(own));
     return {
       ...config,
-      plugins: [...before, ...others, ...plugin(), ...after],
+      plugins: [...before, ...others, ...after],
       test: {
         ...test,
         browser: { ...browser, ...config.test?.browser, enabled: true },
@@ -201,8 +199,7 @@ export const asStorybook = (
  */
 const configWrapper = (provider?: string) =>
   provider
-    ? `import { cucumber } from "@lotun/vitest-cucumber";
-import { storybookTest } from "@storybook/addon-vitest/vitest-plugin";
+    ? `import { storybookTest } from "@storybook/addon-vitest/vitest-plugin";
 import react from "@vitejs/plugin-react";
 import { playwright } from "@vitest/browser-playwright";
 import path from "node:path";
@@ -214,7 +211,6 @@ export default () =>
     asStorybook(typeof config === "function" ? config() : config, {
       before: [react()],
       after: [storybookTest({ configDir: path.join(import.meta.dirname, ".storybook") })],
-      plugin: () => cucumber(),
       browser: {
         headless: true,
         provider: ${provider},

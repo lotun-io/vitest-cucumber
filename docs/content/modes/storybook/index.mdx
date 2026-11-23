@@ -51,6 +51,7 @@ then add the plugin and Cucumber:
 ### Add the addon
 
 ```ts filename=".storybook/main.ts"
+import { cucumber } from "@lotun/vitest-cucumber/storybook/node";
 import type { StorybookConfig } from "@storybook/react-vite";
 
 const config: StorybookConfig = {
@@ -62,7 +63,9 @@ const config: StorybookConfig = {
   ],
   addons: [
     "@storybook/addon-vitest",
-    "@lotun/vitest-cucumber/storybook",
+    cucumber({
+      import: ["features/**/*.ts"],
+    }),
   ],
   framework: "@storybook/react-vite",
 };
@@ -74,29 +77,15 @@ List your feature files in `stories` (`.feature`, and `.feature.md` for Markdown
 stories file of its own. Story tests run what `stories` lists too. The pattern covers both places a
 feature file may be in: [next to its stories file, or in `features/`](/modes/storybook/features#feature-files-become-stories).
 
-### Put the options in `.storybook/cucumber.config.ts`
+`cucumber()` from `@lotun/vitest-cucumber/storybook/node` is the addon, with the plugin's
+[options](/reference/options): Storybook and its story tests both use them. Write them inline, or
+import them from a file of your own. `import` is resolved from the directory Storybook starts in,
+your project's root.
 
-Storybook and its story tests read the same options, from this file in your Storybook config folder:
-
-```ts filename=".storybook/cucumber.config.ts"
-import type { CucumberOptions } from "@lotun/vitest-cucumber";
-
-export default {
-  import: ["features/**/*.ts"],
-} satisfies CucumberOptions;
-```
-
-Storybook won't start without it. It's the folder `storybookTest({ configDir })` names, so a project
-with several Storybooks has one file in each. Like any options file it can be `.ts`, `.mts`, `.cts`,
-`.js`, `.mjs`, `.cjs` or `.json`, and Node loads it as it is:
-[Config file](/reference/options#config-file). `import` is resolved from the directory Storybook
-starts in, your project's root.
-
-### Add the plugin to the Storybook test project
+### Keep `cucumber()` out of the Storybook test project
 
 ```ts filename="vite.config.ts"
 /// <reference types="vitest/config" />
-import { cucumber } from "@lotun/vitest-cucumber";
 import { storybookTest } from "@storybook/addon-vitest/vitest-plugin";
 import react from "@vitejs/plugin-react";
 import { playwright } from "@vitest/browser-playwright";
@@ -111,7 +100,6 @@ export default defineConfig({
         extends: true,
         plugins: [
           storybookTest({ configDir: path.join(import.meta.dirname, ".storybook") }),
-          cucumber(),
         ],
         test: {
           name: "storybook",
@@ -128,10 +116,11 @@ export default defineConfig({
 });
 ```
 
-A Storybook project always reads `.storybook/cucumber.config.ts`, which Storybook's own process reads
-too, so `cucumber()` takes no options there. Options passed to it anyway, or inherited from a
-`cucumber({ … })` in the root config (`extends: true`), aren't used. The other projects keep the
-options they're given.
+Storybook's addon gives its test project the plugin from `.storybook/main.ts`, so the project has no
+`cucumber()` of its own. A `cucumber()` there, or one in the root config that it inherits, fails
+the run with a message saying so. An inline project inherits the config that declares it unless it
+sets `extends: false`, so give the other projects their own `cucumber({ … })` in their own
+`plugins`, or set `extends: false` on the Storybook project.
 
 ### Keep a classic preview
 

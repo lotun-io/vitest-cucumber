@@ -25,8 +25,6 @@ Not here? Ask on [Discord](https://discord.gg/dfJUkmEtAP) or in
 | `Invalid "options.on": "COORDINATOR" isn't supported …` | A once-per-run `BeforeAll`/`AfterAll` | Use Vitest's [`globalSetup`](https://vitest.dev/config/globalsetup) |
 | `setDefaultTimeout isn't supported`, `setParallelCanAssign isn't supported` | See [Limitations](/reference/limitations#not-supported) | Set Vitest's `testTimeout` and `hookTimeout`; drop `setParallelCanAssign` |
 | `the "worldParameters" option can't be converted to JSON` | [`worldParameters`](/guides/support-code#world-parameters) holds a value JSON can't (a `BigInt`, a cycle) | Keep them JSON; build other values in a `BeforeAll` |
-| `the options file cucumber.config.ts can't be loaded`, with the reason as its cause | The file throws, uses TypeScript Node can't strip (an `enum`, an import without its extension, a `paths` alias), or isn't valid JSON (`.json`) | Fix it: [Config file](/reference/options#config-file) |
-| `the options file … must have its options as its default export (an object)` | No `export default` (`module.exports` in `.cts`, `.cjs`), or it isn't an object | Export the options object |
 | `the "import" option must be an array of strings`, `the "language" option "…" isn't a Gherkin language` | An option of the wrong kind | Fix the option: [Options](/reference/options) |
 
 ## Hooks
@@ -50,9 +48,9 @@ Not here? Ask on [Discord](https://discord.gg/dfJUkmEtAP) or in
 
 | You see | Why | Do |
 | --- | --- | --- |
-| `.storybook/cucumber.config.ts is missing` | Storybook's options file isn't there | Add it: [Setup](/modes/storybook#put-the-options-in-storybookcucumberconfigts) |
-| `no cucumber runner in this page …` | The preset or the plugin isn't loaded | Add `@lotun/vitest-cucumber/storybook` to Storybook's `addons`, and `cucumber()` to the Storybook test project |
-| `the preview's support code isn't served …` | The preset isn't loaded | Add `@lotun/vitest-cucumber/storybook` to Storybook's `addons` |
+| `remove cucumber() from this Storybook project: use the addon in .storybook/main.ts` | A `cucumber()` in the Storybook test project's Vitest config, or one in the root config it inherits (an inline project does unless it sets `extends: false`) | Remove it: the plugin's addon in `.storybook/main.ts` gives the project its plugin ([Setup](/modes/storybook#configure)). Give other projects their own `cucumber()`, or set `extends: false` on the Storybook project |
+| `no cucumber runner in this page …` | The plugin's addon isn't loaded | Add `cucumber({ … })` from `@lotun/vitest-cucumber/storybook/node` to Storybook's `addons` |
+| `the preview's support code isn't served …` | The plugin's addon isn't loaded | Add `cucumber({ … })` from `@lotun/vitest-cucumber/storybook/node` to Storybook's `addons` |
 | `no story is running` | `story()` was called outside a scenario's step | Call it in a step, or in a World getter a step reads |
 | Features are listed apart from their stories file, which is under a prefix | The stories files' `stories` entry has a `titlePrefix`, the features' entry doesn't: Storybook prefixes each file by its own entry | Give the features' entry the same `titlePrefix`: [Title prefix](/modes/storybook#title-prefix) |
 | Storybook's `NoStoryMountedError` | An unmounted story (`{storybook:storyUnmounted}`) that no step mounted | Mount it in a step: [Mounting](/modes/storybook/features#mounting) |
