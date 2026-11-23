@@ -48,7 +48,7 @@
 
   **Breaking changes**
 
-  - **Requirements**: Node.js 24 or 26 (was 22 or later), Vitest 5 (was 4 or 5), `@cucumber/cucumber` 13.3 or a later 13.x (was 12 or 13).
+  - **Requirements**: Node.js 24 or later, Vitest 5, `@cucumber/cucumber` 13.
   - **Options**: `cucumber()` takes `import`, `strict`, `dryRun`, `backtrace`, `language` and `worldParameters`. Every other Cucumber option is ignored, and Cucumber's configuration files and profiles aren't read.
   - **`CUCUMBER_OPTIONS` is no longer read.** Use Vitest's own: `--tagsFilter "@smoke"` for tags, `-t` for names, `test.retry` for retries, `--bail` for fail-fast.
   - **Vitest reports the run.** Cucumber's formatters, plugins and publishing aren't supported.
