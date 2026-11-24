@@ -6,7 +6,7 @@
   "homepage": "https://lotun-io.github.io/vitest-cucumber/",
   "repository": {
     "type": "git",
-    "url": "https://github.com/lotun-io/vitest-cucumber"
+    "url": "git+https://github.com/lotun-io/vitest-cucumber.git"
   },
   "type": "module",
   "engines": {
@@ -39,20 +39,19 @@
   "publishConfig": {
     "exports": {
       ".": {
-        "import": "./dist/index.mjs",
-        "types": "./dist/index.d.mts"
+        "types": "./dist/index.d.mts",
+        "import": "./dist/index.mjs"
       },
       "./storybook": {
-        "import": "./dist/worker/storybook/index.mjs",
-        "types": "./dist/worker/storybook/index.d.mts"
+        "types": "./dist/worker/storybook/index.d.mts",
+        "import": "./dist/worker/storybook/index.mjs"
       },
       "./storybook/node": {
-        "import": "./dist/core/storybook/node.mjs",
-        "types": "./dist/core/storybook/node.d.mts"
+        "types": "./dist/core/storybook/node.d.mts",
+        "import": "./dist/core/storybook/node.mjs"
       },
       "./storybook/preset": {
-        "import": "./dist/core/storybook/preset.mjs",
-        "types": "./dist/core/storybook/preset.d.mts"
+        "import": "./dist/core/storybook/preset.mjs"
       }
     }
   },
@@ -76,7 +75,6 @@
   },
   "peerDependencies": {
     "@cucumber/cucumber": "^13.3.0",
-    "@vitest/utils": "^5.x",
     "storybook": "^10.6.0",
     "vitest": "^5.x"
   },
@@ -93,7 +91,6 @@
     "@types/node": "catalog:",
     "@vitest/browser-playwright": "catalog:",
     "@vitest/coverage-v8": "5.1.0",
-    "@vitest/utils": "5.1.0",
     "amaro": "^1.3.0",
     "eslint": "^10.15.0",
     "eslint-plugin-n": "^18.5.0",
@@ -105,7 +102,7 @@
     "storybook": "catalog:",
     "tsdown": "^0.23.7",
     "typescript": "catalog:",
-    "typescript-eslint": "^8.73.0",
+    "typescript-eslint": "^8.74.0",
     "vite": "catalog:",
     "vitest": "catalog:"
   },
@@ -117,6 +114,7 @@
     "@cucumber/messages": "catalog:",
     "@cucumber/query": "^16.4.0",
     "@cucumber/tag-expressions": "^11.2.0",
+    "@vitest/utils": "^5.1.1",
     "magic-string": "^1.4.5",
     "tinyglobby": "^0.2.17",
     "uuid": "^14.0.3"
