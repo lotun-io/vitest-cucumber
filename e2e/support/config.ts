@@ -2,8 +2,11 @@
 // one, see `./project.ts`) in `vitest.scenario.ts` next to it, and `vitest.config.ts`, which
 // exports it with what this repository needs of every run (`withRepository`), whatever the
 // scenario's config is.
+import { playwright } from "@vitest/browser-playwright";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import { inject } from "vitest";
+import type {} from "./chromium.ts";
 import { relative, resolve, slash } from "./paths.ts";
 
 /**
@@ -32,7 +35,53 @@ const coverageExecArgv = () =>
 interface TestConfig {
   server?: { deps?: { external?: (string | RegExp)[] } };
   execArgv?: string[];
+  projects?: unknown[];
 }
+
+/** Whether `browser` is a browser config whose every instance is Chromium. */
+const isChromiumOnly = (browser: unknown): browser is object =>
+  typeof browser === "object" &&
+  browser !== null &&
+  "instances" in browser &&
+  Array.isArray(browser.instances) &&
+  browser.instances.length > 0 &&
+  browser.instances.every(
+    (instance: unknown) =>
+      typeof instance === "object" &&
+      instance !== null &&
+      "browser" in instance &&
+      instance.browser === "chromium",
+  );
+
+/**
+ * `test` with its browser on the run's shared Chromium (`./chromium.ts`, its endpoint
+ * `wsEndpoint`) when each of its instances is Chromium, as the default configs' (`./project.ts`): a
+ * scenario's own `provider: playwright()` would launch a Chromium of its own. Others (Firefox,
+ * WebKit) launch their own, as they are.
+ */
+const onSharedChromium = (test: object, wsEndpoint: string | undefined) =>
+  wsEndpoint && "browser" in test && isChromiumOnly(test.browser)
+    ? {
+        ...test,
+        browser: {
+          ...test.browser,
+          provider: playwright({ connectOptions: { wsEndpoint } }),
+        },
+      }
+    : test;
+
+/** An inline project's `test` on the shared Chromium (see `onSharedChromium`); others as they are. */
+const projectOnSharedChromium = (
+  project: unknown,
+  wsEndpoint: string | undefined,
+) =>
+  typeof project === "object" &&
+  project !== null &&
+  "test" in project &&
+  typeof project.test === "object" &&
+  project.test !== null
+    ? { ...project, test: onSharedChromium(project.test, wsEndpoint) }
+    : project;
 
 /**
  * A scenario's config, with what this repository needs, in its root `test`: its inline projects
@@ -41,6 +90,8 @@ interface TestConfig {
  */
 export const withRepository = (
   exported: { test?: TestConfig } | (() => { test?: TestConfig }),
+  /** The run's shared Chromium (`./chromium.ts`): the scenario's Chromium-only browsers on it. */
+  chromium?: string,
 ) => {
   const config = typeof exported === "function" ? exported() : exported;
   if (typeof config !== "object") {
@@ -52,7 +103,12 @@ export const withRepository = (
   return {
     ...config,
     test: {
-      ...test,
+      ...onSharedChromium(test, chromium),
+      ...(test.projects && {
+        projects: test.projects.map((project) =>
+          projectOnSharedChromium(project, chromium),
+        ),
+      }),
       execArgv: [...(test.execArgv ?? []), ...coverageExecArgv()],
       server: {
         ...test.server,
@@ -223,7 +279,7 @@ export default () =>
     : `import { withRepository } from ${JSON.stringify(import.meta.filename)};
 import config from "./vitest.scenario.ts";
 
-export default () => withRepository(config);
+export default () => withRepository(config, ${JSON.stringify(inject("e2eChromium"))});
 `;
 
 /**

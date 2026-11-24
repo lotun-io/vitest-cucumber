@@ -1,8 +1,9 @@
 // The steps that run Vitest in a scenario's project: once (in a kept Vitest if it can, see
 // `../support/kept.ts`), in watch mode (see `../support/watch.ts`), and the changes that rerun it.
-import { When } from "@cucumber/cucumber";
+import { Given, When } from "@cucumber/cucumber";
 import { rm, writeFile } from "node:fs/promises";
 import type { CliOptions } from "vitest/node";
+import { closeKept } from "../support/kept.ts";
 import { openVitest } from "../support/openVitest.ts";
 import { writeDefaultConfig } from "../support/project.ts";
 import { runVitest } from "../support/runVitest.ts";
@@ -66,6 +67,14 @@ for (const [step, start] of [
 
 // The scenario's own config, in a fresh Vitest (not a kept one): e.g. a run that fails as Vitest
 // starts (the plugin refusing its options), which Vitest reports as its command line does.
+// This worker's kept Vitests (`../support/kept.ts`: up to one per mode, their pages in the shared
+// Chromium, ~1–1.5 GB) closed before a scenario's heaviest part: a run in another browser
+// (Firefox, WebKit: their own), a Storybook build or dev server. Put where the file needs them least
+// (its last scenarios): a later default run starts its mode's again (~0.4–1.4 s).
+Given("the worker's kept Vitests are closed", async () => {
+  await closeKept();
+});
+
 When("I run vitest in a fresh Vitest", function (this: E2EWorld) {
   return runVitest.call(this, { fresh: true });
 });

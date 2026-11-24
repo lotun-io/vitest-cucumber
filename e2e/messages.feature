@@ -335,7 +335,8 @@ Feature: Messages
 
   # A browser config's instances are projects of their own: both in the one stream, each named.
   Scenario: Several browsers: one stream, every browser's
-    Given the Vitest config:
+    Given the worker's kept Vitests are closed
+    And the Vitest config:
       """
       import { cucumber } from "@lotun/vitest-cucumber";
       import { playwright } from "@vitest/browser-playwright";

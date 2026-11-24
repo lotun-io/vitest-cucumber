@@ -56,52 +56,6 @@ Feature: Stack frames
       });
       """
 
-  # The feature files and the plain tests in projects of their own (the plugin's project's files
-  # are all feature files), in the same engine (in storybook mode, the plugin's project the addon's:
-  # its feature files' stories, in Chromium).
-  Scenario Outline: A step's frames are the ones Vitest prints for a plain test (<mode>)
-    Given the Vitest config:
-      """
-      import { cucumber } from "@lotun/vitest-cucumber";
-      import { playwright } from "@vitest/browser-playwright";
-      import { defineConfig } from "vitest/config";
-
-      // A new one for each project: Vitest names its instances in place.
-      const browser = () => ({
-        enabled: <browser>,
-        headless: true,
-        provider: playwright(),
-        instances: [{ browser: "<instance>" as const }],
-        screenshotFailures: false,
-      });
-
-      export default defineConfig({
-        test: {
-          projects: [
-            {
-              plugins: [cucumber({ import: ["features/**/*.ts"] })],
-              test: { name: "features", include: ["features/**/*.feature"], browser: browser() },
-            },
-            { test: { name: "tests", include: ["tests/**/*.test.ts"], browser: browser() } },
-          ],
-        },
-      });
-      """
-    When I run vitest in <mode> mode
-    Then it fails
-    And each scenario's frames in "src/helpers.ts" are its plain test's:
-      | SCENARIO                 | TEST             | STEP                     |
-      | Stack > calling a helper | calling a helper | features/stack.feature:3 |
-      | Stack > after an await   | after an await   | features/stack.feature:6 |
-
-    Examples:
-      | mode      | browser | instance |
-      | node      | false   | chromium |
-      | browser   | true    | chromium |
-      | firefox   | true    | firefox  |
-      | webkit    | true    | webkit   |
-      | storybook | true    | chromium |
-
   # The user's own `onStackTrace` applies first, the plugin's filter after it (both modes: the browser
   # server copies the option as Vitest resolves it, so the plugin merges it in its `config` hook).
   Scenario Outline: The user's own onStackTrace leaves out frames, the plugin's filter still applies (<mode>)
@@ -151,3 +105,50 @@ Feature: Stack frames
       | node      | false   |
       | browser   | true    |
       | storybook | true    |
+
+  # The feature files and the plain tests in projects of their own (the plugin's project's files
+  # are all feature files), in the same engine (in storybook mode, the plugin's project the addon's:
+  # its feature files' stories, in Chromium).
+  Scenario Outline: A step's frames are the ones Vitest prints for a plain test (<mode>)
+    Given the worker's kept Vitests are closed
+    And the Vitest config:
+      """
+      import { cucumber } from "@lotun/vitest-cucumber";
+      import { playwright } from "@vitest/browser-playwright";
+      import { defineConfig } from "vitest/config";
+
+      // A new one for each project: Vitest names its instances in place.
+      const browser = () => ({
+        enabled: <browser>,
+        headless: true,
+        provider: playwright(),
+        instances: [{ browser: "<instance>" as const }],
+        screenshotFailures: false,
+      });
+
+      export default defineConfig({
+        test: {
+          projects: [
+            {
+              plugins: [cucumber({ import: ["features/**/*.ts"] })],
+              test: { name: "features", include: ["features/**/*.feature"], browser: browser() },
+            },
+            { test: { name: "tests", include: ["tests/**/*.test.ts"], browser: browser() } },
+          ],
+        },
+      });
+      """
+    When I run vitest in <mode> mode
+    Then it fails
+    And each scenario's frames in "src/helpers.ts" are its plain test's:
+      | SCENARIO                 | TEST             | STEP                     |
+      | Stack > calling a helper | calling a helper | features/stack.feature:3 |
+      | Stack > after an await   | after an await   | features/stack.feature:6 |
+
+    Examples:
+      | mode      | browser | instance |
+      | node      | false   | chromium |
+      | browser   | true    | chromium |
+      | firefox   | true    | firefox  |
+      | webkit    | true    | webkit   |
+      | storybook | true    | chromium |

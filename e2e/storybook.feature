@@ -606,6 +606,7 @@ Feature: Storybook
   # opened in Storybook's UI (Playwright, `e2e/support/storybookStatic.ts`), its Interactions panel
   # read for its status, each text it shows, and a text it hides (a passing story's notes).
   Scenario: Its preview, in a static build
+    Given the worker's kept Vitests are closed
     When I build its Storybook
     Then its stories show:
       | STORY                                                           | STATUS | SHOWS                                                                       | HIDES           |

@@ -162,13 +162,12 @@ Feature: Failures
       node_modules/@cucumber/cucumber/
       """
 
-    # The throw's column: the engine's (WebKit's at its `Error`'s call, not its `new`).
+    # Firefox's and WebKit's frames (WebKit's throw at its `Error`'s call, not its `new`):
+    # `stackframes.feature`, against a plain test's in each engine.
     Examples:
       | mode    | column |
       | node    | 9      |
       | browser | 9      |
-      | firefox | 9      |
-      | webkit  | 13     |
 
   # The frame is the failing step's own line: an `And` step's, a step's with a doc string or a data
   # table (its keyword's line, its argument under it in the code frame), an outline's example's at
@@ -651,72 +650,6 @@ Feature: Failures
       | browser   |
       | storybook |
 
-  # Vitest's report of the errors: their classes' names (an error's `name`, not its class's own
-  # `toString`), their causes.
-  Scenario Outline: Errors keep their names and causes (<mode>)
-    Given a file named "features/steps.ts" with:
-      """
-      import { Given } from "@cucumber/cucumber";
-
-      class DatabaseError extends Error {
-        override name = "DatabaseError";
-      }
-      class SecretError extends Error {
-        #code = "E_SECRET";
-        override name = "SecretError";
-        override toString() {
-          return `SecretError(${this.#code}): ${this.message}`;
-        }
-      }
-      Given("a step failing with a cause", () => {
-        throw new Error("Outer failure", { cause: new TypeError("Inner cause") });
-      });
-      Given("a step failing with its own class", () => {
-        throw new DatabaseError("Connection lost");
-      });
-      Given("a step failing with its own toString", () => {
-        throw new SecretError("Secret failure");
-      });
-      """
-    And a file named "features/failures.feature" with:
-      """
-      Feature: Failures
-        Scenario: with a cause
-          Given a step failing with a cause
-
-        Scenario: its own class
-          Given a step failing with its own class
-
-        Scenario: its own toString
-          Given a step failing with its own toString
-      """
-    When I run vitest in <mode> mode
-    Then it fails
-    And the output contains:
-      """
-      Caused by: TypeError: Inner cause
-      """
-    And the output contains:
-      """
-      DatabaseError: Connection lost
-      """
-    And the output contains:
-      """
-      SecretError: Secret failure
-      """
-    And the output doesn't contain:
-      """
-      SecretError(E_SECRET)
-      """
-
-    Examples:
-      | mode      |
-      | node      |
-      | browser   |
-      | storybook |
-      | firefox   |
-      | webkit    |
-
   # Vitest's test error is the step's (its text, at its line), the thrown value its cause (as
   # cucumber formats it: `util.format`'s, a page's roughly, an object as JSON). Vitest prints no
   # cause that's `undefined` (its rule, for any test's error), so `throw undefined` shows the step only.
@@ -1004,3 +937,70 @@ Feature: Failures
       | node      |
       | browser   |
       | storybook |
+
+  # Vitest's report of the errors: their classes' names (an error's `name`, not its class's own
+  # `toString`), their causes.
+  Scenario Outline: Errors keep their names and causes (<mode>)
+    Given the worker's kept Vitests are closed
+    And a file named "features/steps.ts" with:
+      """
+      import { Given } from "@cucumber/cucumber";
+
+      class DatabaseError extends Error {
+        override name = "DatabaseError";
+      }
+      class SecretError extends Error {
+        #code = "E_SECRET";
+        override name = "SecretError";
+        override toString() {
+          return `SecretError(${this.#code}): ${this.message}`;
+        }
+      }
+      Given("a step failing with a cause", () => {
+        throw new Error("Outer failure", { cause: new TypeError("Inner cause") });
+      });
+      Given("a step failing with its own class", () => {
+        throw new DatabaseError("Connection lost");
+      });
+      Given("a step failing with its own toString", () => {
+        throw new SecretError("Secret failure");
+      });
+      """
+    And a file named "features/failures.feature" with:
+      """
+      Feature: Failures
+        Scenario: with a cause
+          Given a step failing with a cause
+
+        Scenario: its own class
+          Given a step failing with its own class
+
+        Scenario: its own toString
+          Given a step failing with its own toString
+      """
+    When I run vitest in <mode> mode
+    Then it fails
+    And the output contains:
+      """
+      Caused by: TypeError: Inner cause
+      """
+    And the output contains:
+      """
+      DatabaseError: Connection lost
+      """
+    And the output contains:
+      """
+      SecretError: Secret failure
+      """
+    And the output doesn't contain:
+      """
+      SecretError(E_SECRET)
+      """
+
+    Examples:
+      | mode      |
+      | node      |
+      | browser   |
+      | storybook |
+      | firefox   |
+      | webkit    |
