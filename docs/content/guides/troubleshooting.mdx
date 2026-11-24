@@ -1,87 +1,123 @@
 # Troubleshooting
 
-What you see, why, and what to do. The plugin's own messages start with `[@lotun/vitest-cucumber]`.
-Not here? Ask on [Discord](https://discord.gg/dfJUkmEtAP) or in
+Most errors say what's wrong and what to do: the plugin's own start with `[@lotun/vitest-cucumber]`,
+and an error in your own code points at its line. This page covers the rest: messages from Vitest or
+Storybook that the plugin causes, and problems that print no error. Not here? Ask on
+[Discord](https://discord.gg/dfJUkmEtAP) or in
 [GitHub Discussions](https://github.com/lotun-io/vitest-cucumber/discussions): [Community](/community).
 
 ## Nothing runs
 
-| You see | Why | Do |
-| --- | --- | --- |
-| `No test files found` | `test.include` doesn't match your feature files (Vitest's default is `*.test.ts`) | Set `test.include`, e.g. `["features/**/*.feature"]` |
-| Every step is undefined, with snippets | `import` is missing, or its globs match no file | Set [`import`](/reference/options#import) to your support code |
-| `No test found in suite` | The feature file has no scenarios | Add one, or take the file out of `test.include` |
-| `No test found in features/cart.feature in line 12` | No scenario, outline or example row is at that line | Use the line of a `Scenario`, a `Scenario Outline` or an example row |
-| `vitest list` prints `No test suite found in file …` | Vitest reads test files without running them by default, and a feature file has no `test(` in it | `npx vitest list --staticParse=false` |
+### No test files found
 
-## A feature file fails before its scenarios run
+```ansi
+[31mNo test files found, exiting with code 1
+[39m
+[2minclude: [22m[33m**/*.{test,spec}.?(c|m)[jt]s?(x)[39m
+[2mexclude:  [22m[33m**/node_modules/**[2m, [22m**/.git/**[39m[0m
+```
 
-| You see | Why | Do |
-| --- | --- | --- |
-| `parse error in features/a.feature`, then `(4:5): expected: …` lines | The Gherkin doesn't parse | Fix the lines named. Only that file fails; in watch mode it reruns once fixed |
-| `the support code failed to load`, with your error as its cause | A support file threw while it was imported | Fix the error at the line shown. Every feature file fails until then |
-| `Given's second argument should be an object or a function`, then `features/steps/cart.ts:4` | Cucumber's checks reject a definition's arguments | Fix the definition at that line |
-| `"Given" was called after the support code loaded` | A definition function (`Given`, `Before`, …) was called late, e.g. inside a step | Call them at the top level of a support file only |
-| `BeforeAll({ on: "COORDINATOR" }) isn't supported, use Vitest's globalSetup for once-per-run setup` | A once-per-run `BeforeAll`/`AfterAll` | Use Vitest's [`globalSetup`](https://vitest.dev/config/globalsetup) |
-| `setDefaultTimeout isn't supported, …`, `setParallelCanAssign isn't supported, …` | See [Limitations](/reference/limitations#not-supported) | Set Vitest's `testTimeout` and `hookTimeout`; drop `setParallelCanAssign` |
-| `the "worldParameters" option can't be converted to JSON` | [`worldParameters`](/guides/support-code#world-parameters) holds a value JSON can't (a `BigInt`, a cycle) | Keep them JSON; build other values in a `BeforeAll` |
-| `the "import" option is required, an array of your support code's globs` | `cucumber()` without `import`, or not an array of strings (or Storybook's addon listed by name, without `cucumber({ … })`) | Give your support code's globs: `cucumber({ import: ["features/**/*.ts"] })` |
-| `the "language" option "…" isn't a Gherkin language` | A language Gherkin doesn't have | Fix the option: [Options](/reference/options) |
+Vitest's default `include` matches `*.test.ts` and `*.spec.ts` files, not feature files. Add yours:
 
-## Hooks
+```ts filename="vitest.config.ts"
+test: { include: ["features/**/*.feature"] },
+```
 
-- **`BeforeAll` fails**: that worker's feature files fail with the hook's error, and their
-  scenarios don't run.
-- **`AfterAll` fails**: the scenarios keep their results and the run fails with the hook's error
-  (not yet in node mode with `isolate: false`:
-  [Limitations](/reference/limitations#node-mode-with-isolate-false)).
+### Every step is undefined
 
-## Browser mode
+```ansi
+[41m[1m FAIL [22m[49m features/cart.feature[2m:2[22m[2m > [22mCart[2m > [22mAdding an item
+[31m[1mError[22m: Given an empty cart
 
-| You see | Why | Do |
-| --- | --- | --- |
-| The page reloads mid-run and the run fails | Vite found a new dependency to optimize while your steps ran | Add the package to [`optimizeDeps.include`](https://vite.dev/config/dep-optimization-options) |
-| `cucumber's API (…) isn't available in browser mode` | A support file imports `@cucumber/cucumber/api` or `@cucumber/cucumber/lib/…` | Import from `@cucumber/cucumber` only in a page |
-| `Formatter isn't supported` (or another formatter or runner class) | The page runs the plugin's own copy of Cucumber's runtime | Vitest's [reporters](https://vitest.dev/guide/reporters) report the run |
-| `Invalid attachment data: must be a string` | A page attaches strings only | Attach base64 with a `base64:` media type: [Attachments](/guides/support-code#attachments) |
+[34mUndefined steps:[31m
+  [34m[1mGiven [22man empty cart[31m
+  [34m[1mWhen [22mI add "apples"[31m
 
-## Storybook
+You can implement missing steps with the snippets below:
 
-| You see | Why | Do |
-| --- | --- | --- |
-| `remove cucumber() from this Storybook project, use the addon in .storybook/main.ts` | A `cucumber()` in the Storybook test project's Vitest config, or one in the root config it inherits (an inline project does unless it sets `extends: false`) | Remove it: the plugin's addon in `.storybook/main.ts` gives the project its plugin ([Setup](/modes/storybook#configure)). Give other projects their own `cucumber()`, or set `extends: false` on the Storybook project |
-| `no cucumber runner in this page …` | The plugin's addon isn't loaded | Add `cucumber({ … })` from `@lotun/vitest-cucumber/storybook/node` to Storybook's `addons` |
-| `the preview's support code isn't served …` | The plugin's addon isn't loaded | Add `cucumber({ … })` from `@lotun/vitest-cucumber/storybook/node` to Storybook's `addons` |
-| `no story is running` | `story()` was called outside a scenario's step | Call it in a step, or in a World getter a step reads |
-| Features are listed apart from their stories file, which is under a prefix | The stories files' `stories` entry has a `titlePrefix`, the features' entry doesn't: Storybook prefixes each file by its own entry | Give the features' entry the same `titlePrefix`: [Title prefix](/modes/storybook#title-prefix) |
-| Storybook's `NoStoryMountedError` | An unmounted story (`{storybook:storyUnmounted}`) that no step mounted | Mount it in a step: [Mounting](/modes/storybook/features#mounting) |
-| `Failed to generate manifests`, with `SyntaxError: Unexpected token` | An MDX docs page is attached to a feature file (`<Meta of={…} />`), and Storybook's manifests read that file as a stories file | Add `tags={["!manifest"]}` to that `<Meta>`: [Features in docs](/modes/storybook/docs#in-an-mdx-page) |
-| `Storybook's story tests of … aren't declared as the plugin expects` | Your Storybook is newer than the plugin knows | Report it; meanwhile use the Storybook version the plugin was released for |
+Given('an empty cart', function () {
+  // Write code here that turns the phrase above into concrete actions
+  return 'pending';
+});
 
-### A feature that can't be linked
+When('I add {string}', function (string) {
+  // Write code here that turns the phrase above into concrete actions
+  return 'pending';
+});[0m
+```
 
-`feature file can't be linked to stories:`, then every error the feature has. In Vitest only its own
-file fails; `storybook dev` and `storybook build` stop, and Storybook lists it as a file it can't
-index, as it does a broken stories file. A feature that doesn't parse is reported the same way.
+No support code was loaded: the [`import`](/reference/options#import) globs match no file (a typo, or
+the step definitions are in another folder), so no step has a definition. Point `import` at your step
+definitions:
 
-| The error says | Do |
-| --- | --- |
-| `has no stories file: none is next to it …` | Put `X.stories.ts` next to `X.feature`, or name one with a stories file step |
-| `the stories file "…" doesn't exist` | Write its path from the project's root, or from the feature's folder with `./` or `../` |
-| `the stories file "…" starts with "/"` | The same: no leading `/` |
-| `names 2 stories files …` | A feature runs on one stories file: split it into one feature per stories file |
-| `has no story "Primary" (its stories: …)` | Name an export the stories file has; they're listed |
-| `has no title: none is written in its meta, and no pattern of Storybook's "stories" matches it` | The feature is listed under its stories file's title: give that file's meta a `title`, or list the file in Storybook's `stories` |
-| `names the story "Primary" …, but has no stories file` | Add the stories file next to the feature, or a stories file step |
-| `names a story twice`, `names a stories file twice` | One of each per scenario, its Backgrounds' steps included |
-| `"…" matches 2 Storybook steps` | Two of your Storybook steps match the same text: change one's wording |
-| `can't be read as a stories file (…)` | The step names a component, a folder or a file that doesn't parse: name a CSF 3 stories file |
-| `uses CSF factories, which the plugin doesn't support yet` | Write that stories file in CSF 3 |
-| `can't be read: write its expression as a string literal` | A Storybook step's expression must be a string literal, not built with `${…}` |
-| `a Storybook step uses one of the plugin's parameter types, once` | One of `{storybook:story}`, `{storybook:storyUnmounted}`, `{storybook:storiesFile}` per step |
-| `a Storybook step may use only the plugin's parameter types and cucumber's built-in ones` | Take your own parameter type out of that step |
+```ts filename="vitest.config.ts"
+plugins: [cucumber({ import: ["features/**/*.ts"] })],
+```
+
+### A feature file without scenarios
+
+```ansi
+[41m[1m FAIL [22m[49m features/cart.feature[2m [ features/cart.feature ][22m
+[31m[1mError[22m: No test found in suite features/cart.feature[39m[0m
+```
+
+Each scenario is a Vitest test, so a feature file with none has no tests, and Vitest fails it. Add a
+scenario, or leave the file out of `test.include` until it has one. To have such files pass instead
+(features still being written), set Vitest's
+[`passWithNoTests`](https://vitest.dev/config/passwithnotests):
+
+```ts filename="vitest.config.ts"
+test: { passWithNoTests: true },
+```
+
+### `vitest list` finds no tests
+
+```ansi
+[31m[1mError[22m: No test suite found in file /home/you/shop/features/cart.feature[39m[0m
+```
+
+`vitest list` reads test files without running them, looking for `test(` calls, and a feature file
+has none. Have Vitest load them:
+
+```bash
+npx vitest list --staticParse=false
+```
+
+## Browser mode and Storybook
+
+### Vite reloads the page mid-run
+
+```ansi
+[2m10:24:31 AM[22m [33m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mdependency optimized: [33mreact[32m[39m
+[2m10:24:31 AM[22m [33m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32moptimized dependencies changed. reloading[39m
+[33m
+[1m[vitest][22m Vite unexpectedly reloaded a test. This may cause tests to fail, lead to flaky behaviour or duplicated test runs.
+[39m[33mFor a stable experience, add the newly optimized dependencies to your config's [1m`optimizeDeps.include`[22m field manually.[0m
+```
+
+A package your steps import was found only while the run was going, so Vite optimized it then and
+reloaded the page. Vite looks for the packages to optimize in the test files before the run, and a
+feature file isn't JavaScript, so it can't see what your support code imports. CommonJS packages
+(React, for one) are the ones it has to optimize. Tests may then fail, be flaky or run twice. Add the
+package to [`optimizeDeps.include`](https://vite.dev/config/dep-optimization-options#optimizedeps-include),
+so it's optimized before the run:
+
+```ts filename="vitest.config.ts"
+optimizeDeps: { include: ["react"] },
+```
+
+### No component is mounted in your story
+
+```text
+NoStoryMountedError: No component is mounted in your story.
+```
+
+Storybook's error, in its Interactions panel: a scenario plays an unmounted story
+(`{storybook:storyUnmounted}`) and none of its steps mounts it. Call `mount()` in a step:
+[Mounting](/modes/storybook/features#mounting).
 
 ## A bug in the plugin
 
-A message that ends with `(a bug in @lotun/vitest-cucumber, please report it at …)` is the plugin's
-own fault: please [open an issue](https://github.com/lotun-io/vitest-cucumber/issues) with it.
+A message that ends with `(a bug in @lotun/vitest-cucumber, please report it at
+https://github.com/lotun-io/vitest-cucumber/issues)` is the plugin's own fault: please
+[open an issue](https://github.com/lotun-io/vitest-cucumber/issues) with the whole error.
