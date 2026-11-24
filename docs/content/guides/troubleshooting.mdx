@@ -70,19 +70,6 @@ scenario, or leave the file out of `test.include` until it has one. To have such
 test: { passWithNoTests: true },
 ```
 
-### `vitest list` finds no tests
-
-```ansi
-[31m[1mError[22m: No test suite found in file /home/you/shop/features/cart.feature[39m[0m
-```
-
-`vitest list` reads test files without running them, looking for `test(` calls, and a feature file
-has none. Have Vitest load them:
-
-```bash
-npx vitest list --staticParse=false
-```
-
 ## Browser mode and Storybook
 
 ### Vite reloads the page mid-run

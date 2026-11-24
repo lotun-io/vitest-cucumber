@@ -114,6 +114,9 @@ export class E2EWorld extends World {
   /** The project's files' times as the scenario's page was opened (`../steps/storybookDev.ts`). */
   fileTimes?: Map<string, number>;
 
+  /** The tests the scenario's last `vitest list` found, each with its location (`../support/listVitest.ts`). */
+  listed?: { tests: { name: string; location: string }[]; output: string };
+
   /** The Storybook project's last build (`storybook build`: see `../steps/storybook.ts`). */
   storybookBuild?: { exitCode: number; output: string };
 

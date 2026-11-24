@@ -50,6 +50,8 @@ export interface TagsPlan {
 
 /** A feature file of a run: its parse, and what its module is made with besides. */
 export interface VitestPlan extends TagsPlan {
+  /** Its text, as it was parsed (its feature module is written from it: `./featureModule.ts`). */
+  content: string;
   /** Its test tree, and its Gherkin document and pickles (`./plan.ts`). */
   featureTree: FeatureSuite;
   gherkin: FeatureGherkin;
@@ -133,6 +135,7 @@ export const createFeaturePlans = ({
       ? parsed
       : {
           ...parsed,
+          content: now.content,
           options: now.options,
           supportFiles: await supportFiles(),
         };

@@ -207,6 +207,10 @@ export const createPlugin = (
           userConfig.test?.onStackTrace,
           !configuration.backtrace,
         ),
+        // Every run's tests located (Vitest does it only for `file:line` filters otherwise): a
+        // feature module's calls, through its map, at their Gherkin lines
+        // (`../feature/featureModule.ts`), so each failure's header names its line.
+        includeTaskLocation: true,
       },
     }),
     configResolved: (config: { root: string }) => {
@@ -249,16 +253,20 @@ export const createPlugin = (
       if (!isFeatureFile(id) || !inVitest()) {
         return undefined;
       }
+      const { code, map } = featureModule({
+        platform,
+        cwd: root,
+        file: id,
+        plan: await plans.vitestPlanOf(id),
+      });
       return {
-        code: featureModule({
-          platform,
-          cwd: root,
-          plan: await plans.vitestPlanOf(id),
-        }),
-        // A one-line map. An error's first frame points at a step's line in the feature file (see
-        // `../../worker/platform/errors/testErrors.ts`); with no mapping for it, Vitest keeps it as it is. Without a
-        // map, Vitest would map it through the generated code instead and get the line wrong.
-        map: { version: 3, sources: [id], names: [], mappings: "AAAA" },
+        code,
+        // Its calls each mapped to its Gherkin line, every other line unmapped (`../feature/featureModule.ts`).
+        // A failed file's: a one-line map. An error's first frame points at a step's line in the
+        // feature file (see `../../worker/platform/errors/testErrors.ts`); with no mapping for it,
+        // Vitest keeps it as it is. Without a map, Vitest would map it through the generated code
+        // instead and get the line wrong.
+        map: map ?? { version: 3, sources: [id], names: [], mappings: "AAAA" },
       };
     },
   };

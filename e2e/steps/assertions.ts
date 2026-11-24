@@ -266,6 +266,21 @@ Then(
 
 // In any order: Vitest runs the feature files in parallel.
 // With a `NOTE` column, each skipped test's note too (`ctx.skip(note)`; empty: none).
+// What the last `vitest list` found, in its order: each test's full name and its `file:line:column`.
+Then("it lists the tests:", function (this: E2EWorld, table: DataTable) {
+  if (!this.listed) {
+    throw new Error(
+      "Nothing listed: add a `When I list its tests in <mode> mode` step",
+    );
+  }
+  expect(this.listed.tests, this.listed.output).toEqual(
+    table.hashes().map(({ NAME, LOCATION }) => ({
+      name: NAME,
+      location: LOCATION,
+    })),
+  );
+});
+
 Then("Vitest reports the tests:", function (this: E2EWorld, table: DataTable) {
   const byName = (tests: { name: string }[]) =>
     tests.toSorted((a, b) => a.name.localeCompare(b.name));

@@ -84,14 +84,12 @@ npx vitest run -t "Cart > Checkout"              # by name: feature > rule > out
 - **[By name](https://vitest.dev/guide/filtering#filtering-by-test-name)**: `-t` matches the full
   name, so `-t "Arithmetic > Doubling"` runs every scenario of that rule.
 
-To list the scenarios without running them:
+To list the scenarios without running them, each at its line, with the same filters:
 
 ```bash
-npx vitest list --staticParse=false
+npx vitest list
+npx vitest list features/cart.feature:12 --tagsFilter "@smoke"
 ```
-
-The flag is needed: Vitest's default reads test files without running them, and finds no test in a
-feature file.
 
 ## Tag options
 

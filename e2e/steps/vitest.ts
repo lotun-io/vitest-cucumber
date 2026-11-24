@@ -4,6 +4,7 @@ import { Given, When } from "@cucumber/cucumber";
 import { rm, writeFile } from "node:fs/promises";
 import type { CliOptions } from "vitest/node";
 import { closeKept } from "../support/kept.ts";
+import { listVitest } from "../support/listVitest.ts";
 import { openVitest } from "../support/openVitest.ts";
 import { writeDefaultConfig } from "../support/project.ts";
 import { runVitest } from "../support/runVitest.ts";
@@ -64,6 +65,30 @@ for (const [step, start] of [
     },
   );
 }
+
+// `vitest list` as its command line runs it by default (Vitest's static collection: the files parsed,
+// not run; see `../support/listVitest.ts`), in the mode's default config.
+When(
+  "I list its tests in {word} mode",
+  async function (this: E2EWorld, mode: string) {
+    await writeDefaultConfig.call(this, mode);
+    await listVitest.call(this, {});
+  },
+);
+When(
+  "I list its tests in {word} mode with {string}",
+  async function (this: E2EWorld, mode: string, filters: string) {
+    await writeDefaultConfig.call(this, mode);
+    await listVitest.call(this, { filters: toFilters(filters) });
+  },
+);
+When(
+  "I list its tests in {word} mode with options:",
+  async function (this: E2EWorld, mode: string, json: string) {
+    await writeDefaultConfig.call(this, mode);
+    await listVitest.call(this, { options: toOptions(json) });
+  },
+);
 
 // The scenario's own config, in a fresh Vitest (not a kept one): e.g. a run that fails as Vitest
 // starts (the plugin refusing its options), which Vitest reports as its command line does.

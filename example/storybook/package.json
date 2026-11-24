@@ -32,7 +32,7 @@
     "@vitejs/plugin-react": "^6.3.0",
     "@vitest/browser-playwright": "catalog:",
     "@vitest/coverage-v8": "^5.1.1",
-    "oxlint": "^1.94.0",
+    "oxlint": "^1.95.0",
     "playwright": "catalog:",
     "react-syntax-highlighter": "^15.6.6",
     "storybook": "^10.6.8",

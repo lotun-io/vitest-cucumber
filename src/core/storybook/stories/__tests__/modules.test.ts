@@ -59,6 +59,7 @@ const failingSuite = [`describe("feature", () => {`, `  ${thrown}`, "});"];
 test("a stories module: its code; with an error: the host's failing lines, then a meta and no story", () => {
   const made = {
     uri: "a.feature",
+    content: "Feature: A\n",
     tags: [],
     featureTree: { name: "A", line: 1, column: 1, children: [] },
     gherkin: { document: { comments: [] }, pickles: [] },
@@ -90,6 +91,7 @@ test("a feature module, from its feature's plan: story tests' exports the runtim
   };
   const plan = {
     ...model,
+    content: "Feature: A\n",
     tags: [],
     featureTree: { name: "A", line: 1, column: 1, children: [] },
     link: { key: "" },

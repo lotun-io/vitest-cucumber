@@ -9,7 +9,7 @@ import type { FeatureSuite, FeatureTest } from "../../types/feature.ts";
 /** Puts `task` at its suite's or test's Gherkin line (a collected one: a collector has no location). */
 const locate = (
   task: RunnerTask | SuiteCollector | undefined,
-  { line, column }: FeatureSuite | FeatureTest,
+  { line, column }: Pick<FeatureSuite | FeatureTest, "line" | "column">,
 ) => {
   if (task && task.type !== "collector") {
     task.location = { line, column };
