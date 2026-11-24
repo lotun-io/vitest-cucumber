@@ -23,8 +23,11 @@ jobs:
   test:
     name: "test ${{ matrix.os }} node${{ matrix.node-version }}"
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 60
+    # A whole run takes 9–12 minutes; a stalled one stops here.
+    timeout-minutes: 30
     strategy:
+      # Every OS and Node version runs to its end: one failing doesn't cancel the others.
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
         node-version: [24, 26]
@@ -39,8 +42,9 @@ jobs:
       - run: pnpm exec playwright install --with-deps
       # The whole suite, as locally: every project, the e2e and compatibility ones too, with the
       # coverage and its thresholds. Their workers: `vitest.utils.ts`'s `e2eMaxWorkers` (half the
-      # CPU threads, capped by free memory: 1 or 2 on these runners).
-      - run: pnpm test
+      # CPU threads, capped by free memory: 1 or 2 on these runners). Verbose: each test as it
+      # ends, not each file, so a run that stalls shows where.
+      - run: pnpm test --reporter=verbose
 
   smoke:
     name: "smoke (pack + example)"
