@@ -10,10 +10,11 @@ export type { CucumberOptions };
 
 /**
  * The plugin for node and browser projects (by the project's `test.browser.enabled`), with its
- * options (none: cucumber's defaults). A Storybook project gets it from its addon instead:
+ * options (`import` required; the others cucumber's defaults). A Storybook project gets it from
+ * its addon instead:
  * `cucumber({ … })` from `@lotun/vitest-cucumber/storybook/node` in `.storybook/main.ts`.
  */
-export const cucumber = (options?: CucumberOptions): Plugin[] => [
+export const cucumber = (options: CucumberOptions): Plugin[] => [
   createNodePlugin(options),
   createBrowserPlugin(options),
 ];

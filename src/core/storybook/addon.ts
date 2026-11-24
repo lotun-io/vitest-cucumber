@@ -15,7 +15,7 @@ export interface AddonOptions {
 }
 
 /** The plugin as an entry of Storybook's `addons`, with its options. */
-export const cucumber = (options: CucumberOptions = {}) => ({
+export const cucumber = (options: CucumberOptions) => ({
   name: "@lotun/vitest-cucumber/storybook",
   options: { [addonOptionsKey]: options } satisfies AddonOptions,
 });

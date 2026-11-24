@@ -20,9 +20,10 @@ import { createStorybookPlans } from "../stories/storybookPlans.ts";
 export type PresetOptions = Pick<Options, "configDir" | "presets"> &
   AddonOptions;
 
-/** The plugin's options: the addon entry's (none given: cucumber's defaults). */
-export const cucumberOptionsOf = (options: PresetOptions): CucumberOptions =>
-  options[addonOptionsKey] ?? {};
+/** The plugin's options: the addon entry's (none: the preset listed by its name, `import` missing). */
+export const cucumberOptionsOf = (
+  options: PresetOptions,
+): Partial<CucumberOptions> => options[addonOptionsKey] ?? {};
 
 /** A Storybook project's cucumber: its configuration (the addon entry's options) and its plans. */
 const projects = new Map<string, ReturnType<typeof createProject>>();

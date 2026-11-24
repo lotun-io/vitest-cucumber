@@ -17,8 +17,11 @@ import { createPlugin } from "./plugin/createPlugin.ts";
 import { checkNotInStorybookProject } from "./plugin/storybookProjectCheck.ts";
 import { ownModule } from "./utils/ownModule.ts";
 
-/** Browser mode's hooks, and the shared plugin (`core`) they're built on. */
-export const createBrowserHooks = (options: CucumberOptions | undefined) => {
+/**
+ * Browser mode's hooks, and the shared plugin (`core`) they're built on; `options` as given (a
+ * Storybook addon entry's may have none: the shared plugin checks them).
+ */
+export const createBrowserHooks = (options: Partial<CucumberOptions>) => {
   const core = createPlugin(options, {
     platform: ownModule("worker/browser/platform"),
   });
@@ -51,9 +54,7 @@ export const createBrowserHooks = (options: CucumberOptions | undefined) => {
  * Browser mode's plugin (`cucumber()`'s, in a browser project): its hooks and its feature files'
  * transform; refused in a Storybook project, which gets its plugins from its addon.
  */
-export const createBrowserPlugin = (
-  options: CucumberOptions | undefined,
-): Plugin => {
+export const createBrowserPlugin = (options: CucumberOptions): Plugin => {
   const { core, hooks } = createBrowserHooks(options);
   return {
     name: "vitest-cucumber:browser",

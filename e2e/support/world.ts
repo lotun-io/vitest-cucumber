@@ -61,8 +61,11 @@ export interface RunResult {
 export class E2EWorld extends World {
   /** The scenario's project. */
   dir = "";
-  /** The plugin's options (`cucumber(options)`), in the default config (see `./project.ts`). */
-  pluginOptions: CucumberOptions = {};
+  /**
+   * The scenario's plugin options (`cucumber(options)`), in the default config over its `import`
+   * (every support file of `features/`: see `./project.ts`).
+   */
+  pluginOptions: Partial<CucumberOptions> = {};
   /**
    * The runs' Cucumber Messages, once the scenario collects them: every run's stream, in order (the
    * harness subscribes to each Vitest it runs: `./messages.ts`).

@@ -538,6 +538,7 @@ test("the server channel hook: feature files whose index entries are out of date
   const channel = { emit: (event: string) => emitted.push(event) };
   const options = {
     configDir: dir,
+    vitestCucumber: { import: [] },
     presets: {
       apply: (name: string) => {
         asked.push(name);

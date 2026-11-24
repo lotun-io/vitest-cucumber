@@ -3,17 +3,17 @@ import type { CucumberOptions } from "../../../types/feature.ts";
 import { configurationOf, runOptionsOf } from "../options.ts";
 
 /** The error `configurationOf` throws for options a config may give, whatever their type says. */
-const errorOf = (options: Record<string, unknown>) => {
+const errorOf = (options?: Record<string, unknown>) => {
   try {
-    configurationOf(options as CucumberOptions);
+    configurationOf(options as CucumberOptions | undefined);
   } catch (error) {
     return error;
   }
   return undefined;
 };
 
-test("no option given: cucumber's defaults", () => {
-  expect(configurationOf({})).toEqual({
+test("only `import` given: cucumber's defaults for the others", () => {
+  expect(configurationOf({ import: [] })).toEqual({
     import: [],
     dryRun: false,
     backtrace: false,
@@ -41,7 +41,7 @@ test("the options given: as given, the others cucumber's defaults", () => {
     strict: false,
     worldParameters: { url: "http://a" },
   });
-  expect(configurationOf({ strict: false })).toMatchObject({
+  expect(configurationOf({ import: [], strict: false })).toMatchObject({
     strict: false,
     dryRun: false,
     language: "en",
@@ -62,38 +62,47 @@ test("an option the plugin doesn't support (untyped): left out", () => {
 
 test("the world parameters: a JSON copy, as the Worlds get them", () => {
   const worldParameters = { list: [1] };
-  const configuration = configurationOf({ worldParameters });
+  const configuration = configurationOf({ import: [], worldParameters });
   expect(configuration.worldParameters).toEqual(worldParameters);
   expect(configuration.worldParameters).not.toBe(worldParameters);
 });
 
-test("`import` that isn't an array of strings: the plugin's error", () => {
-  for (const globs of ["features/**/*.ts", [1], [["features"]]]) {
-    expect(errorOf({ import: globs })).toMatchObject({
-      message:
-        '@lotun/vitest-cucumber: the "import" option must be an array of strings',
-    });
+test("no `import`, or not an array of strings: the plugin's error, with what to give", () => {
+  const error = {
+    message:
+      '@lotun/vitest-cucumber: the "import" option is required: an array of your support code\'s globs, e.g. ["features/**/*.ts"]',
+  };
+  // `cucumber()` from JavaScript, or a Storybook addon entry without options.
+  expect(errorOf()).toMatchObject(error);
+  expect(errorOf({})).toMatchObject(error);
+  expect(errorOf({ strict: false })).toMatchObject(error);
+  for (const globs of [null, "features/**/*.ts", [1], [["features"]]]) {
+    expect(errorOf({ import: globs })).toMatchObject(error);
   }
 });
 
 test("a `language` Gherkin doesn't have: the plugin's error", () => {
-  expect(errorOf({ language: "klingon" })).toMatchObject({
+  expect(errorOf({ import: [], language: "klingon" })).toMatchObject({
     message:
       '@lotun/vitest-cucumber: the "language" option "klingon" isn\'t a Gherkin language',
   });
   // An object's own members aren't languages.
-  expect(errorOf({ language: "toString" })).toBeDefined();
-  expect(errorOf({ language: "en-pirate" })).toBeUndefined();
+  expect(errorOf({ import: [], language: "toString" })).toBeDefined();
+  expect(errorOf({ import: [], language: "en-pirate" })).toBeUndefined();
 });
 
 test("world parameters JSON refuses: the plugin's error", () => {
-  expect(errorOf({ worldParameters: { limit: 10n } })).toMatchObject({
+  expect(
+    errorOf({ import: [], worldParameters: { limit: 10n } }),
+  ).toMatchObject({
     message: `@lotun/vitest-cucumber: the "worldParameters" option can't be converted to JSON`,
   });
 });
 
 test("the run's options: what the runtime reads of the configuration", () => {
   expect(
-    runOptionsOf(configurationOf({ dryRun: true, worldParameters: { a: 1 } })),
+    runOptionsOf(
+      configurationOf({ import: [], dryRun: true, worldParameters: { a: 1 } }),
+    ),
   ).toEqual({ strict: true, dryRun: true, worldParameters: { a: 1 } });
 });

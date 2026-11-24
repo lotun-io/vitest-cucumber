@@ -3,14 +3,7 @@ import { playwright } from "@vitest/browser-playwright";
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
-  plugins: [
-    cucumber({
-      import: [
-        "features/support/**/*.ts",
-        "features/steps/**/*.ts",
-      ],
-    }),
-  ],
+  plugins: [cucumber({ import: ["features/**/*.ts"] })],
   test: {
     include: ["features/**/*.feature"],
     browser: {

@@ -6,19 +6,15 @@ import type { GherkinDocument, Pickle } from "@cucumber/messages";
 
 /**
  * The plugin's options: the cucumber options it supports (see cucumber's configuration docs), its
- * configuration.
+ * configuration. `import` is required (no default: none loads no support code).
  */
-export type CucumberOptions = Partial<
-  Pick<
-    IConfiguration,
-    | "import"
-    | "dryRun"
-    | "backtrace"
-    | "language"
-    | "strict"
-    | "worldParameters"
-  >
->;
+export type CucumberOptions = Pick<IConfiguration, "import"> &
+  Partial<
+    Pick<
+      IConfiguration,
+      "dryRun" | "backtrace" | "language" | "strict" | "worldParameters"
+    >
+  >;
 
 /** A suite's or test's Gherkin location, for Vitest's `file:line` filters. */
 interface Located {

@@ -25,7 +25,8 @@ Not here? Ask on [Discord](https://discord.gg/dfJUkmEtAP) or in
 | `Invalid "options.on": "COORDINATOR" isn't supported …` | A once-per-run `BeforeAll`/`AfterAll` | Use Vitest's [`globalSetup`](https://vitest.dev/config/globalsetup) |
 | `setDefaultTimeout isn't supported`, `setParallelCanAssign isn't supported` | See [Limitations](/reference/limitations#not-supported) | Set Vitest's `testTimeout` and `hookTimeout`; drop `setParallelCanAssign` |
 | `the "worldParameters" option can't be converted to JSON` | [`worldParameters`](/guides/support-code#world-parameters) holds a value JSON can't (a `BigInt`, a cycle) | Keep them JSON; build other values in a `BeforeAll` |
-| `the "import" option must be an array of strings`, `the "language" option "…" isn't a Gherkin language` | An option of the wrong kind | Fix the option: [Options](/reference/options) |
+| `the "import" option is required: an array of your support code's globs` | `cucumber()` without `import`, or not an array of strings (or Storybook's addon listed by name, without `cucumber({ … })`) | Give your support code's globs: `cucumber({ import: ["features/**/*.ts"] })` |
+| `the "language" option "…" isn't a Gherkin language` | A language Gherkin doesn't have | Fix the option: [Options](/reference/options) |
 
 ## Hooks
 

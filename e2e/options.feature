@@ -275,10 +275,38 @@ Feature: Plugin options
       | browser   |
       | storybook |
 
+  # `import` is required: a config without it fails as `cucumber()` is called, with what to give
+  # (in every mode: the config fails to load). A wrong one (`null`, not an array of strings), and
+  # Storybook's addon entry without it: unit tests (`options.test.ts`, `storybookPlugin.test.ts`).
+  Scenario: Without `import`, the run fails with what to give
+    Given the Vitest config:
+      """
+      import { cucumber } from "@lotun/vitest-cucumber";
+      import { defineConfig } from "vitest/config";
+
+      export default defineConfig({
+        // @ts-expect-error -- the option left out, as a JavaScript config may
+        plugins: [cucumber({})],
+        test: { include: ["features/**/*.feature"] },
+      });
+      """
+    And a file named "features/a.feature" with:
+      """
+      Feature: A
+        Scenario: a
+          Given a step
+      """
+    When I run vitest
+    Then it fails
+    And the output contains:
+      """
+      @lotun/vitest-cucumber: the "import" option is required: an array of your support code's globs, e.g. ["features/**/*.ts"]
+      """
+
   # Unlike cucumber (each feature file's closest `features` folder, else its own, everything in it),
-  # no default: without `import`, no support code, in every mode. The steps are undefined, with
-  # snippets.
-  Scenario Outline: Without `import`, no support code is loaded (<mode>)
+  # no default: `import` is required (`cucumber()` without it throws), and with no globs no support
+  # code loads, in every mode. The steps are undefined, with snippets.
+  Scenario Outline: With no `import` globs, no support code is loaded (<mode>)
     Given the plugin options:
       """
       { "import": [] }

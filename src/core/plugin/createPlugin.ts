@@ -36,13 +36,13 @@ type FileChangeListener = (type: FileChange, file: string) => Promise<void>;
 
 /**
  * The shared hooks, which each mode's plugin calls from its own, plus what the modes need from them
- * (`root`, `configuration`, …), with the user's options (`given`: none, cucumber's defaults; a
- * wrong one throws here, as the plugin is made). `platform` is the path of the mode's `Platform`
+ * (`root`, `configuration`, …), with the user's options (`given`: `import` required, the others
+ * cucumber's defaults where none; a missing or wrong one throws here, as the plugin is made). `platform` is the path of the mode's `Platform`
  * module, which every feature module imports; feature modules carry the file's Gherkin document and
  * pickles, which the plugin's runtime runs (`../../worker/runner/`).
  */
 export const createPlugin = (
-  given: CucumberOptions | undefined,
+  given: Partial<CucumberOptions>,
   {
     platform,
     commandServer = false,
@@ -55,7 +55,7 @@ export const createPlugin = (
 ) => {
   let root = process.cwd();
   /** The user's configuration: their options, with cucumber's defaults. */
-  const configuration = configurationOf(given ?? {});
+  const configuration = configurationOf(given);
   /** What main knows of each feature file: its tags, its plan (`../feature/plans.ts`). */
   const plans = createFeaturePlans({ root: () => root, configuration });
   /** A watching Vitest: how feature files' modules are made again (`./watchReruns.ts`). */

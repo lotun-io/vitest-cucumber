@@ -272,6 +272,6 @@ Feature: Storybook errors
       """
 
     Examples:
-      | plugin                  | inherited  | own        |
-      | its own                 |            | cucumber() |
-      | inherited from the root | cucumber() |            |
+      | plugin                  | inherited                                  | own                                        |
+      | its own                 |                                            | cucumber({ import: ["features/**/*.ts"] }) |
+      | inherited from the root | cucumber({ import: ["features/**/*.ts"] }) |                                            |

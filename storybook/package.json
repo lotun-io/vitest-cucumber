@@ -9,8 +9,8 @@
   "devDependencies": {
     "@cucumber/cucumber": "catalog:",
     "@lotun/vitest-cucumber": "workspace:*",
-    "@storybook/addon-vitest": "^10.6.7",
-    "@storybook/react-vite": "^10.6.7",
+    "@storybook/addon-vitest": "^10.6.8",
+    "@storybook/react-vite": "^10.6.8",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",

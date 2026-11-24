@@ -3,7 +3,7 @@
 ```ts
 import { cucumber, type CucumberOptions } from "@lotun/vitest-cucumber";
 
-cucumber(options?: CucumberOptions)
+cucumber(options: CucumberOptions)
 ```
 
 `CucumberOptions` is a subset of Cucumber's
@@ -12,7 +12,7 @@ same meaning:
 
 | Option            | Type       | Default | |
 | ----------------- | ---------- | ------- | - |
-| `import`          | `string[]` | none    | Support code: globs or folders, relative to the project's root |
+| `import`          | `string[]` | required | Support code: globs or folders, relative to the project's root |
 | `strict`          | `boolean`  | `true`  | `false`: a pending step skips its scenario instead of failing it |
 | `dryRun`          | `boolean`  | `false` | Match steps without running anything |
 | `backtrace`       | `boolean`  | `false` | Keep Cucumber's and the plugin's frames in errors |
@@ -44,17 +44,18 @@ import { options } from "./cucumber.options.ts";
 plugins: [cucumber(options)],
 ```
 
-A wrong option (an `import` that isn't an array of strings, a `language` Gherkin doesn't have)
-fails as `cucumber()` is called. The options are read once: changing them takes a restart.
+A missing or wrong option (no `import`, or one that isn't an array of strings; a `language` Gherkin
+doesn't have) fails as `cucumber()` is called. The options are read once: changing them takes a restart.
 
 ## import
 
 Your step definitions, hooks, World and parameter types. A folder means every `.ts`, `.mts`, `.cts`,
 `.tsx`, `.js`, `.mjs`, `.cjs` and `.jsx` file in it. Files load once each, in order: each glob's
-matches sorted, globs in your order.
+matches sorted, globs in your order. To load your hooks' files first, list their folder first:
+`["features/support/**/*.ts", "features/steps/**/*.ts"]`.
 
-There's no default: without `import` (or with globs matching no file), nothing loads and every step
-is undefined, with snippets.
+It's required: there's no default. With `[]`, or globs matching no file, nothing loads and every
+step is undefined, with snippets.
 
 ## strict
 
