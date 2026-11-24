@@ -45,6 +45,10 @@ More, with retries, bail, watch mode and coverage: [Running and filtering](/guid
 - **Not available in the page**: Cucumber's JavaScript API (`@cucumber/cucumber/api`) and its
   formatter and runner classes. See [Limitations](/reference/limitations#in-a-page-browser-mode-and-storybook).
 - **A page that reloads or crashes** during a run fails its feature file instead of hanging.
+- **Vitest's module cache is off for the project.** The plugin sets
+  [`fsModuleCache: false`](https://vitest.dev/config/fsmodulecache) on a browser project (and on a
+  Storybook project). Vitest only uses that cache there for `vitest list` and `--changed`, where it
+  could read an outdated copy of a feature's module. Your other projects keep their cache.
 
 <Callout type="warning">
   If a package your steps import makes Vite optimize new dependencies mid-run (the page reloads and
