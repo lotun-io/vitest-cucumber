@@ -21,7 +21,8 @@ export const internalDirectories = [
   ...["@cucumber/core", "@cucumber/cucumber-expressions"].map((name) =>
     path.dirname(require.resolve(`${name}/package.json`)),
   ),
-  // This package's `src/` and `dist/`.
+  // This package's `src/` and `dist/` (published, only `dist/`: its frames, mapped by its maps, are
+  // `src/`'s, whose files aren't there).
   ...["src", "dist"].map((dir) => path.join(path.dirname(ownRoot), dir)),
 ].map((dir) => `${slash(dir)}/`);
 
