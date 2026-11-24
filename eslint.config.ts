@@ -13,6 +13,13 @@ export default defineConfig(
       ...tseslint.configs.strict,
       pluginN.configs["flat/recommended-module"],
     ],
+    // Type information, for the rules that need it (`no-deprecated`): each file's `tsconfig.json`.
+    languageOptions: {
+      parserOptions: {
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
     settings: {
       n: {
         version: ">=24.0.0",
@@ -20,6 +27,7 @@ export default defineConfig(
       },
     },
     rules: {
+      "@typescript-eslint/no-deprecated": "warn",
       "@typescript-eslint/consistent-type-imports": [
         "error",
         { prefer: "type-imports", fixStyle: "separate-type-imports" },

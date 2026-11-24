@@ -1,3 +1,4 @@
+import { DecodedMap, getOriginalPosition } from "@vitest/utils/source-map";
 import { expect, test } from "vitest";
 import { errorCode } from "../../../utils/errorCode.ts";
 import { ownModule } from "../../../utils/ownModule.ts";
@@ -56,16 +57,21 @@ const thrown = `throw ${errorCode(error)};`;
 const describeImport = `import { describe } from "vitest";`;
 const failingSuite = [`describe("feature", () => {`, `  ${thrown}`, "});"];
 
-test("a stories module: its code; with an error: the host's failing lines, then a meta and no story", () => {
+test("a stories module: its code, in story tests then the feature's tests as calls, each at its Gherkin line by its map; with an error: the host's failing lines, then a meta and no story", () => {
   const made = {
     uri: "a.feature",
-    content: "Feature: A\n",
+    content: "Feature: A\n\n  @smoke\n  Scenario: One\n    Given a step\n",
     tags: [],
-    featureTree: { name: "A", line: 1, column: 1, children: [] },
+    featureTree: {
+      name: "A",
+      line: 1,
+      column: 1,
+      children: [{ name: "One", line: 4, column: 3, tags: ["@smoke"] }],
+    },
     gherkin: { document: { comments: [] }, pickles: [] },
     link: { key: "" },
     options: {},
-    supportFiles: [],
+    supportFiles: ["/p/steps.ts"],
     storybookSteps: false,
     stories: {
       code: "the code",
@@ -74,11 +80,44 @@ test("a stories module: its code; with an error: the host's failing lines, then 
       titles: {},
     },
   };
-  expect(storiesModule(made)).toBe("the code");
+  const file = "/p/a.feature";
+  const { code, map } = storiesModule({ file, plan: made });
+  expect(code).toBe(
+    [
+      "the code",
+      `import { storyTests as __cucumberStoryTests } from "/p/a.feature?vitest-cucumber-storybook";`,
+      "const { describe, storyTest } = __cucumberStoryTests({ importSupport: async () => {",
+      '  await import("/p/steps.ts");',
+      "} });",
+      'describe("A", { line: 1, column: 1 }, () => {',
+      "",
+      "",
+      'storyTest("One", { tags: ["@smoke"] }, { line: 4, column: 3 }); });',
+      "",
+      "",
+    ].join("\n"),
+  );
+  if (!map) {
+    throw new Error("no map");
+  }
+  const decoded = new DecodedMap(JSON.parse(map.toString()), file);
+  // The feature's suite (the module's line 6) and its scenario's test (line 9), at their keywords.
+  expect(getOriginalPosition(decoded, { line: 6, column: 0 })).toMatchObject({
+    line: 1,
+    column: 0,
+  });
+  expect(getOriginalPosition(decoded, { line: 9, column: 0 })).toMatchObject({
+    line: 4,
+    column: 2,
+  });
+  // The stories' code: no mapping.
+  expect(getOriginalPosition(decoded, { line: 1, column: 0 })).toBeNull();
   expect(storiesModulePreview(made)).toBe("the code");
-  expect(storiesModule({ error })).toBe(
+  const failed = storiesModule({ file, plan: { error } });
+  expect(failed.code).toBe(
     [describeImport, ...failingSuite, "export default {};"].join("\n"),
   );
+  expect(failed.map).toBeUndefined();
   expect(storiesModulePreview({ error })).toBe(
     [thrown, "export default {};"].join("\n"),
   );
@@ -114,11 +153,10 @@ test("a feature module, from its feature's plan: story tests' exports the runtim
       "  convertToFilePath as addonConvertToFilePath,",
       `} from "@storybook/addon-vitest/internal/test-utils";`,
       `import { storyTestsModule } from ${own("worker/storybook/vitest/tests")};`,
-      "export const { testStory, declareFeature, convertToFilePath, vitest } = storyTestsModule({",
+      "export const { testStory, storyTests, convertToFilePath, vitest } = storyTestsModule({",
       "  testStory: addonTestStory,",
       "  convertToFilePath: addonConvertToFilePath,",
       '  run: {"cwd":"/p","options":{},"storybookSteps":true},',
-      `  tree: ${JSON.stringify(plan.featureTree)},`,
       "});",
       `export default createFeature(${JSON.stringify(model)});`,
     ].join("\n"),

@@ -81,6 +81,12 @@ describe("a Storybook project's plugins in story tests (the preset's viteFinal g
       ]),
     );
     expect(browser).not.toHaveProperty("transform");
+    // Its project's config: every task located, Vitest's file system module cache off (a browser
+    // project's feature modules would be kept there: Vitest's bug).
+    const config = (browser?.config as (config: object) => unknown)({});
+    expect(config).toMatchObject({
+      test: { includeTaskLocation: true, fsModuleCache: false },
+    });
   });
 
   test("a stories module's import of the addon's test utilities: its feature module; anything else as it is", () => {

@@ -10,7 +10,7 @@
 // call's location comes from its recorded stack, source-mapped (browser mode: by main).
 import { buildSupportCode as buildCoreSupportCode } from "@cucumber/core";
 import type { IdGenerator, SourceReference } from "@cucumber/messages";
-import parse from "@cucumber/tag-expressions";
+import { parse } from "@cucumber/tag-expressions";
 import type { RuntimeEnvironment } from "../../types/runtimeEnvironment.ts";
 import type {
   Code,

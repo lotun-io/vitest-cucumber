@@ -1,12 +1,14 @@
 // `vitest list` as Vitest's command line runs it by default: the project's test files parsed, not
 // run (Vitest's static collection, `parseSpecifications`: the transformed modules' `describe` and
 // `…Test` calls, their names, tags and source-mapped locations), in a Vitest of its own, closed
-// after. A feature module writes its tree as such calls (`../../src/core/feature/featureModule.ts`).
+// after. A feature's test module writes its tree as such calls (`../../src/core/feature/treeCalls.ts`:
+// node and browser mode's feature module, a Storybook project's stories module).
 import path from "node:path";
 import type { CliOptions } from "vitest/node";
 import { createVitest } from "vitest/node";
 import { relative } from "./paths.ts";
 import { capture, viteLogger } from "./run.ts";
+import { featureStoriesFiles } from "./storybookProject.ts";
 import type { E2EWorld } from "./world.ts";
 
 /** Lists the scenario's tests, with Vitest's file filters (`file:line` too) and command line options. */
@@ -14,10 +16,13 @@ export async function listVitest(
   this: E2EWorld,
   { filters = [], options = {} }: { filters?: string[]; options?: CliOptions },
 ) {
+  // A Storybook project's: its feature files as stories (see `featureStoriesFiles`).
+  if (this.mode === "storybook") {
+    await featureStoriesFiles.call(this);
+  }
   const output = capture();
   const { exitCode } = process;
   const vitest = await createVitest(
-    "test",
     { root: this.dir, watch: false, cache: false, ...options },
     { customLogger: viteLogger(output) },
     { stdout: output.stream, stderr: output.stream },

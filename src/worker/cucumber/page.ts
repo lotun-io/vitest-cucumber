@@ -74,12 +74,14 @@ export const FormatterBuilder =
 export const JsonFormatter =
   unsupported<typeof Cucumber.JsonFormatter>("JsonFormatter");
 export const ProgressFormatter =
+  // eslint-disable-next-line @typescript-eslint/no-deprecated -- every export of cucumber's, while it has it
   unsupported<typeof Cucumber.ProgressFormatter>("ProgressFormatter");
 export const RerunFormatter =
   unsupported<typeof Cucumber.RerunFormatter>("RerunFormatter");
 export const SnippetsFormatter =
   unsupported<typeof Cucumber.SnippetsFormatter>("SnippetsFormatter");
 export const SummaryFormatter =
+  // eslint-disable-next-line @typescript-eslint/no-deprecated -- every export of cucumber's, while it has it
   unsupported<typeof Cucumber.SummaryFormatter>("SummaryFormatter");
 export const UsageFormatter =
   unsupported<typeof Cucumber.UsageFormatter>("UsageFormatter");

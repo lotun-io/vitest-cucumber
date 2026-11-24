@@ -1,9 +1,10 @@
 Feature: Listing the scenarios without running them
 
   # `vitest list` as Vitest's command line runs it by default: it parses each test file's module
-  # without running it, and finds the calls it declares its tests with. A feature module writes its
-  # test tree as such calls, each at its Gherkin line (its source map), so every scenario and example
-  # row is listed at its line, and Vitest's filters apply: a `file:line`, a tag.
+  # without running it, and finds the calls it declares its tests with. A feature's test module (in a
+  # Storybook project, its stories module) writes its test tree as such calls, each at its Gherkin
+  # line (its source map), so every scenario and example row is listed at its line, and Vitest's
+  # filters apply: a `file:line`, a tag.
   Scenario Outline: vitest list finds every scenario and example row, at its line (<mode>)
     Given a file named "features/steps.ts" with:
       """
@@ -53,6 +54,7 @@ Feature: Listing the scenarios without running them
       | Cart > Adding an item | features/cart.feature:8:3 |
 
     Examples:
-      | mode    |
-      | node    |
-      | browser |
+      | mode      |
+      | node      |
+      | browser   |
+      | storybook |

@@ -3,13 +3,15 @@
 // Storybook project has these), from Storybook's options (the addon entry's among them: the
 // plugin's options). Browser mode's hooks (`./browserPlugin.ts`), without its transform: a feature
 // file (a test file: the project's `include` comes from Storybook's `stories`) is its stories module
-// (`./storybook/stories/featureStories.ts`: its stories file's meta, a story per scenario), and its
-// feature module is served (`./storybook/stories/featureRuntimeModule.ts`, which loads the support
-// code with the project's root and the run's options). The story tests are the addon's, from the
-// stories module (its transform runs between these two plugins'), handed to the plugin's runtime:
-// the module's import of the addon's test utilities resolved to its feature module, its Vitest
-// import the feature module's `vitest`, and the feature's tests declared after the addon's
-// (`./storybook/vitest/vitestImport.ts`).
+// (`./storybook/stories/featureStories.ts`: its stories file's meta, a story per scenario), then its
+// test tree as calls, written from the feature's own text as node and browser mode's feature module
+// is (`./storybook/stories/featureStoriesModule.ts`); its feature module is served
+// (`./storybook/stories/featureRuntimeModule.ts`, which loads the support code with the project's
+// root and the run's options). The story tests are the addon's, from the stories module (its
+// transform runs between these two plugins'), handed to the plugin's runtime: the module's import
+// of the addon's test utilities resolved to its feature module, its Vitest import the feature
+// module's `vitest`, each of the feature's tests running the story test the addon declared for its
+// scenario (`./storybook/vitest/vitestImport.ts`).
 import type { Plugin } from "vitest/config";
 import { createBrowserHooks } from "./browserPlugin.ts";
 import { isFeatureFile } from "./feature/featureFile.ts";
@@ -28,7 +30,6 @@ import { storiesModule } from "./storybook/stories/featureStoriesModule.ts";
 import { autoTitleOfStorybook } from "./storybook/stories/storiesTitle.ts";
 import { createStorybookPlans } from "./storybook/stories/storybookPlans.ts";
 import { vitestFromFeature } from "./storybook/vitest/vitestImport.ts";
-import { importSupportCode } from "./support/importSupportCode.ts";
 import { withoutQuery } from "./utils/withoutQuery.ts";
 
 /** A Storybook project's plugins in story tests, from Storybook's `options` (the preset's). */
@@ -78,10 +79,13 @@ export const createStorybookPlugin = (options: PresetOptions): Plugin[] => {
       if (!isFeatureFile(id)) {
         return undefined;
       }
-      // One that can't be made (its parse errors, its links): its file fails with the error.
-      const code = storiesModule(await plans.storybookPlanOf(id));
-      // No map: none fits this code.
-      return { code, map: { mappings: "" } };
+      // One that can't be made (its parse errors, its links): its file fails with the error, and
+      // has no map (none fits its code).
+      const { code, map } = storiesModule({
+        file: id,
+        plan: await plans.storybookPlanOf(id),
+      });
+      return { code, map: map ?? null };
     },
   };
 
@@ -95,7 +99,7 @@ export const createStorybookPlugin = (options: PresetOptions): Plugin[] => {
       if (id !== file || !isFeatureFile(file)) {
         return undefined;
       }
-      // The support files, from what its stories module was made (one reading for both); a
+      // The feature's lines, from what its stories module was made (one reading for both); a
       // feature that can't be used has no story tests here.
       const plan = await plans.storybookPlanOf(file);
       return vitestFromFeature({
@@ -103,9 +107,7 @@ export const createStorybookPlugin = (options: PresetOptions): Plugin[] => {
         file,
         featureModule: featureModuleOf(file),
         testUtils,
-        importSupport: importSupportCode(
-          "error" in plan ? [] : plan.supportFiles,
-        ),
+        lines: "error" in plan ? 0 : plan.content.split("\n").length,
       });
     },
   };

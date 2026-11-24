@@ -13,45 +13,41 @@ const generated = [
   `_test("Log in", _testStory({ exportName: "LogIn" }));`,
 ].join("\n");
 
-/** The support files' import, as its code is written (`core/support/importSupportCode.ts`). */
-const importSupport = 'async () => {\n  await import("/p/steps.ts");\n}';
-
-describe("a feature's stories module's Vitest import, the feature module's", () => {
-  test("the addon's import (with `test`) the feature module's `vitest`, destructured into its names, the feature declared after the addon's tests with the support files' import; another Vitest import as it is", () => {
+describe("a feature's stories module after the addon's transform: its Vitest import the feature module's, its code below the feature's lines", () => {
+  test("the addon's import (with `test`) the feature module's `vitest`, destructured into its names; another Vitest import as it is; as many empty lines before the code as the feature has", () => {
     const result = vitestFromFeature({
       code: generated,
       file: "/p/Login.feature",
       featureModule,
       testUtils,
-      importSupport,
+      lines: 3,
     });
-    expect(result?.code).toBe(
+    expect(result.code).toBe(
       [
+        "",
+        "",
+        "",
         `import { vi } from "vitest";`,
-        `import { vitest as __cucumberVitest, declareFeature as __cucumberDeclare } from "${featureModule}";`,
+        `import { vitest as __cucumberVitest } from "${featureModule}";`,
         "const { test: _test, expect: _expect } = __cucumberVitest;",
         `import { testStory as _testStory, convertToFilePath } from "${testUtils}";`,
         "export const LogIn = {};",
         `_test("Log in", _testStory({ exportName: "LogIn" }));`,
-        "__cucumberDeclare({ importSupport: async () => {",
-        '  await import("/p/steps.ts");',
-        "} });",
-        "",
       ].join("\n"),
     );
-    expect(result?.map.sources).toEqual(["/p/Login.feature"]);
+    expect(result.map.sources).toEqual(["/p/Login.feature"]);
   });
 
-  test("no story tests (no import of the test utilities): nothing", () => {
+  test("no story tests (no import of the test utilities: every story left out by its tags): its code as it is, below the feature's lines", () => {
     expect(
       vitestFromFeature({
         code: "export const LogIn = {};",
         file: "/p/Login.feature",
         featureModule,
         testUtils,
-        importSupport,
-      }),
-    ).toBeUndefined();
+        lines: 2,
+      }).code,
+    ).toBe("\n\nexport const LogIn = {};");
   });
 
   test("story tests without `test` imported from Vitest: the addon's output changed", () => {
@@ -61,7 +57,7 @@ describe("a feature's stories module's Vitest import, the feature module's", () 
         file: "/p/Login.feature",
         featureModule,
         testUtils,
-        importSupport,
+        lines: 1,
       }),
     ).toThrow("aren't declared as the plugin expects");
   });

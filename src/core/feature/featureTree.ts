@@ -40,7 +40,7 @@ export const featureTree = (
   pickles: readonly Pickle[],
 ): FeatureSuite => {
   const feature = gherkinDocument?.feature;
-  // An unnamed feature: no suite (`../../worker/feature/registerFeature.ts`).
+  // An unnamed feature: no suite (`./treeCalls.ts`).
   const root = suite(feature?.name ?? "", feature?.location ?? { line: 1 });
   /** Each scenario by its id, with its rule if it has one. */
   const scenarios = new Map<string, { scenario: Scenario; rule?: Rule }>();

@@ -6,7 +6,8 @@
 // `test` from "vitest" and `testStory` and `convertToFilePath` from its test utilities; the stories
 // module's import of the test utilities resolves to its feature module (`storyTestsModuleId`), which
 // exports `cucumberTests`'s, its Vitest import is the feature module's `vitest` (Vitest's exports, but
-// for `test`), and `declareFeature` declares the feature's tests after the addon's (`../vitest/vitestImport.ts`).
+// for `test`: `../vitest/vitestImport.ts`), and its `storyTests` gives the stories module the calls its
+// tests are declared with (`./featureStoriesModule.ts`).
 import type { LoadRun } from "../../../types/platform.ts";
 import type { FeatureModel } from "../../../types/storybook.ts";
 import { isFeatureFile } from "../../feature/featureFile.ts";
@@ -56,10 +57,10 @@ export const featureFileOf = (id: string) =>
  * blocks. A feature that can't be used: its error thrown (its stories module imports no feature
  * module: only one asked for with nothing made gets here). Else its exports the runtime's
  * (`storyTestsModule`, `../../../worker/storybook/vitest/tests.ts`: what its stories module's test
- * code imports), given the feature's tree, the addon's test utilities (imported here: they resolve
- * from the project, not from the plugin) and the run (the project's root `cwd`, its options). The
- * support files' import isn't here: the test file's own module has it, and gives it as it
- * declares the feature (`../vitest/vitestImport.ts`).
+ * code imports), given the addon's test utilities (imported here: they resolve from the project,
+ * not from the plugin) and the run (the project's root `cwd`, its options). Neither the feature's
+ * tree nor the support files' import is here: the test file's own module has them, as calls and
+ * as what it gives `storyTests` (`./featureStoriesModule.ts`).
  */
 export const featureModule = ({
   cwd,
@@ -71,7 +72,7 @@ export const featureModule = ({
   if ("error" in plan) {
     return throwCode(plan.error);
   }
-  const { uri, gherkin, featureTree, options, storybookSteps } = plan;
+  const { uri, gherkin, options, storybookSteps } = plan;
   const model: FeatureModel = { uri, gherkin };
   const run: LoadRun = { cwd, options, storybookSteps };
   return [
@@ -81,11 +82,10 @@ export const featureModule = ({
     "  convertToFilePath as addonConvertToFilePath,",
     `} from ${JSON.stringify(testUtils)};`,
     `import { storyTestsModule } from ${JSON.stringify(ownModule("worker/storybook/vitest/tests"))};`,
-    "export const { testStory, declareFeature, convertToFilePath, vitest } = storyTestsModule({",
+    "export const { testStory, storyTests, convertToFilePath, vitest } = storyTestsModule({",
     "  testStory: addonTestStory,",
     "  convertToFilePath: addonConvertToFilePath,",
     `  run: ${JSON.stringify(run)},`,
-    `  tree: ${JSON.stringify(featureTree)},`,
     "});",
     `export default createFeature(${JSON.stringify(model)});`,
   ].join("\n");
