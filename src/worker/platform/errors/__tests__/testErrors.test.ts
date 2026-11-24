@@ -63,13 +63,13 @@ describe("errorsOf", () => {
 
   test("a failed run without any error: the plugin's bug", () => {
     expect(() => errorsOf(runOf([testRunFinished()]), "BeforeAll")).toThrow(
-      "@lotun/vitest-cucumber: a failed BeforeAll without its errors (a bug in @lotun/vitest-cucumber, please report it",
+      "[@lotun/vitest-cucumber] a failed BeforeAll without its errors (a bug in @lotun/vitest-cucumber, please report it",
     );
   });
 
   test("a failed result without its real error, the plugin's bug", () => {
     expect(() => errorsOf(runOf([failedHook("hook")]), "BeforeAll")).toThrow(
-      "@lotun/vitest-cucumber: a failed result without its error (a bug in @lotun/vitest-cucumber",
+      "[@lotun/vitest-cucumber] a failed result without its error (a bug in @lotun/vitest-cucumber",
     );
   });
 

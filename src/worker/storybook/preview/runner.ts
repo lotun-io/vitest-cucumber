@@ -78,7 +78,7 @@ export const createPreviewRunner = ({
       }
       beforeAll = undefined;
       const after = await platform.afterAll();
-      if (!after.passed) {
+      if (after && !after.passed) {
         throw after.error;
       }
     },

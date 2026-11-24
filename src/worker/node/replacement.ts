@@ -53,8 +53,6 @@ export const loadWithReplacement = async (
     // A dynamic import: a static `import * as` makes the build give the recorders' module (which the
     // page loads too) a namespace helper importing `node:module`, a warning in a page's build.
     ...(await import("../cucumber/recorders.ts")),
-    // The support code methods the plugin doesn't support: stand-ins that throw, as the page's.
-    ...(await import("../cucumber/unsupported.ts")),
     world,
     context,
     World,

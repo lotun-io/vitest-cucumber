@@ -1,17 +1,18 @@
 // The page's `@cucumber/cucumber`: a page (browser mode's, Storybook's story tests' and its preview's)
 // runs the plugin's own copy of cucumber's runtime (`../runner/`). Every export of cucumber 13.3.0 is here, typed as cucumber's:
 // - the support code's methods (`Given`, `Before`, …) record their calls (`./recorders.ts`),
-//   which the page builds its support code from (`../runner/supportCode.ts`);
+//   which the page builds its support code from (`../runner/supportCode.ts`), refusing the ones the
+//   plugin doesn't support in any mode (`setDefaultTimeout`, `setParallelCanAssign`) there;
 // - what the code uses while it runs (`World`, `DataTable`, `world`, `context`, …) is real;
 // - the runner's and formatters' exports are stand-ins that throw when used (the page has no cucumber
-//   runtime to give them; node mode's worker has cucumber's own), as are the support code methods
-//   the plugin doesn't support in any mode (`./unsupported.ts`). They exist so that importing one
-//   works and using it fails with a clear reason.
+//   runtime to give them; node mode's worker has cucumber's own: `./unsupported.ts`). They exist so
+//   that importing one works and using it fails with a clear reason.
 import type * as Cucumber from "@cucumber/cucumber";
 import { wrapPromiseWithTimeout as runtimeWrapPromiseWithTimeout } from "../runner/timeout.ts";
 import { unsupported } from "./unsupported.ts";
 
-// The support code's methods: each call is recorded.
+// The support code's methods: each call is recorded (the two the plugin doesn't support too, refused
+// with the call's location as the support code is built).
 export {
   After,
   AfterAll,
@@ -22,7 +23,9 @@ export {
   defineParameterType,
   defineStep,
   Given,
+  setDefaultTimeout,
   setDefinitionFunctionWrapper,
+  setParallelCanAssign,
   setWorldConstructor,
   Then,
   When,
@@ -62,9 +65,6 @@ export let version: typeof Cucumber.version = "";
 export const setVersion = (cucumberVersion: string) => {
   version = cucumberVersion;
 };
-
-// The support code methods the plugin doesn't support, in every mode: stand-ins that throw.
-export { setDefaultTimeout, setParallelCanAssign } from "./unsupported.ts";
 
 // The runner's and formatters' exports: the page has no cucumber runtime of its own to give them (node
 // mode's worker has cucumber's own), so they're stand-ins that throw.

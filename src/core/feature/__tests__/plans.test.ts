@@ -136,7 +136,7 @@ test("a file that doesn't parse is a failed plan, the same one while its text is
   expect(plan).toMatchObject({
     error: {
       message: expect.stringContaining(
-        "Parse error in broken.feature",
+        "parse error in broken.feature",
       ) as string,
     },
   });

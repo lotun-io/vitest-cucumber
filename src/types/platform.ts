@@ -113,8 +113,8 @@ export interface Platform {
   load(): Promise<void>;
   /** Runs the BeforeAll hooks. */
   beforeAll(): Promise<HookOutcome>;
-  /** Runs the AfterAll hooks. */
-  afterAll(): Promise<HookOutcome>;
+  /** Runs the AfterAll hooks: their outcome, none if the support code failed to load (none ran). */
+  afterAll(): Promise<HookOutcome | undefined>;
   /** Runs one scenario. */
   scenario(scenario: ScenarioToRun): Promise<ScenarioOutcome>;
 }

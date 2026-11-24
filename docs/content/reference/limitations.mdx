@@ -6,7 +6,7 @@ In every mode:
 
 | What | What happens | Use instead |
 | --- | --- | --- |
-| `BeforeAll`/`AfterAll` with `on: "COORDINATOR"` | Defining one fails: `Invalid "options.on": "COORDINATOR" isn't supported` | Vitest's [`globalSetup`](https://vitest.dev/config/globalsetup), for once-per-run setup |
+| `BeforeAll`/`AfterAll` with `on: "COORDINATOR"` | Defining one fails: `BeforeAll({ on: "COORDINATOR" }) isn't supported, use Vitest's globalSetup for once-per-run setup` | Vitest's [`globalSetup`](https://vitest.dev/config/globalsetup), for once-per-run setup |
 | `setDefaultTimeout` | Calling it throws | Vitest's `testTimeout` and `hookTimeout`, or a definition's [`timeout`](/guides/support-code#timeouts) |
 | `setParallelCanAssign` | Calling it throws | Nothing: Vitest decides which worker runs which feature file |
 | Cucumber's formatters, plugins and publishing | The options are ignored | Vitest's [reporters](https://vitest.dev/guide/reporters) |

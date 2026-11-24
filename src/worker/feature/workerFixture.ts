@@ -18,7 +18,7 @@ const worker: {
   afterAllRan?: boolean;
 } = {};
 
-/** Runs the AfterAll hooks, unless they ran: their outcome (none if they ran). */
+/** Runs the AfterAll hooks, unless they ran: their outcome (none if they ran, or none could run). */
 const runAfterAll = async (platform: Platform) => {
   if (worker.afterAllRan) {
     return undefined;
@@ -59,7 +59,9 @@ export const featureTest = test.extend(
 /**
  * Hooks a feature file up to the worker fixture: its `beforeAll` fails with the support code's error
  * if it couldn't load, or with the BeforeAll hooks' if they failed; with `isolate`, its `afterAll`
- * runs the AfterAll hooks and fails with their error. Cucumber's timeouts apply, not Vitest's.
+ * runs the AfterAll hooks (none if the support code didn't load) and fails with their error. Only
+ * `beforeAll` uses the fixture: Vitest sets up a fixture whose setup threw again for each hook using
+ * it, so an `afterAll` using it would fail the file a second time with the support code's error. Cucumber's timeouts apply, not Vitest's.
  */
 export const useWorkerFixture = (platform: Platform) => {
   worker.platform = platform;
@@ -69,9 +71,7 @@ export const useWorkerFixture = (platform: Platform) => {
     }
   }, 0);
   if (inject("vitestCucumber").isolate) {
-    featureTest.afterAll(async ({ cucumberWorker }) => {
-      // Destructured: Vitest reads a hook's first parameter for the fixtures it uses.
-      void cucumberWorker;
+    featureTest.afterAll(async () => {
       const afterAll = await runAfterAll(platform);
       if (afterAll && !afterAll.passed) {
         throw afterAll.error;

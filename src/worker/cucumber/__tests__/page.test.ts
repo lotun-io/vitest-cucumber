@@ -11,6 +11,7 @@ import {
   world,
   wrapPromiseWithTimeout,
 } from "../page.ts";
+import * as recorders from "../recorders.ts";
 import { registry } from "../registry.ts";
 import { useScope } from "../scope.ts";
 
@@ -131,7 +132,7 @@ describe("the support code's other exports", () => {
 });
 
 describe("the runner's exports, stand-ins that throw", () => {
-  const reason = "@lotun/vitest-cucumber: Formatter isn't supported";
+  const reason = "[@lotun/vitest-cucumber] Formatter isn't supported";
 
   test("a call, `new`, reading, writing or testing a property", () => {
     const stand = Formatter as unknown as Record<string, unknown> &
@@ -146,13 +147,9 @@ describe("the runner's exports, stand-ins that throw", () => {
     expect(() => "anything" in stand).toThrow(reason);
   });
 
-  test("the support code methods it doesn't support: refused at the call", () => {
-    expect(() => setDefaultTimeout(1000)).toThrow(
-      "@lotun/vitest-cucumber: setDefaultTimeout isn't supported",
-    );
-    expect(() => setParallelCanAssign(() => true)).toThrow(
-      "@lotun/vitest-cucumber: setParallelCanAssign isn't supported",
-    );
+  test("the support code methods it doesn't support: recorded as the others (refused as the support code is built, with the call's location)", () => {
+    expect(setDefaultTimeout).toBe(recorders.setDefaultTimeout);
+    expect(setParallelCanAssign).toBe(recorders.setParallelCanAssign);
   });
 
   test("reading a symbol, allowed (to inspect it)", () => {

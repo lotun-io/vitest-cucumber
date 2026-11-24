@@ -1,5 +1,6 @@
 // A feature file's parse errors, as the plugin reports them: one error, its first line the
-// plugin's name and the file (cucumber's wording, the file unquoted: `Parse error in <uri>`), then each parse
+// plugin's name and the file (cucumber's wording, lowercase as the plugin's messages are, the file unquoted: `parse error
+// in <uri>`), then each parse
 // error on a line of its own, as the Gherkin parser words it (its position first:
 // `(line:column): expected: …`). Everywhere (main and the page).
 import { pluginErrorMessage } from "./errors.ts";
@@ -8,4 +9,4 @@ import { pluginErrorMessage } from "./errors.ts";
 export const parseErrorMessage = (
   uri: string,
   parseErrors: readonly string[],
-) => [pluginErrorMessage(`Parse error in ${uri}`), ...parseErrors].join("\n");
+) => [pluginErrorMessage(`parse error in ${uri}`), ...parseErrors].join("\n");

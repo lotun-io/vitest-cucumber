@@ -133,7 +133,7 @@ export const askDevServer = (
       if ("error" in response) {
         console.warn(
           pluginErrorMessage(
-            `the dev server couldn't locate the support code's definitions: ${response.error}`,
+            `the dev server couldn't locate the support code's definitions (${response.error})`,
           ),
         );
         done();

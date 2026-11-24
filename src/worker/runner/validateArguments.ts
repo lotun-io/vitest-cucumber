@@ -1,8 +1,10 @@
-// Cucumber's validation of a definition's arguments (a copy of 13.3.0's
-// `lib/support_code_library_builder/validate_arguments.ts`): the page builds its support code itself
-// (`./supportCode.ts`), with cucumber's messages for a call it refuses. One of the plugin's own, in
-// cucumber's form: a BeforeAll or AfterAll hook's `on` is `"WORKER"` (Vitest's workers run them; a
-// `"COORDINATOR"` hook, once per run, has no coordinator to run it).
+// Cucumber's validation of a definition's arguments (13.3.0's
+// `lib/support_code_library_builder/validate_arguments.ts`): its checks, in its order, for each kind
+// of definition; the messages are the plugin's (`locatedError`: what's wrong, then the call's
+// location on a line of its own). One check is the plugin's own: a BeforeAll or AfterAll hook's
+// `on` is `"WORKER"` (Vitest's workers run them; a `"COORDINATOR"` hook, once per run, has no
+// coordinator to run it). Page-safe.
+import { locatedError } from "../../utils/errors.ts";
 
 type Args = {
   code?: unknown;
@@ -11,94 +13,93 @@ type Args = {
 };
 
 interface Validation {
-  identifier: string;
-  expectedType: string;
   predicate(args: Args): boolean;
-  /** What the error says after the identifier, if not `should be a <expectedType>` (the plugin's). */
-  reason?: string;
+  /** What's wrong with a call to `method` (`Given`, `Before`, …) with `args`. */
+  message(method: string, args: Args): string;
 }
 
-const optionsValidation = {
-  expectedType: "object or function",
-  predicate: ({ options }: Args) => typeof options === "object",
-};
+const optionsValidation = (argument: string): Validation => ({
+  predicate: ({ options }) => typeof options === "object",
+  message: (method) =>
+    `${method}'s ${argument} argument should be an object or a function`,
+});
 
 const optionsTimeoutValidation: Validation = {
-  identifier: '"options.timeout"',
-  expectedType: "integer",
   predicate: ({ options }) =>
     options?.timeout == null || typeof options.timeout === "number",
+  message: (method) => `${method}'s timeout option should be a number`,
 };
 
-const fnValidation = {
-  expectedType: "function",
-  predicate: ({ code }: Args) => typeof code === "function",
-};
+const fnValidation = (argument: string): Validation => ({
+  predicate: ({ code }) => typeof code === "function",
+  message: (method) => `${method}'s ${argument} argument should be a function`,
+});
 
 const tagsValidation: Validation = {
-  identifier: '"options.tags"',
-  expectedType: "string",
   predicate: ({ options }) =>
     options?.tags == null || typeof options.tags === "string",
+  message: (method) => `${method}'s tags option should be a string`,
 };
 
 /** The plugin's: a test run hook runs in each worker (cucumber's default, `on` left out, too). */
 const onWorkerValidation: Validation = {
-  identifier: '"options.on"',
-  expectedType: '"WORKER"',
   predicate: ({ options }) => options?.on == null || options.on === "WORKER",
-  reason: `"COORDINATOR" isn't supported, BeforeAll and AfterAll hooks run in each Vitest worker`,
+  message: (method, { options }) =>
+    options?.on === "COORDINATOR"
+      ? `${method}({ on: "COORDINATOR" }) isn't supported, use Vitest's globalSetup for once-per-run setup`
+      : `${method}'s on option should be "WORKER"`,
 };
 
-const validations: Record<string, Validation[]> = {
+const validations = {
   defineTestRunHook: [
-    { identifier: "first argument", ...optionsValidation },
+    optionsValidation("first"),
     optionsTimeoutValidation,
     onWorkerValidation,
-    { identifier: "second argument", ...fnValidation },
+    fnValidation("second"),
   ],
   defineTestCaseHook: [
-    { identifier: "first argument", ...optionsValidation },
+    optionsValidation("first"),
     tagsValidation,
     optionsTimeoutValidation,
-    { identifier: "second argument", ...fnValidation },
+    fnValidation("second"),
   ],
   defineTestStepHook: [
-    { identifier: "first argument", ...optionsValidation },
+    optionsValidation("first"),
     tagsValidation,
     optionsTimeoutValidation,
-    { identifier: "second argument", ...fnValidation },
+    fnValidation("second"),
   ],
   defineStep: [
     {
-      identifier: "first argument",
-      expectedType: "string or regular expression",
       predicate: ({ pattern }) =>
         pattern instanceof RegExp || typeof pattern === "string",
+      message: (method) =>
+        `${method}'s first argument should be a string or a regular expression`,
     },
-    { identifier: "second argument", ...optionsValidation },
+    optionsValidation("second"),
     optionsTimeoutValidation,
-    { identifier: "third argument", ...fnValidation },
+    fnValidation("third"),
   ],
-};
+} satisfies Record<string, Validation[]>;
 
-/** Throws cucumber's error for the first invalid argument of a call to `fnName`, at `location`. */
+/**
+ * Throws the plugin's error for the first invalid argument of a call to `method` (a definition of
+ * kind `fnName`), at `location` (the call's `path:line`).
+ */
 export const validateArguments = ({
   args,
   fnName,
+  method,
   location,
 }: {
   args: Args;
   fnName: keyof typeof validations;
+  method: string;
   location: string;
 }) => {
-  for (const { identifier, expectedType, predicate, reason } of validations[
-    fnName
-  ] ?? []) {
+  for (const { predicate, message } of validations[fnName]) {
     if (!predicate(args)) {
-      throw new Error(
-        `${location}: Invalid ${identifier}: ${reason ?? `should be a ${expectedType}`}`,
-      );
+      throw locatedError(message(method, args), location);
     }
   }
 };

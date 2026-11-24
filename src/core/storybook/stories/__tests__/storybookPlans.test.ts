@@ -140,7 +140,7 @@ test("a feature without a stories file is stopped by its links' error, and linke
   const { storybook, fileChanged } = project();
   const plan = await storybook.storybookPlanOf(id);
   expect("error" in plan && plan.error.message).toContain(
-    "Feature file can't be linked to stories:\n  - c.feature has no stories file",
+    "feature file can't be linked to stories:\n  - c.feature has no stories file",
   );
   expect(storybook.links.featuresOf(undefined)).toEqual([id]);
   // A stories file added next to it (`c.stories.ts`): it runs on it now.

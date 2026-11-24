@@ -70,7 +70,7 @@ test("the world parameters: a JSON copy, as the Worlds get them", () => {
 test("no `import`, or not an array of strings: the plugin's error, with what to give", () => {
   const error = {
     message:
-      '@lotun/vitest-cucumber: the "import" option is required: an array of your support code\'s globs, e.g. ["features/**/*.ts"]',
+      '[@lotun/vitest-cucumber] the "import" option is required, an array of your support code\'s globs, e.g. ["features/**/*.ts"]',
   };
   // `cucumber()` from JavaScript, or a Storybook addon entry without options.
   expect(thrownFor()).toMatchObject(error);
@@ -84,7 +84,7 @@ test("no `import`, or not an array of strings: the plugin's error, with what to 
 test("a `language` Gherkin doesn't have: the plugin's error", () => {
   expect(thrownFor({ import: [], language: "klingon" })).toMatchObject({
     message:
-      '@lotun/vitest-cucumber: the "language" option "klingon" isn\'t a Gherkin language',
+      '[@lotun/vitest-cucumber] the "language" option "klingon" isn\'t a Gherkin language',
   });
   // An object's own members aren't languages.
   expect(thrownFor({ import: [], language: "toString" })).toBeDefined();
@@ -95,7 +95,7 @@ test("world parameters JSON refuses: the plugin's error", () => {
   expect(
     thrownFor({ import: [], worldParameters: { limit: 10n } }),
   ).toMatchObject({
-    message: `@lotun/vitest-cucumber: the "worldParameters" option can't be converted to JSON`,
+    message: `[@lotun/vitest-cucumber] the "worldParameters" option can't be converted to JSON`,
   });
 });
 

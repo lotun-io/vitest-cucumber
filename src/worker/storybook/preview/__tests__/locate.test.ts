@@ -174,7 +174,7 @@ describe("the dev server's locations (`storybook dev`)", () => {
     emit(locatedEvent, { id: sent[0]?.data.id, error: "Error: no graph" });
     expect(await answer).toBeUndefined();
     expect(warn).toHaveBeenCalledWith(
-      "@lotun/vitest-cucumber: the dev server couldn't locate the support code's definitions: Error: no graph",
+      "[@lotun/vitest-cucumber] the dev server couldn't locate the support code's definitions (Error: no graph)",
     );
     expect(listening()).toBe(0);
     warn.mockRestore();

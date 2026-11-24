@@ -15,7 +15,7 @@ export const checkNotInStorybookProject = (
 ) => {
   if (plugins.some(({ name }) => name === storybookTestPlugin)) {
     throw pluginError(
-      "remove cucumber() from this Storybook project: use the addon in .storybook/main.ts",
+      "remove cucumber() from this Storybook project, use the addon in .storybook/main.ts",
       { quiet: true },
     );
   }

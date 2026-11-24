@@ -19,6 +19,15 @@ export const defineParameterType: typeof Cucumber.defineParameterType = record(
 export const setWorldConstructor: typeof Cucumber.setWorldConstructor = record(
   "setWorldConstructor",
 );
+/**
+ * Methods the plugin doesn't support (Vitest's `testTimeout` and `hookTimeout` are the default
+ * timeouts; Vitest assigns the feature files to its workers): recorded as the others, refused as
+ * the support code is built, with the call's location (`../runner/supportCode.ts`).
+ */
+export const setDefaultTimeout: typeof Cucumber.setDefaultTimeout =
+  record("setDefaultTimeout");
+export const setParallelCanAssign: typeof Cucumber.setParallelCanAssign =
+  record("setParallelCanAssign");
 /** Kept apart: the runtime applies it as it builds its support code (`../runner/supportCode.ts`). */
 export const setDefinitionFunctionWrapper: typeof Cucumber.setDefinitionFunctionWrapper =
   recordWrapper;

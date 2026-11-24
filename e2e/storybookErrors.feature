@@ -42,7 +42,7 @@ Feature: Storybook errors
     Then it fails
     And the output contains:
       """
-      Error: @lotun/vitest-cucumber: Parse error in src/Broken.feature
+      Error: [@lotun/vitest-cucumber] parse error in src/Broken.feature
       """
     And the output contains:
       """
@@ -59,7 +59,7 @@ Feature: Storybook errors
     And building its Storybook fails with:
       """
       Unable to index ./src/Broken.feature:
-      Error: @lotun/vitest-cucumber: Parse error in src/Broken.feature
+      Error: [@lotun/vitest-cucumber] parse error in src/Broken.feature
       (4:3): expected: #EOF
       """
 
@@ -167,7 +167,7 @@ Feature: Storybook errors
     Then it fails
     And the output contains:
       """
-      @lotun/vitest-cucumber: remove cucumber() from this Storybook project
+      [@lotun/vitest-cucumber] remove cucumber() from this Storybook project
       """
 
     Examples:
@@ -191,7 +191,7 @@ Feature: Storybook errors
       | Page > A step | skipped |
     And the output contains:
       """
-      Error: @lotun/vitest-cucumber: the support code failed to load
+      Error: [@lotun/vitest-cucumber] the support code failed to load
       """
     And the output contains:
       """
@@ -204,11 +204,11 @@ Feature: Storybook errors
     And the worker's kept Vitests are closed
     When I build its Storybook
     Then its stories show:
-      | STORY                     | STATUS | SHOWS                                                   |
-      | page-feature-page--a-step | FAIL   | @lotun/vitest-cucumber: the support code failed to load |
+      | STORY                     | STATUS | SHOWS                                                    |
+      | page-feature-page--a-step | FAIL   | [@lotun/vitest-cucumber] the support code failed to load |
 
-  # As a feature file's: cucumber refuses it as the support code loads, so the stories fail, with
-  # cucumber's message (the definition's location first) and a frame at its own line.
+  # As a feature file's: cucumber's checks refuse it as the support code is built, so the stories
+  # fail, with the plugin's error (what's wrong, then the definition's location on its own line).
   Scenario: A step definition cucumber refuses fails the stories
     Given a file named "features/steps.ts" with:
       """
@@ -224,26 +224,24 @@ Feature: Storybook errors
       | Page > A step | skipped |
     And the output contains:
       """
-      features/steps.ts:4: Invalid second argument: should be a object or function
-      """
-    And the output contains:
-      """
-      features/steps.ts:4:1
+      [@lotun/vitest-cucumber] Given's second argument should be an object or a function
+        features/steps.ts:4
       """
     # In a static build, the definition's location is its call site as the browser has it (no server,
-    # no source maps): the bundle's chunk, as Storybook's panel shows a story's own frames.
+    # no source maps): the bundle's chunk.
     And the worker's kept Vitests are closed
     When I build its Storybook
     Then its stories show:
-      | STORY                     | STATUS | SHOWS                                                          |
-      | page-feature-page--a-step | FAIL   | .js:1: Invalid second argument: should be a object or function |
-      | page-feature-page--a-step | FAIL   | assets/steps-                                                  |
+      | STORY                     | STATUS | SHOWS                                                     |
+      | page-feature-page--a-step | FAIL   | Given's second argument should be an object or a function |
+      | page-feature-page--a-step | FAIL   | assets/steps-                                             |
     # In `storybook dev`, the dev server maps it with the module's source map, as Vitest does in
     # browser mode: the definition's own line.
     When I start its Storybook dev server
     Then its stories show:
-      | STORY                     | STATUS | SHOWS                                                                        |
-      | page-feature-page--a-step | FAIL   | features/steps.ts:4: Invalid second argument: should be a object or function |
+      | STORY                     | STATUS | SHOWS                                                     |
+      | page-feature-page--a-step | FAIL   | Given's second argument should be an object or a function |
+      | page-feature-page--a-step | FAIL   | features/steps.ts:4                                       |
 
   # `e2e/hooksGlobal.feature` has story tests' failing BeforeAll hooks.
   Scenario: A failing BeforeAll hook fails the preview's stories

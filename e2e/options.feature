@@ -300,7 +300,7 @@ Feature: Plugin options
     Then it fails
     And the output contains:
       """
-      @lotun/vitest-cucumber: the "import" option is required: an array of your support code's globs, e.g. ["features/**/*.ts"]
+      [@lotun/vitest-cucumber] the "import" option is required, an array of your support code's globs, e.g. ["features/**/*.ts"]
       """
 
   # Unlike cucumber (each feature file's closest `features` folder, else its own, everything in it),
@@ -472,7 +472,7 @@ Feature: Plugin options
     Then it fails
     And the output contains:
       """
-      [Error: @lotun/vitest-cucumber: the "worldParameters" option can't be converted to JSON] {
+      [Error: [@lotun/vitest-cucumber] the "worldParameters" option can't be converted to JSON] {
         [cause]: TypeError: Do not know how to serialize a BigInt
       """
 

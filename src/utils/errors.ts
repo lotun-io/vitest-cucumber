@@ -1,11 +1,11 @@
-// The plugin's own errors (`pluginError`, `quietError`, `unsupportedError`), each message prefixed
+// The plugin's own errors (`pluginError`, `quietError`, `locatedError`, `unsupportedError`), each message prefixed
 // with the plugin's name (`pluginErrorMessage`). Three kinds: a user's or environment's error says
 // what's wrong and has no stack (`quiet`: no frame would be the user's); a user's call at the wrong
 // time keeps its stack, the call among its frames (Vitest's frame filter keeps an error whose first
 // frame is the plugin's whole); an `internal` one, a bug of the plugin's, keeps its stack and asks to
 // be reported. Page-safe.
 
-const prefix = "@lotun/vitest-cucumber: ";
+const prefix = "[@lotun/vitest-cucumber] ";
 
 /** Where the plugin's bugs are reported. */
 const issues = "https://github.com/lotun-io/vitest-cucumber/issues";
@@ -16,7 +16,7 @@ export const pluginErrorMessage = (message: string) => `${prefix}${message}`;
 /** The plugin's message for a bug of its own: `message`, asking to report it. */
 export const internalErrorMessage = (message: string) =>
   pluginErrorMessage(
-    `${message} (a bug in @lotun/vitest-cucumber, please report it: ${issues})`,
+    `${message} (a bug in @lotun/vitest-cucumber, please report it at ${issues})`,
   );
 
 /**
@@ -51,6 +51,14 @@ export const pluginError = (
     ? quietError(pluginErrorMessage(message), options)
     : new Error(pluginErrorMessage(message), options);
 };
+
+/**
+ * The plugin's error about a place in the user's files (`location`: `path:line` from the project's
+ * root): its message, then the place on a line of its own, indented, and no stack (its frames
+ * would be the plugin's). The messages' standard: `notes/design.md`, "Error messages".
+ */
+export const locatedError = (message: string, location: string) =>
+  pluginError(`${message}\n  ${location}`, { quiet: true });
 
 /** The plugin's error for a part of cucumber's API it doesn't support, in every mode (its call's stack). */
 export const unsupportedError = (name: string) =>

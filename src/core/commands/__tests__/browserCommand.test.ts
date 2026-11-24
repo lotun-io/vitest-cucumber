@@ -61,7 +61,7 @@ test("locate: each stack's first frame that isn't the plugin's, its path from th
 test("an action main doesn't have: the command fails with the plugin's error", async () => {
   const { call } = setup();
   await expect(call("describe")).rejects.toThrow(
-    '@lotun/vitest-cucumber: no action "describe"',
+    '[@lotun/vitest-cucumber] no action "describe"',
   );
 });
 

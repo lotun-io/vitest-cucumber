@@ -40,7 +40,7 @@ test("a value JSON.stringify refuses: the plugin's error, JSON.stringify's its c
     [parameters, "Converting circular structure to JSON"],
   ] as const) {
     expect(thrownFor(value)).toMatchObject({
-      message: `@lotun/vitest-cucumber: the "worldParameters" option can't be converted to JSON`,
+      message: `[@lotun/vitest-cucumber] the "worldParameters" option can't be converted to JSON`,
       cause: expect.objectContaining({
         message: expect.stringContaining(cause) as unknown,
       }) as unknown,

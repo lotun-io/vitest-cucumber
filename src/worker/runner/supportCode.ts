@@ -5,7 +5,8 @@
 // types go to core's builder. What core doesn't have stays here, for the runtime (`./runner.ts`,
 // `./testCaseRunner.ts`): `BeforeStep` and `AfterStep`, each definition's timeout and wrapper options,
 // the definition function wrapper (applied to every definition, as cucumber does) and the World class
-// (the default timeout is the host's: `setDefaultTimeout` isn't supported). Each
+// (the default timeout is the host's: `setDefaultTimeout` isn't supported, refused here with
+// `setParallelCanAssign`). Each
 // call's location comes from its recorded stack, source-mapped (browser mode: by main).
 import { buildSupportCode as buildCoreSupportCode } from "@cucumber/core";
 import type { IdGenerator, SourceReference } from "@cucumber/messages";
@@ -19,13 +20,25 @@ import type {
   SupportCode,
   WorldConstructor,
 } from "../../types/supportCode.ts";
-import { pluginError } from "../../utils/errors.ts";
+import { locatedError, pluginError } from "../../utils/errors.ts";
 import { createQuery } from "./query.ts";
 import { validateArguments } from "./validateArguments.ts";
 
 type Options = Record<string, unknown>;
 
 const stepMethods = new Set(["Given", "When", "Then", "defineStep"]);
+
+/**
+ * Cucumber's support code methods the plugin doesn't support, recorded as the others are (so the
+ * error has the call's location, in every mode), each with what to use instead.
+ */
+const unsupportedMethods = new Map([
+  [
+    "setDefaultTimeout",
+    "Vitest's testTimeout and hookTimeout are the default timeouts",
+  ],
+  ["setParallelCanAssign", "Vitest assigns the feature files to its workers"],
+]);
 
 /**
  * Builds the support code from `calls`, in order. `wrapper` is `setDefinitionFunctionWrapper`'s
@@ -103,6 +116,10 @@ export const buildSupportCode = (
       const line = location?.line ?? 0;
       const sourceReference: SourceReference = { uri, location: { line } };
       const where = `${uri}:${String(line)}`;
+      const instead = unsupportedMethods.get(method);
+      if (instead !== undefined) {
+        throw locatedError(`${method} isn't supported, ${instead}`, where);
+      }
       /** A hook's `(options, code)`, `(code)` or, with tags, `(tags, code)`, as cucumber reads them. */
       const hookArgs = (withTags: boolean) => {
         let [options, code] = args as [unknown, unknown];
@@ -125,6 +142,7 @@ export const buildSupportCode = (
         validateArguments({
           args: { code, pattern, options: options as Options },
           fnName: "defineStep",
+          method,
           location: where,
         });
         const { timeout, wrapperOptions } = options as Options;
@@ -141,6 +159,7 @@ export const buildSupportCode = (
         validateArguments({
           args: { code, options },
           fnName: "defineTestCaseHook",
+          method,
           location: where,
         });
         const hook = {
@@ -162,6 +181,7 @@ export const buildSupportCode = (
         validateArguments({
           args: { code, options },
           fnName: "defineTestStepHook",
+          method,
           location: where,
         });
         const tags = options.tags as string | undefined;
@@ -175,6 +195,7 @@ export const buildSupportCode = (
         validateArguments({
           args: { code, options },
           fnName: "defineTestRunHook",
+          method,
           location: where,
         });
         const hook = {
@@ -221,9 +242,10 @@ export const buildSupportCode = (
         });
       }
     } catch (error) {
-      // Cucumber's error at the call, as node mode has it: the call's frames (its first line, the
-      // stack's own `Error`, replaced by the error's).
-      if (error instanceof Error && stack) {
+      // An error at the call, as node mode has it: the call's frames (its first line, the stack's
+      // own `Error`, replaced by the error's). Not the plugin's located errors (`locatedError`),
+      // which have none: their message says where.
+      if (error instanceof Error && error.stack && stack) {
         error.stack = [
           `${error.name}: ${error.message}`,
           ...stack.split("\n").slice(1),

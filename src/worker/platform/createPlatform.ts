@@ -214,8 +214,16 @@ export const createPlatform = (host: Host): Platform => {
       return hooksRun(await runner.beforeAll(), "BeforeAll");
     },
     afterAll: async () => {
-      const { runner } = await loadedRun();
-      return hooksRun(await runner.afterAll(), "AfterAll");
+      if (!loaded) {
+        throw noSupportCode();
+      }
+      // Support code that failed to load has no AfterAll hooks to run: no outcome (its error is
+      // the feature files', their `beforeAll`'s, once).
+      const run = await loaded.catch(() => undefined);
+      if (!run) {
+        return undefined;
+      }
+      return hooksRun(await run.runner.afterAll(), "AfterAll");
     },
     scenario: async (scenario): Promise<ScenarioOutcome> => {
       const { pickle, attempt } = scenario;

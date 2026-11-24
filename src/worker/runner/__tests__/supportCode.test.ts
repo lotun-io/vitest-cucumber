@@ -51,18 +51,31 @@ describe("steps", () => {
     expect(support.library.findAllStepsBy("done")[0]?.def.fn.length).toBe(1);
   });
 
-  test("cucumber's error for invalid arguments, at the call's location", () => {
+  test("invalid arguments (cucumber's checks): the plugin's error, the call's location on a line of its own, no stack", () => {
     expect(() =>
       build([{ method: "Given", args: ["a step", 42], location: at(7) }]),
     ).toThrow(
-      "features/steps.ts:7: Invalid second argument: should be a object or function",
+      new Error(
+        "[@lotun/vitest-cucumber] Given's second argument should be an object or a function\n  features/steps.ts:7",
+      ),
+    );
+    expect(() =>
+      build([{ method: "When", args: [42, () => undefined], location: at(8) }]),
+    ).toThrow(
+      new Error(
+        "[@lotun/vitest-cucumber] When's first argument should be a string or a regular expression\n  features/steps.ts:8",
+      ),
     );
     expect(() =>
       build([
-        { method: "Given", args: [42, () => undefined], location: at(8) },
+        { method: "Then", args: ["a step", {}, "no code"], location: at(9) },
       ]),
     ).toThrow(
-      "features/steps.ts:8: Invalid first argument: should be a string or regular expression",
+      expect.objectContaining({
+        message:
+          "[@lotun/vitest-cucumber] Then's third argument should be a function\n  features/steps.ts:9",
+        stack: "",
+      }),
     );
   });
 });
@@ -266,7 +279,7 @@ test("the World class", () => {
   expect(support.World).toBe(CustomWorld);
 });
 
-test("a BeforeAll or AfterAll hook on the coordinator: a validation error, in cucumber's form", () => {
+test("a BeforeAll or AfterAll hook on the coordinator: refused, with what to use instead, at the call's location", () => {
   for (const method of ["BeforeAll", "AfterAll"]) {
     expect(() =>
       build([
@@ -277,9 +290,25 @@ test("a BeforeAll or AfterAll hook on the coordinator: a validation error, in cu
         },
       ]),
     ).toThrow(
-      'features/steps.ts:4: Invalid "options.on": "COORDINATOR" isn\'t supported, BeforeAll and AfterAll hooks run in each Vitest worker',
+      new Error(
+        `[@lotun/vitest-cucumber] ${method}({ on: "COORDINATOR" }) isn't supported, use Vitest's globalSetup for once-per-run setup\n  features/steps.ts:4`,
+      ),
     );
   }
+  // Another value: what it should be.
+  expect(() =>
+    build([
+      {
+        method: "BeforeAll",
+        args: [{ on: "SOMEWHERE" }, () => undefined],
+        location: at(5),
+      },
+    ]),
+  ).toThrow(
+    new Error(
+      '[@lotun/vitest-cucumber] BeforeAll\'s on option should be "WORKER"\n  features/steps.ts:5',
+    ),
+  );
   // A worker's hook, `on` given or left out (cucumber's default).
   expect(() =>
     build([
@@ -287,6 +316,29 @@ test("a BeforeAll or AfterAll hook on the coordinator: a validation error, in cu
       { method: "AfterAll", args: [() => undefined] },
     ]),
   ).not.toThrow();
+});
+
+test("the methods the plugin doesn't support: refused, with what to use instead, at the call's location", () => {
+  expect(() =>
+    build([{ method: "setDefaultTimeout", args: [1000], location: at(3) }]),
+  ).toThrow(
+    new Error(
+      "[@lotun/vitest-cucumber] setDefaultTimeout isn't supported, Vitest's testTimeout and hookTimeout are the default timeouts\n  features/steps.ts:3",
+    ),
+  );
+  expect(() =>
+    build([
+      {
+        method: "setParallelCanAssign",
+        args: [() => true],
+        location: at(6),
+      },
+    ]),
+  ).toThrow(
+    new Error(
+      "[@lotun/vitest-cucumber] setParallelCanAssign isn't supported, Vitest assigns the feature files to its workers\n  features/steps.ts:6",
+    ),
+  );
 });
 
 test("a function the support code didn't define: the plugin's internal error, not a quiet fallback", () => {

@@ -30,10 +30,10 @@ test("in order", () => {
 test("a call once the support code has loaded fails, with its method's name", () => {
   registry.loaded = true;
   expect(() => record("Given")("a step", () => undefined)).toThrow(
-    '@lotun/vitest-cucumber: "Given" was called after the support code loaded',
+    '[@lotun/vitest-cucumber] "Given" was called after the support code loaded',
   );
   expect(() => recordWrapper((code: unknown) => code)).toThrow(
-    '@lotun/vitest-cucumber: "setDefinitionFunctionWrapper" was called after the support code loaded',
+    '[@lotun/vitest-cucumber] "setDefinitionFunctionWrapper" was called after the support code loaded',
   );
   expect(registry.calls).toEqual([]);
   expect(registry.wrapper).toBeUndefined();

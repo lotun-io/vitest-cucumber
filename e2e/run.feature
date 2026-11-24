@@ -407,7 +407,7 @@ Feature: Running feature files
     Then it fails
     And the test "A > importing the API" fails with:
       """
-      @lotun/vitest-cucumber: cucumber's API (`@cucumber/cucumber/api`, `@cucumber/cucumber/lib/…`) isn't available in browser mode
+      [@lotun/vitest-cucumber] cucumber's API (`@cucumber/cucumber/api`, `@cucumber/cucumber/lib/…`) isn't available in browser mode
       """
 
   # One `cucumber()` in the root config, every project inheriting it (`extends: true`): a node project

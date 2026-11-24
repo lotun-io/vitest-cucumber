@@ -8,10 +8,10 @@ test("a wrong option: the plugin's error as the plugin is made", () => {
       { platform: "platform.ts" },
     ),
   ).toThrow(
-    '@lotun/vitest-cucumber: the "language" option "klingon" isn\'t a Gherkin language',
+    '[@lotun/vitest-cucumber] the "language" option "klingon" isn\'t a Gherkin language',
   );
   expect(() => createPlugin({}, { platform: "platform.ts" })).toThrow(
-    '@lotun/vitest-cucumber: the "import" option is required',
+    '[@lotun/vitest-cucumber] the "import" option is required',
   );
 });
 

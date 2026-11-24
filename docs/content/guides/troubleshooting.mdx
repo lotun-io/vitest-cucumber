@@ -1,6 +1,6 @@
 # Troubleshooting
 
-What you see, why, and what to do. The plugin's own messages start with `@lotun/vitest-cucumber:`.
+What you see, why, and what to do. The plugin's own messages start with `[@lotun/vitest-cucumber]`.
 Not here? Ask on [Discord](https://discord.gg/dfJUkmEtAP) or in
 [GitHub Discussions](https://github.com/lotun-io/vitest-cucumber/discussions): [Community](/community).
 
@@ -18,14 +18,14 @@ Not here? Ask on [Discord](https://discord.gg/dfJUkmEtAP) or in
 
 | You see | Why | Do |
 | --- | --- | --- |
-| `Parse error in features/a.feature`, then `(4:5): expected: …` lines | The Gherkin doesn't parse | Fix the lines named. Only that file fails; in watch mode it reruns once fixed |
+| `parse error in features/a.feature`, then `(4:5): expected: …` lines | The Gherkin doesn't parse | Fix the lines named. Only that file fails; in watch mode it reruns once fixed |
 | `the support code failed to load`, with your error as its cause | A support file threw while it was imported | Fix the error at the line shown. Every feature file fails until then |
-| `features/steps/cart.ts:4: Invalid second argument: should be a object or function` | Cucumber rejects a definition's arguments | Fix the definition at that line |
+| `Given's second argument should be an object or a function`, then `features/steps/cart.ts:4` | Cucumber's checks reject a definition's arguments | Fix the definition at that line |
 | `"Given" was called after the support code loaded` | A definition function (`Given`, `Before`, …) was called late, e.g. inside a step | Call them at the top level of a support file only |
-| `Invalid "options.on": "COORDINATOR" isn't supported …` | A once-per-run `BeforeAll`/`AfterAll` | Use Vitest's [`globalSetup`](https://vitest.dev/config/globalsetup) |
-| `setDefaultTimeout isn't supported`, `setParallelCanAssign isn't supported` | See [Limitations](/reference/limitations#not-supported) | Set Vitest's `testTimeout` and `hookTimeout`; drop `setParallelCanAssign` |
+| `BeforeAll({ on: "COORDINATOR" }) isn't supported, use Vitest's globalSetup for once-per-run setup` | A once-per-run `BeforeAll`/`AfterAll` | Use Vitest's [`globalSetup`](https://vitest.dev/config/globalsetup) |
+| `setDefaultTimeout isn't supported, …`, `setParallelCanAssign isn't supported, …` | See [Limitations](/reference/limitations#not-supported) | Set Vitest's `testTimeout` and `hookTimeout`; drop `setParallelCanAssign` |
 | `the "worldParameters" option can't be converted to JSON` | [`worldParameters`](/guides/support-code#world-parameters) holds a value JSON can't (a `BigInt`, a cycle) | Keep them JSON; build other values in a `BeforeAll` |
-| `the "import" option is required: an array of your support code's globs` | `cucumber()` without `import`, or not an array of strings (or Storybook's addon listed by name, without `cucumber({ … })`) | Give your support code's globs: `cucumber({ import: ["features/**/*.ts"] })` |
+| `the "import" option is required, an array of your support code's globs` | `cucumber()` without `import`, or not an array of strings (or Storybook's addon listed by name, without `cucumber({ … })`) | Give your support code's globs: `cucumber({ import: ["features/**/*.ts"] })` |
 | `the "language" option "…" isn't a Gherkin language` | A language Gherkin doesn't have | Fix the option: [Options](/reference/options) |
 
 ## Hooks
@@ -49,7 +49,7 @@ Not here? Ask on [Discord](https://discord.gg/dfJUkmEtAP) or in
 
 | You see | Why | Do |
 | --- | --- | --- |
-| `remove cucumber() from this Storybook project: use the addon in .storybook/main.ts` | A `cucumber()` in the Storybook test project's Vitest config, or one in the root config it inherits (an inline project does unless it sets `extends: false`) | Remove it: the plugin's addon in `.storybook/main.ts` gives the project its plugin ([Setup](/modes/storybook#configure)). Give other projects their own `cucumber()`, or set `extends: false` on the Storybook project |
+| `remove cucumber() from this Storybook project, use the addon in .storybook/main.ts` | A `cucumber()` in the Storybook test project's Vitest config, or one in the root config it inherits (an inline project does unless it sets `extends: false`) | Remove it: the plugin's addon in `.storybook/main.ts` gives the project its plugin ([Setup](/modes/storybook#configure)). Give other projects their own `cucumber()`, or set `extends: false` on the Storybook project |
 | `no cucumber runner in this page …` | The plugin's addon isn't loaded | Add `cucumber({ … })` from `@lotun/vitest-cucumber/storybook/node` to Storybook's `addons` |
 | `the preview's support code isn't served …` | The plugin's addon isn't loaded | Add `cucumber({ … })` from `@lotun/vitest-cucumber/storybook/node` to Storybook's `addons` |
 | `no story is running` | `story()` was called outside a scenario's step | Call it in a step, or in a World getter a step reads |
@@ -60,7 +60,7 @@ Not here? Ask on [Discord](https://discord.gg/dfJUkmEtAP) or in
 
 ### A feature that can't be linked
 
-`Feature file can't be linked to stories:`, then every error the feature has. In Vitest only its own
+`feature file can't be linked to stories:`, then every error the feature has. In Vitest only its own
 file fails; `storybook dev` and `storybook build` stop, and Storybook lists it as a file it can't
 index, as it does a broken stories file. A feature that doesn't parse is reported the same way.
 
@@ -83,5 +83,5 @@ index, as it does a broken stories file. A feature that doesn't parse is reporte
 
 ## A bug in the plugin
 
-A message that ends with `(a bug in @lotun/vitest-cucumber, please report it: …)` is the plugin's
+A message that ends with `(a bug in @lotun/vitest-cucumber, please report it at …)` is the plugin's
 own fault: please [open an issue](https://github.com/lotun-io/vitest-cucumber/issues) with it.

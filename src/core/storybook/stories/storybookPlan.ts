@@ -82,7 +82,7 @@ export const storybookPlanFrom = async ({
     return {
       // Each error names the feature file.
       error: pluginError(
-        `Feature file can't be linked to stories:\n${errors.map((message) => `  - ${message}`).join("\n")}`,
+        `feature file can't be linked to stories:\n${errors.map((message) => `  - ${message}`).join("\n")}`,
         { quiet: true },
       ),
     };

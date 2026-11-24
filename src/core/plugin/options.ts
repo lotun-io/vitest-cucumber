@@ -24,7 +24,7 @@ export const configurationOf = (
     !globs.every((glob): glob is string => typeof glob === "string")
   ) {
     throw pluginError(
-      `the "import" option is required: an array of your support code's globs, e.g. ["features/**/*.ts"]`,
+      `the "import" option is required, an array of your support code's globs, e.g. ["features/**/*.ts"]`,
       { quiet: true },
     );
   }

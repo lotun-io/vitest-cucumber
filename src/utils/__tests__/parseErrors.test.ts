@@ -9,7 +9,7 @@ test("the plugin's name and the file once, then each parse error as the parser w
     ]),
   ).toBe(
     [
-      "@lotun/vitest-cucumber: Parse error in features/a.feature",
+      "[@lotun/vitest-cucumber] parse error in features/a.feature",
       "(1:1): expected: #EOF, #FeatureLine, got 'Featurea: A'",
       "(4:5): expected: #EOF, #StepLine, got 'This is not a step'",
     ].join("\n"),
