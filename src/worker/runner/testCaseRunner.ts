@@ -38,7 +38,7 @@ import { noDuration, startStopwatch, timestamp } from "./clock.ts";
 import { withFailures } from "./failures.ts";
 import { formatSimpleError } from "./formatError.ts";
 import { makeSuggestion } from "./suggestion.ts";
-import { runUserCode, textOf } from "./userCode.ts";
+import { errorOf, runUserCode } from "./userCode.ts";
 
 interface TestCaseRun {
   gherkinDocument: GherkinDocument;
@@ -106,14 +106,16 @@ const runDefinition = async ({
   failure?: { value: unknown };
 }> => {
   const stop = startStopwatch();
-  let error: unknown;
+  let error: Error | string | undefined;
   let value: unknown;
   let failure: { value: unknown } | undefined;
   let invocation: Invocation | undefined;
   try {
     invocation = await invocationOf();
   } catch (invocationError) {
-    error = invocationError;
+    // Whatever a parameter type's transformer throws fails the step, `null` and `undefined` too (as
+    // their text, as the step's own code throwing them: cucumber's check reads them as no error).
+    error = errorOf(invocationError);
     failure = { value: invocationError };
   }
   if (invocation) {
@@ -136,7 +138,7 @@ const runDefinition = async ({
     }
   }
   const duration = stop();
-  const hasError = error !== undefined && error !== null;
+  const hasError = error !== undefined;
   const status =
     value === "skipped"
       ? TestStepResultStatus.SKIPPED
@@ -149,12 +151,7 @@ const runDefinition = async ({
     result: {
       duration,
       status,
-      ...(hasError &&
-        formatSimpleError(
-          typeof error === "string" || error instanceof Error
-            ? error
-            : textOf(error),
-        )),
+      ...(error !== undefined && formatSimpleError(error)),
     },
     ...(hasError && { error }),
     ...(hasError && failure && { failure }),

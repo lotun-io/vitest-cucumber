@@ -31,7 +31,7 @@ import { withFailures } from "./failures.ts";
 import { formatSimpleError } from "./formatError.ts";
 import { createQuery } from "./query.ts";
 import { runTestCase } from "./testCaseRunner.ts";
-import { runUserCode, textOf } from "./userCode.ts";
+import { errorOf, runUserCode } from "./userCode.ts";
 
 /** Cucumber's `shouldCauseFailure`. */
 const shouldCauseFailure = (
@@ -247,9 +247,7 @@ export const createRunner = ({
                 testRunStartedId: "",
                 success: false,
                 timestamp: timestamp(),
-                exception: formatSimpleError(
-                  crash instanceof Error ? crash : textOf(crash),
-                ).exception,
+                exception: formatSimpleError(errorOf(crash)).exception,
               },
               [crash],
             ),

@@ -270,6 +270,36 @@ test("arguments: parameter types (their transformer's `this` the World), a data 
   expect(seen).toEqual(["#red", [{ a: "1", b: "2" }], "hello", true, "world"]);
 });
 
+test.for([{ thrown: undefined }, { thrown: null }])(
+  "a parameter type's transformer throwing $thrown: the step fails with its text, its code not run",
+  async ({ thrown }) => {
+    const feature = gherkinOf(`Feature: A
+  Scenario: one
+    Given a red ball
+`);
+    let ran = false;
+    const runner = runnerOf([
+      call("defineParameterType", {
+        name: "color",
+        regexp: /red|blue/,
+        transformer() {
+          throw thrown;
+        },
+      }),
+      call("Given", "a {color} ball", () => {
+        ran = true;
+      }),
+    ]);
+    const run = await runner.scenario(...scenario(feature));
+    expect(statusesOf(run.query)).toEqual(["a red ball: FAILED"]);
+    expect(run.success).toBe(false);
+    expect(ran).toBe(false);
+    const [failed] = run.query.results();
+    expect(failed?.result.message).toBe(`Error: ${String(thrown)}`);
+    expect(failuresOf(failed?.result)).toEqual([thrown]);
+  },
+);
+
 test("the World's attach/log/link: attachments of the running step", async () => {
   const feature = gherkinOf(`Feature: A
   Scenario: one

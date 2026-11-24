@@ -3,7 +3,7 @@ import type { CucumberOptions } from "../../../types/feature.ts";
 import { configurationOf, runOptionsOf } from "../options.ts";
 
 /** The error `configurationOf` throws for options a config may give, whatever their type says. */
-const errorOf = (options?: Record<string, unknown>) => {
+const thrownFor = (options?: Record<string, unknown>) => {
   try {
     configurationOf(options as CucumberOptions | undefined);
   } catch (error) {
@@ -73,27 +73,27 @@ test("no `import`, or not an array of strings: the plugin's error, with what to 
       '@lotun/vitest-cucumber: the "import" option is required: an array of your support code\'s globs, e.g. ["features/**/*.ts"]',
   };
   // `cucumber()` from JavaScript, or a Storybook addon entry without options.
-  expect(errorOf()).toMatchObject(error);
-  expect(errorOf({})).toMatchObject(error);
-  expect(errorOf({ strict: false })).toMatchObject(error);
+  expect(thrownFor()).toMatchObject(error);
+  expect(thrownFor({})).toMatchObject(error);
+  expect(thrownFor({ strict: false })).toMatchObject(error);
   for (const globs of [null, "features/**/*.ts", [1], [["features"]]]) {
-    expect(errorOf({ import: globs })).toMatchObject(error);
+    expect(thrownFor({ import: globs })).toMatchObject(error);
   }
 });
 
 test("a `language` Gherkin doesn't have: the plugin's error", () => {
-  expect(errorOf({ import: [], language: "klingon" })).toMatchObject({
+  expect(thrownFor({ import: [], language: "klingon" })).toMatchObject({
     message:
       '@lotun/vitest-cucumber: the "language" option "klingon" isn\'t a Gherkin language',
   });
   // An object's own members aren't languages.
-  expect(errorOf({ import: [], language: "toString" })).toBeDefined();
-  expect(errorOf({ import: [], language: "en-pirate" })).toBeUndefined();
+  expect(thrownFor({ import: [], language: "toString" })).toBeDefined();
+  expect(thrownFor({ import: [], language: "en-pirate" })).toBeUndefined();
 });
 
 test("world parameters JSON refuses: the plugin's error", () => {
   expect(
-    errorOf({ import: [], worldParameters: { limit: 10n } }),
+    thrownFor({ import: [], worldParameters: { limit: 10n } }),
   ).toMatchObject({
     message: `@lotun/vitest-cucumber: the "worldParameters" option can't be converted to JSON`,
   });

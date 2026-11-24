@@ -19,6 +19,13 @@ import { wrapPromiseWithTimeout } from "./timeout.ts";
 export const textOf = (thrown: unknown) =>
   typeof thrown === "string" ? thrown : inspect(thrown);
 
+/**
+ * A thrown value as a result's error (cucumber's): an Error as it is, any other value its text
+ * (`textOf`: `null` and `undefined` too, as cucumber's `util.format` gives them).
+ */
+export const errorOf = (thrown: unknown): Error | string =>
+  thrown instanceof Error ? thrown : textOf(thrown);
+
 /** Whether `value` is a promise, or anything with a `then` (as cucumber tells a promise apart). */
 const isThenable = (value: unknown): value is PromiseLike<unknown> =>
   (typeof value === "object" || typeof value === "function") &&
@@ -63,7 +70,7 @@ export const runUserCode = async ({
     returned = fn.apply(thisArg, argsArray);
   } catch (thrown) {
     return {
-      error: thrown instanceof Error ? thrown : textOf(thrown),
+      error: errorOf(thrown),
       failure: { value: thrown },
     };
   }
@@ -102,11 +109,9 @@ export const runUserCode = async ({
     return { result: await final };
   } catch (thrown) {
     const error =
-      thrown instanceof Error
-        ? thrown
-        : thrown !== undefined && thrown !== null
-          ? textOf(thrown)
-          : new Error("Promise rejected without a reason");
+      thrown === undefined || thrown === null
+        ? new Error("Promise rejected without a reason")
+        : errorOf(thrown);
     // The code's own failure, else cucumber's (its timeout).
     return { error, failure: own ?? { value: thrown } };
   }

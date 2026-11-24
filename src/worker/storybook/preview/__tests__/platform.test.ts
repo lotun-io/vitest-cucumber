@@ -36,7 +36,7 @@ const scenario = (name: string) => {
 };
 
 /** The message of a scenario's error. */
-const errorOf = async (name: string) => {
+const messageOf = async (name: string) => {
   const { error } = await scenario(name);
   return error?.value instanceof Error ? error.value.message : "";
 };
@@ -58,14 +58,14 @@ describe("the preview's platform", () => {
   });
 
   test("a summary without colors (no Vitest)", async () => {
-    const message = await errorOf("Undefined");
+    const message = await messageOf("Undefined");
     expect(message).toContain("Undefined");
     expect(message).toContain("a step nobody defined");
     expect(message).not.toMatch(/\u001b\[/);
   });
 
   test("each definition's location: its call site as the runtime has it (no dev server)", async () => {
-    const message = await errorOf("Ambiguous");
+    const message = await messageOf("Ambiguous");
     expect(message.match(/platform\.test\.ts:\d+/g)).toHaveLength(2);
   });
 });

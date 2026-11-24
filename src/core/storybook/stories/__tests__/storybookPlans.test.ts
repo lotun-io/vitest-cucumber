@@ -402,12 +402,12 @@ test("two features on one stories file with the same label: refused, each naming
       ) as string,
     },
   });
-  const errorOf = async (feature: string) => {
+  const planErrorOf = async (feature: string) => {
     const plan = await storybook.storybookPlanOf(feature);
     return "error" in plan ? plan.error.message : undefined;
   };
   // The first linked: no other yet.
-  expect(await errorOf(one)).toBeUndefined();
+  expect(await planErrorOf(one)).toBeUndefined();
   expect(await storybook.storybookPlanOf(two)).toMatchObject(
     refused("src/Dup.feature.md", "src/Dup.feature"),
   );
@@ -431,15 +431,15 @@ test("two features on one stories file with the same label: refused, each naming
     staleFeatures: [two],
     docsChanged: true,
   });
-  expect(await errorOf(one)).toBeUndefined();
-  expect(await errorOf(two)).toBeUndefined();
+  expect(await planErrorOf(one)).toBeUndefined();
+  expect(await planErrorOf(two)).toBeUndefined();
   // The same label again, then the other deleted: the one left to make again, not refused.
   file("src/Dup.feature", "Feature: Login\n  Scenario: t\n    Given a step\n");
   await fileChanged("change", one);
-  expect(await errorOf(two)).toContain("already has");
+  expect(await planErrorOf(two)).toContain("already has");
   rmSync(two);
   expect(await fileChanged("unlink", two)).toMatchObject({
     staleFeatures: [one],
   });
-  expect(await errorOf(one)).toBeUndefined();
+  expect(await planErrorOf(one)).toBeUndefined();
 });

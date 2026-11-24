@@ -4,7 +4,7 @@ import { jsonWorldParameters } from "../worldParameters.ts";
 type WorldParameters = Parameters<typeof jsonWorldParameters>[0];
 
 /** The error `jsonWorldParameters` throws for `worldParameters`. */
-const errorOf = (worldParameters: unknown) => {
+const thrownFor = (worldParameters: unknown) => {
   try {
     // Any value: what a config may give, whatever its type says.
     jsonWorldParameters(worldParameters as WorldParameters);
@@ -39,7 +39,7 @@ test("a value JSON.stringify refuses: the plugin's error, JSON.stringify's its c
     [{ limit: 10n }, "Do not know how to serialize a BigInt"],
     [parameters, "Converting circular structure to JSON"],
   ] as const) {
-    expect(errorOf(value)).toMatchObject({
+    expect(thrownFor(value)).toMatchObject({
       message: `@lotun/vitest-cucumber: the "worldParameters" option can't be converted to JSON`,
       cause: expect.objectContaining({
         message: expect.stringContaining(cause) as unknown,
@@ -51,7 +51,7 @@ test("a value JSON.stringify refuses: the plugin's error, JSON.stringify's its c
 test("the cause: the error the user's code threw (a toJSON's, a getter's), its stack with it", () => {
   const thrown = new Error("not ready");
   expect(
-    errorOf({
+    thrownFor({
       at: {
         toJSON() {
           throw thrown;
