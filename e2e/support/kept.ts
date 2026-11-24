@@ -240,6 +240,25 @@ export const changed = (vitest: Vitest, file: string) => {
 };
 
 /**
+ * The files under `dir`, `node_modules` left out, links not followed. A slot's `node_modules` links
+ * the plugin (the repository, its `tmp/e2e/` every scenario's folder, each linking it again) or is
+ * Storybook's package: a recursive `readdir` that follows links walked those without end (on CI's
+ * Node: every scenario after it stalled, or failed on a folder another worker removed).
+ */
+const filesOf = async (dir: string): Promise<string[]> => {
+  const files: string[] = [];
+  for (const entry of await readdir(dir, { withFileTypes: true })) {
+    const file = path.join(dir, entry.name);
+    if (entry.isDirectory() && entry.name !== "node_modules") {
+      files.push(...(await filesOf(file)));
+    } else if (entry.isFile()) {
+      files.push(file);
+    }
+  }
+  return files;
+};
+
+/**
  * Runs the `features/` of the scenario's project `scenarioDir` in a kept Vitest (see `Kept`): the
  * previous scenario's files removed (all but `node_modules` and the key's), and the scenario's
  * copied in; its messages into `messages` if given (`./messages.ts`). Undefined if it has no feature
@@ -250,15 +269,8 @@ export async function runKept(
   scenarioDir: string,
   messages?: Envelope[],
 ): Promise<RunResult | undefined> {
-  const entries = await readdir(dir, { recursive: true, withFileTypes: true });
-  for (const entry of entries) {
-    const file = path.join(entry.parentPath, entry.name);
-    const name = relative(dir, file);
-    if (
-      entry.isFile() &&
-      name.split("/")[0] !== "node_modules" &&
-      !files.has(name)
-    ) {
+  for (const file of await filesOf(dir)) {
+    if (!files.has(relative(dir, file))) {
       await rm(file);
       changed(vitest, file);
     }

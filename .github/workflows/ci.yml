@@ -25,9 +25,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     # A whole run takes 9–12 minutes; a stalled one stops here.
     timeout-minutes: 30
+    env:
+      # Playwright's browsers in one folder on every OS, cached by its version (below).
+      PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/.cache/ms-playwright
     strategy:
-      # Every OS and Node version runs to its end: one failing doesn't cancel the others.
-      fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
         node-version: [24, 26]
@@ -39,7 +40,21 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm exec playwright install --with-deps
+      - id: playwright
+        shell: bash
+        run: echo "version=$(pnpm exec playwright --version | cut -d' ' -f2)" >> "$GITHUB_OUTPUT"
+      - id: browsers
+        uses: actions/cache@v6
+        with:
+          path: ${{ github.workspace }}/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      # Not cached: the browsers, and on Linux their system packages. Chromium's headless shell
+      # only (`--only-shell`): every run here is headless, the full browser never used.
+      - if: steps.browsers.outputs.cache-hit != 'true'
+        run: pnpm exec playwright install --with-deps --only-shell
+      # Cached: only Linux's system packages (macOS and Windows need none).
+      - if: steps.browsers.outputs.cache-hit == 'true' && runner.os == 'Linux'
+        run: pnpm exec playwright install-deps
       # The whole suite, as locally: every project, the e2e and compatibility ones too, with the
       # coverage and its thresholds. Their workers: `vitest.utils.ts`'s `e2eMaxWorkers` (half the
       # CPU threads, capped by free memory: 1 or 2 on these runners). Verbose: each test as it

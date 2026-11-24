@@ -24,6 +24,10 @@ jobs:
   release:
     needs: ci
     runs-on: ubuntu-latest
+    outputs:
+      # Whether a version was published: the stable path publishes only once its version PR is
+      # merged (else it opens or updates that PR); the beta path publishes or fails.
+      published: ${{ steps.changesets.outputs.published == 'true' || steps.beta.outcome == 'success' }}
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -34,6 +38,7 @@ jobs:
           registry-url: https://registry.npmjs.org
       - run: pnpm install --frozen-lockfile
       - name: Create and publish versions
+        id: changesets
         if: inputs.type == 'stable'
         uses: changesets/action@v2
         with:
@@ -42,6 +47,7 @@ jobs:
           publish-script: pnpm ci:publish
           github-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Publish beta
+        id: beta
         if: inputs.type == 'beta'
         run: |
           if [[ ! -f .changeset/pre.json ]]; then
@@ -53,3 +59,13 @@ jobs:
           pnpm changeset version
           pnpm build
           pnpm publish --access public --tag beta --no-git-checks
+
+  # The docs site, for the version just published (none published: not deployed).
+  docs:
+    needs: release
+    if: needs.release.outputs.published == 'true'
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/docs.yml

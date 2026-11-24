@@ -1,10 +1,9 @@
 name: Docs
 
+# Deployed as a release publishes (`release.yml`'s `docs` job: the docs then match the published
+# version, its changelog page the repository's CHANGELOG.md), or by hand.
 on:
-  push:
-    branches: [main]
-    # The changelog page shows the repository's CHANGELOG.md (docs/content/changelog.mdx).
-    paths: ["docs/**", "CHANGELOG.md"]
+  workflow_call:
   workflow_dispatch:
 
 permissions:
