@@ -81,6 +81,22 @@ const freePort = () =>
  * Starts Storybook's dev server for the project (`storybook dev`): its URL once its index answers
  * (60 s at most), and how to stop it (its process group).
  */
+/**
+ * The process groups of the `storybook dev` servers this worker started and hasn't stopped: killed
+ * as the worker exits, should a scenario's cleanup not have run (each has a session of its own, so
+ * nothing else would stop it).
+ */
+const devGroups = new Set<number>();
+process.on("exit", () => {
+  for (const group of devGroups) {
+    try {
+      process.kill(-group, "SIGKILL");
+    } catch {
+      // Gone already.
+    }
+  }
+});
+
 export const startDev = async (dir: string) => {
   const port = await freePort();
   const url = `http://127.0.0.1:${String(port)}`;
@@ -106,15 +122,44 @@ export const startDev = async (dir: string) => {
   );
   child.stdout.on("data", (chunk: Buffer) => (output += chunk.toString()));
   child.stderr.on("data", (chunk: Buffer) => (output += chunk.toString()));
-  const close = () => {
-    if (child.pid === undefined || child.exitCode !== null) {
+  const exited = new Promise<void>((resolve) => {
+    child.once("exit", () => {
+      resolve();
+    });
+  });
+  const { pid } = child;
+  if (pid !== undefined && process.platform !== "win32") {
+    devGroups.add(pid);
+  }
+  /** Stops the server's whole process group: SIGTERM, then SIGKILL for what's left after 5 s. */
+  const close = async () => {
+    if (pid === undefined) {
       return;
     }
     if (process.platform === "win32") {
-      spawnSync("taskkill", ["/T", "/F", "/PID", String(child.pid)]);
-    } else {
-      process.kill(-child.pid, "SIGTERM");
+      if (child.exitCode === null) {
+        spawnSync("taskkill", ["/T", "/F", "/PID", String(pid)]);
+      }
+      return;
     }
+    // Once only (`After` and a failed start may both ask).
+    if (!devGroups.delete(pid)) {
+      return;
+    }
+    const signal = (name: NodeJS.Signals) => {
+      try {
+        process.kill(-pid, name);
+      } catch {
+        // The group is gone.
+      }
+    };
+    signal("SIGTERM");
+    await Promise.race([
+      exited,
+      new Promise((resolve) => setTimeout(resolve, 5000)),
+    ]);
+    // Whatever of the group outlived its leader, or the leader itself if it didn't stop.
+    signal("SIGKILL");
   };
   const started = Date.now();
   while (Date.now() - started < 60_000) {
@@ -132,7 +177,7 @@ export const startDev = async (dir: string) => {
     }
     await new Promise((resolve) => setTimeout(resolve, 250));
   }
-  close();
+  await close();
   throw new Error(`storybook dev didn't start in 60 s:\n${output}`);
 };
 

@@ -91,7 +91,7 @@ export class E2EWorld extends World {
   open?: { run(): Promise<void>; close(): Promise<void> };
 
   /** The Storybook project's dev server, if the scenario started it (see `../steps/storybook.ts`). */
-  storybookDev?: { url: string; close: () => void };
+  storybookDev?: { url: string; close: () => Promise<void> };
 
   /**
    * A page of the dev server's preview the scenario keeps open, and its reloads since it was opened
@@ -143,13 +143,28 @@ Before(async function (this: E2EWorld, { pickle }) {
   await writeDefaultConfig.call(this, "node");
 });
 
+// Every resource the scenario opened is closed, whatever one of them throws (a `storybook dev` left
+// running would outlive the whole run: it has a session of its own); then the first error, if any.
 After(async function (this: E2EWorld) {
-  await this.watching?.close();
-  await this.open?.close();
-  await this.storybookPage?.page.close();
-  this.storybookDev?.close();
+  const closes = [
+    () => this.watching?.close(),
+    () => this.open?.close(),
+    () => this.storybookPage?.page.close(),
+    () => this.storybookDev?.close(),
+  ];
+  const errors: unknown[] = [];
+  for (const close of closes) {
+    try {
+      await close();
+    } catch (error) {
+      errors.push(error);
+    }
+  }
   if (!process.env.E2E_KEEP) {
     await rm(this.dir, { recursive: true, force: true });
+  }
+  if (errors.length > 0) {
+    throw errors[0];
   }
 });
 

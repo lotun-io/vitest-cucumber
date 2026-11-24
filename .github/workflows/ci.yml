@@ -23,6 +23,7 @@ jobs:
   test:
     name: "test ${{ matrix.os }} node${{ matrix.node-version }}"
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
@@ -35,12 +36,11 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm exec playwright install --with-deps chromium
-      # The unit tests and the root features in each mode. Not the e2e and compatibility
-      # projects: too heavy for the runners (they run locally, `pnpm test`). Naming projects
-      # also turns the coverage thresholds off (`vitest.config.ts`'s `partial`): they are the
-      # whole suite's.
-      - run: pnpm test --project unit --project node --project browser --project storybook
+      - run: pnpm exec playwright install --with-deps
+      # The whole suite, as locally: every project, the e2e and compatibility ones too, with the
+      # coverage and its thresholds. Their workers: `vitest.utils.ts`'s `e2eMaxWorkers` (half the
+      # CPU threads, capped by free memory: 1 or 2 on these runners).
+      - run: pnpm test
 
   smoke:
     name: "smoke (pack + example)"

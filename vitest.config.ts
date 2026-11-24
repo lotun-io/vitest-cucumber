@@ -1,40 +1,21 @@
 import { cucumber } from "@lotun/vitest-cucumber";
 import { playwright } from "@vitest/browser-playwright";
-import { slash } from "@vitest/utils/helpers";
 import path from "node:path";
 import { defineConfig } from "vitest/config";
-import { nodeSources } from "./vitest.nodeSources.ts";
-import { virtualStories } from "./vitest.virtualStories.ts";
-
-// As Vitest writes its ids: with `/`, on Windows too.
-const srcPath = `${slash(import.meta.dirname)}/src/`;
-
-const src = new RegExp(`^${RegExp.escape(srcPath)}`);
-// `features/fail/`'s scenarios fail on purpose: they run only when the command names them (left
-// out of each project's files otherwise), e.g.
-// `pnpm test --project node features/fail/summaries.feature`.
-const skipFail = !process.argv.some((arg) => arg.includes("features/fail/"));
-// Part of the suite only (a project, a file, a test name: any argument that isn't an option, as
-// `pnpm test --project cck`): its coverage is printed, the thresholds are the whole suite's.
-
-const partial = process.argv
-  .slice(2)
-  .some((arg) => arg !== "run" && !arg.startsWith("-"));
-
-// The e2e and compatibility projects' workers (`isolate: true`: a process per feature file, the
-// native memory its Vitests leave behind given back as it ends): each keeps a Vitest per mode for the
-// default config (`e2e/support/kept.ts`), runs any other in a new Vitest closed after it
-// (`e2e/support/runVitest.ts`), one scenario's at a time. A worker takes about 2 GB and a CPU:
-// too many overload a machine (workers fail to start, imports fail, steps time out).
-// `E2E_WORKERS` (a number) sets them, e.g. `E2E_WORKERS=2 pnpm test` on a smaller machine.
-// Without it, Vitest's default. CI doesn't run these two projects (`.github/workflows/ci.yml`).
-const e2eWorkers = process.env.E2E_WORKERS
-  ? Number(process.env.E2E_WORKERS)
-  : undefined;
+import {
+  allocatorEnv,
+  e2eMaxWorkers,
+  failFeaturesSkipped,
+  isPartialRun,
+  nodeSourceCoverage,
+  sourceDir,
+  sourcePattern,
+  virtualFeatureStories,
+} from "./vitest.utils.ts";
 
 export default defineConfig({
-  // `src/`'s coverage as Node runs it (see `./vitest.nodeSources.ts`).
-  plugins: [nodeSources(srcPath)],
+  // `src/`'s coverage as Node runs it (see `./vitest.utils.ts`'s `nodeSourceCoverage`).
+  plugins: [nodeSourceCoverage(sourceDir)],
   // The e2e scenarios' projects (`tmp/e2e/`) and the fixtures: their configs and `package.json`
   // files are Vitest's rerun triggers, a watched run would rerun on its own.
   server: {
@@ -45,19 +26,8 @@ export default defineConfig({
   test: {
     reporters: ["default"],
     environment: "node",
-    // Every project's workers' environment as Vitest forks them: their memory allocators return
-    // freed memory to the system right away (read as a process starts). Rolldown's mimalloc (Vite's
-    // dependency bundling, its parsers) otherwise keeps freed pages for reuse, glibc's malloc (Node,
-    // other native modules) its arenas: measured on an e2e worker (`filters.feature`), with the
-    // forced collection after each closed Vitest (the e2e projects' `--expose-gc`), ~1.0 GB without
-    // them, ~0.7 GB with them.
-    env: {
-      MIMALLOC_PURGE_DELAY: "0",
-      MIMALLOC_PURGE_DECOMMITS: "1",
-      MIMALLOC_ARENA_EAGER_COMMIT: "0",
-      MALLOC_ARENA_MAX: "2",
-      MALLOC_TRIM_THRESHOLD_: "131072",
-    },
+    // The workers' allocators return freed memory at once (see `./vitest.utils.ts`).
+    env: allocatorEnv,
     // Every e2e scenario runs Vitest on a project of its own. Vitest's reporters only read the
     // root config's threshold, not a project's.
     slowTestThreshold: 10_000,
@@ -65,7 +35,7 @@ export default defineConfig({
     // them): `src/` is outside `node_modules`, Vitest would inline them. Every project inherits it.
     server: {
       deps: {
-        external: [src],
+        external: [sourcePattern],
       },
     },
     coverage: {
@@ -73,7 +43,7 @@ export default defineConfig({
       reportsDirectory: "coverage",
       include: ["src/**/*.ts"],
       exclude: ["src/**/__*__/**"],
-      ...(!partial && {
+      ...(!isPartialRun && {
         thresholds: {
           statements: 90,
           branches: 80,
@@ -110,7 +80,7 @@ export default defineConfig({
             groupOrder: 1,
           },
           include: ["features/**/*.feature"],
-          exclude: skipFail ? ["features/fail/**"] : undefined,
+          exclude: failFeaturesSkipped ? ["features/fail/**"] : undefined,
         },
       },
       {
@@ -125,7 +95,7 @@ export default defineConfig({
             groupOrder: 2,
           },
           include: ["features/**/*.feature"],
-          exclude: skipFail ? ["features/fail/**"] : undefined,
+          exclude: failFeaturesSkipped ? ["features/fail/**"] : undefined,
           browser: {
             enabled: true,
             provider: playwright(),
@@ -144,14 +114,16 @@ export default defineConfig({
         // story, made as Vitest loads them), with their own support code, as `node` and `browser` run
         // them. Its name given again: an extended file's isn't the project's.
         extends: "./storybook/vite.config.ts",
-        // Its features' stories files, virtual (see `./vitest.virtualStories.ts`).
-        plugins: [virtualStories(path.join(import.meta.dirname, "features"))],
+        // Its features' stories files, virtual (see `./vitest.utils.ts`'s `virtualFeatureStories`).
+        plugins: [
+          virtualFeatureStories(path.join(import.meta.dirname, "features")),
+        ],
         test: {
           name: "storybook",
           // Storybook's `beforeAll` (cucumber's BeforeAll and AfterAll) runs for every stories file,
           // even one whose stories its tags skip: `features/fail/`'s hooks, failing on purpose, would
           // fail the run. Left out unless the command names them, as in `node` and `browser`.
-          exclude: skipFail ? ["../features/fail/**"] : undefined,
+          exclude: failFeaturesSkipped ? ["../features/fail/**"] : undefined,
           sequence: {
             groupOrder: 3,
           },
@@ -184,7 +156,7 @@ export default defineConfig({
           sequence: {
             groupOrder: 4,
           },
-          maxWorkers: e2eWorkers,
+          maxWorkers: e2eMaxWorkers,
           include: ["e2e/*.feature"],
           // Collects the garbage after each nested Vitest closes (`collectGarbage`, `e2e/support/run.ts`):
           // the native memory its objects hold goes back then, not as V8 gets round to it.
@@ -208,6 +180,11 @@ export default defineConfig({
         ],
         test: {
           name: "cck",
+          // One worker process for many samples (not one per feature file, as e2e's): its kept
+          // Vitests (a mode's each) serve every sample's rows, the memory staying flat (measured
+          // 2026-11-24: 126 rows, one worker, 2.0 GB at most throughout; 130 s against 203 s
+          // isolated, before the kept Vitests served them).
+          isolate: false,
           testTimeout: 60_000,
           hookTimeout: 60_000,
           // As e2e's: a known difference passes while it fails (its reason the example's name); a
@@ -224,7 +201,7 @@ export default defineConfig({
           sequence: {
             groupOrder: 5,
           },
-          maxWorkers: e2eWorkers,
+          maxWorkers: e2eMaxWorkers,
           include: ["compatibility/*.feature"],
           // Collects the garbage after each nested Vitest closes (`collectGarbage`, `e2e/support/run.ts`):
           // the native memory its objects hold goes back then, not as V8 gets round to it.

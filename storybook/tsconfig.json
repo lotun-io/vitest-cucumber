@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "target": "es2023",
-    // `RegExp.escape` (Node 24 has it: `vite.config.ts`, the repo's `vitest.nodeSources.ts`).
+    // `RegExp.escape` (Node 24 has it: `vite.config.ts`, the repo's `vitest.utils.ts`).
     "lib": ["es2023", "ES2025.RegExp", "dom", "dom.iterable"],
     "module": "esnext",
     "moduleResolution": "bundler",

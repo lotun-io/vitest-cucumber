@@ -95,8 +95,11 @@ export async function watchVitest(
       );
     },
     close: async () => {
-      await vitest.close();
-      end();
+      try {
+        await vitest.close();
+      } finally {
+        end();
+      }
     },
   };
   await ended();

@@ -1,10 +1,12 @@
 // The compatibility kit's steps (`../*.feature`, generated: `../utils/generate.ts`), on e2e's harness
 // (its World, its projects, its runs: `e2e/support/`): a sample's files in the scenario's project,
 // run with native cucumber and with the plugin in a mode, compared (`../utils/kit.ts`). The
-// project's `features/`: the sample's feature files, its steps for cucumber (`steps/`, native
-// cucumber's and node mode's) and for a page (`steps-page/`, browser and storybook modes'), the
-// plugin's `import` the mode's. Both runs' outputs and the comparison (`report.md`) stay in the
-// project.
+// project's `features/`: the sample's feature files and its steps (`steps/`): cucumber's copy for
+// native cucumber and node mode, the page's copy written over it for browser and storybook modes
+// once native cucumber has run. The plugin's options are the harness's default, so a sample's runs
+// use the worker's kept Vitest of their mode (`e2e/support/kept.ts`; the project runs with
+// `isolate: false`, so it serves every sample of the worker), but a `--retry` sample's (an option:
+// a new Vitest). Both runs' outputs and the comparison (`report.md`) stay in the project.
 import { Given, Then, When } from "@cucumber/cucumber";
 import { spawn } from "node:child_process";
 import { readFile, writeFile } from "node:fs/promises";
@@ -25,11 +27,19 @@ import {
 
 const repo = path.resolve(import.meta.dirname, "../..");
 
-/** A scenario's sample, and native cucumber's run of it. */
+/** Native cucumber's run of a sample, by sample: the same in each of its mode rows, run once. */
+const nativeRuns = new Map<
+  string,
+  { exitCode: number; output: string; ndjson: string }
+>();
+
+/** A scenario's sample, its steps' page copies, and native cucumber's run of it. */
 const runs = new WeakMap<
   E2EWorld,
   {
     sample: string;
+    /** The sample's steps for a page, by file name (`features/steps/`). */
+    pageSteps: { name: string; page: string }[];
     mode?: string;
     native?: { exitCode: number; ndjson: string };
     /** The plugin's messages (its stream's: `e2e/support/messages.ts`), of the run's one project. */
@@ -81,6 +91,28 @@ const runCucumber = (args: string[], cwd: string) =>
     });
   });
 
+/** Native cucumber's run of the sample in `cwd` (its steps cucumber's copy): exit code, output, messages. */
+const runNative = async (cwd: string, retry: number | undefined) => {
+  const native = await runCucumber(
+    [
+      "features/*.feature",
+      "features/*.feature.md",
+      "--import",
+      "features/steps/**/*.ts",
+      "--format",
+      "message:native.ndjson",
+      ...(retry ? ["--retry", String(retry)] : []),
+    ],
+    cwd,
+  );
+  const ndjson = await readFile(path.join(cwd, "native.ndjson"), "utf8").catch(
+    () => {
+      throw new Error(`Native cucumber didn't run:\n${native.output}`);
+    },
+  );
+  return { ...native, ndjson };
+};
+
 Given(
   "the compatibility kit's sample {string}",
   async function (this: E2EWorld, sample: string) {
@@ -88,11 +120,10 @@ Given(
     for (const { name, content } of features) {
       await this.write(`features/${name}`, content);
     }
-    for (const { name, node, page } of steps) {
+    for (const { name, node } of steps) {
       await this.write(`features/steps/${name}`, node);
-      await this.write(`features/steps-page/${name}`, page);
     }
-    runs.set(this, { sample });
+    runs.set(this, { sample, pageSteps: steps });
   },
 );
 
@@ -102,35 +133,20 @@ When(
   async function (this: E2EWorld, mode: string) {
     const run = runOf(this);
     const retry = retryOf(run.sample);
-    const native = await runCucumber(
-      [
-        "features/*.feature",
-        "features/*.feature.md",
-        "--import",
-        "features/steps/**/*.ts",
-        "--format",
-        "message:native.ndjson",
-        ...(retry ? ["--retry", String(retry)] : []),
-      ],
-      this.dir,
-    );
+    const native =
+      nativeRuns.get(run.sample) ?? (await runNative(this.dir, retry));
+    nativeRuns.set(run.sample, native);
+    // Each row's project has native cucumber's outputs, its run's or the sample's first row's.
     await writeFile(path.join(this.dir, "native.txt"), native.output);
-    const ndjson = await readFile(
-      path.join(this.dir, "native.ndjson"),
-      "utf8",
-    ).catch(() => {
-      throw new Error(`Native cucumber didn't run:\n${native.output}`);
-    });
-    run.native = { exitCode: native.exitCode, ndjson };
+    await writeFile(path.join(this.dir, "native.ndjson"), native.ndjson);
+    run.native = { exitCode: native.exitCode, ndjson: native.ndjson };
     run.mode = mode;
-    // The plugin: the sample's steps, for cucumber in node mode, for a page in the others.
-    this.pluginOptions = {
-      import: [
-        mode === "node"
-          ? "features/steps/**/*.ts"
-          : "features/steps-page/**/*.ts",
-      ],
-    };
+    // The plugin: the sample's steps, cucumber's copy in node mode, the page's in the others.
+    if (mode !== "node") {
+      for (const { name, page } of run.pageSteps) {
+        await this.write(`features/steps/${name}`, page);
+      }
+    }
     await writeDefaultConfig.call(this, mode as Mode);
     // Its messages too, as the plugin's stream has them (`e2e/support/messages.ts`).
     this.messages = [];
