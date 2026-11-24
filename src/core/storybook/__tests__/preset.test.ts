@@ -10,7 +10,15 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { afterAll, describe, expect, test, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  test,
+  vi,
+} from "vitest";
 import type { Plugin } from "vitest/config";
 import { ownModule } from "../../utils/ownModule.ts";
 import {
@@ -439,6 +447,15 @@ describe("`storybook dev`: the dev server's watcher", () => {
 });
 
 describe("the features map (`featuresOf`'s, in Storybook's preview)", () => {
+  // Storybook's working directory: the project's folder, as `storybook dev` run there (the map's
+  // keys are Storybook's import paths, from it).
+  beforeEach(() => {
+    vi.spyOn(process, "cwd").mockReturnValue(project);
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   test("the placeholder's import is the map's own id; the map: each stories file's linked features, each one's text written in", async () => {
     vi.stubEnv("VITEST", "");
     const config = await viteFinal({}, options);
@@ -478,6 +495,26 @@ describe("the features map (`featuresOf`'s, in Storybook's preview)", () => {
     expect(code).not.toContain("?raw");
     // No watch file: the dev server reloads the map itself (`devWatch.ts`).
     expect(addWatchFile).not.toHaveBeenCalled();
+  });
+
+  test("Storybook run from another folder (a monorepo's root, `-c packages/ui/.storybook`): the map's paths are Storybook's, from there", async () => {
+    vi.spyOn(process, "cwd").mockReturnValue(path.dirname(project));
+    vi.stubEnv("VITEST", "");
+    const config = await viteFinal({}, options);
+    vi.unstubAllEnvs();
+    const plugin = config.plugins?.at(-1) as Plugin;
+    const indexer = (await experimental_indexers([], options))[0];
+    await inStorybook(async () =>
+      indexer?.createIndex(path.join(project, "src/Login.feature"), {
+        makeTitle,
+      }),
+    );
+    const code = await (
+      plugin.load as (this: unknown, id: string) => Promise<string>
+    ).call({ addWatchFile: vi.fn() }, featuresMapId);
+    const folder = path.basename(project);
+    expect(code).toContain(`"./${folder}/src/Login.stories.ts": [`);
+    expect(code).toContain(`"fileName": "./${folder}/src/Login.feature"`);
   });
 
   test("a feature file deleted: it leaves the map (an import of it would fail the preview)", async () => {

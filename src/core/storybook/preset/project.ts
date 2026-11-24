@@ -9,12 +9,12 @@ import path from "node:path";
 import type { Options } from "storybook/internal/types";
 import type { CucumberOptions } from "../../../types/feature.ts";
 import type { FeatureSource } from "../../../types/storybook.ts";
-import { slash } from "../../../utils/slash.ts";
 import { createFeaturePlans } from "../../feature/plans.ts";
 import { configurationOf } from "../../plugin/options.ts";
 import { addonOptionsKey, type AddonOptions } from "../addon.ts";
 import { autoTitleOfStorybook } from "../stories/storiesTitle.ts";
 import { createStorybookPlans } from "../stories/storybookPlans.ts";
+import { importPathOf } from "./importPath.ts";
 
 /** Storybook's options to a preset's functions: its config folder, its presets, the addon entry's options. */
 export type PresetOptions = Pick<Options, "configDir" | "presets"> &
@@ -59,8 +59,6 @@ const createProject = (options: PresetOptions) => {
           ? []
           : [...features].map((feature) => [feature, storiesFile] as const),
     );
-  /** A file's path from the root, as Storybook writes a file's (`./src/Header.stories.ts`). */
-  const fromRoot = (file: string) => `./${slash(path.relative(root, file))}`;
   return {
     root,
     plans,
@@ -83,7 +81,8 @@ const createProject = (options: PresetOptions) => {
       }
     },
     /**
-     * Each stories file's feature files (`./featuresModule.ts`), by their paths from the root, each
+     * Each stories file's feature files (`./featuresModule.ts`), by their import paths (as Storybook's
+     * index writes them: a docs page's `parameters.fileName`, `./importPath.ts`), each
      * file's features in their paths' order, each with its text as the plans read it (one that
      * can't be read left out).
      */
@@ -94,8 +93,8 @@ const createProject = (options: PresetOptions) => {
       )) {
         const read = await plans.fileOf(feature).catch(() => undefined);
         if (read) {
-          (features[fromRoot(storiesFile)] ??= []).push({
-            fileName: fromRoot(feature),
+          (features[importPathOf(storiesFile)] ??= []).push({
+            fileName: importPathOf(feature),
             source: read.content,
           });
         }

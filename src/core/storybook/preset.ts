@@ -9,23 +9,16 @@
 // the Storybook project's plugins (`../storybookPlugin.ts`). In `storybook dev` it also tells Storybook's
 // index of the feature files whose entries are out of date (`experimental_serverChannel`).
 // Storybook loads this module, no one else: its imports of Storybook's are static.
-import path from "node:path";
 import type { Channel } from "storybook/internal/channels";
 import { STORY_INDEX_INVALIDATED } from "storybook/internal/core-events";
 import type { StoryIndexGenerator } from "storybook/internal/core-server";
 import type { Options } from "storybook/internal/types";
-import { slash } from "../../utils/slash.ts";
 import { createStorybookPlugin } from "../storybookPlugin.ts";
 import { ownModule } from "../utils/ownModule.ts";
+import { importPathOf } from "./preset/importPath.ts";
 import { featureIndexer, type Indexer } from "./preset/indexer.ts";
 import { storybookPreviewPlugin } from "./preset/previewPlugin.ts";
 import { type PresetOptions, projectOf } from "./preset/project.ts";
-
-/** A file's import path in Storybook's index: from its working directory, with `./` (its `toImportPath`). */
-const importPathOf = (file: string) => {
-  const relative = slash(path.relative(process.cwd(), file));
-  return relative.startsWith(".") ? relative : `./${relative}`;
-};
 
 /**
  * `storybook dev`'s server channel, as Storybook starts: from then on Storybook's index is told
