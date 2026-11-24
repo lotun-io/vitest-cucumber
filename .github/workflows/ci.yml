@@ -57,9 +57,8 @@ jobs:
         run: pnpm exec playwright install-deps
       # The whole suite, as locally: every project, the e2e and compatibility ones too, with the
       # coverage and its thresholds. Their workers: `vitest.utils.ts`'s `e2eMaxWorkers` (half the
-      # CPU threads, capped by free memory: 1 or 2 on these runners). Verbose: each test as it
-      # ends, not each file, so a run that stalls shows where.
-      - run: pnpm test --reporter=verbose
+      # CPU threads, capped by free memory: 1 or 2 on these runners).
+      - run: pnpm test
 
   smoke:
     name: "smoke (pack + example)"
