@@ -1,10 +1,12 @@
 // One run of Vitest in a scenario's project, as `vitest` in its directory would run it: its output
 // recorded, its result read from its state (see `RunResult`).
 import type { Envelope } from "@cucumber/messages";
+import { Console } from "node:console";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { Writable } from "node:stream";
 import { inspect } from "node:util";
+import { createLogger } from "vite";
 import type { CliOptions, TestSpecification, Vitest } from "vitest/node";
 import { startVitest } from "vitest/node";
 import { collectingReporter } from "./messages.ts";
@@ -37,6 +39,18 @@ export const capture = () => {
     },
   };
 };
+
+/**
+ * Vite's logger for a nested Vitest's start (its Vite overrides' `customLogger`): what Vite logs
+ * before Vitest's own logger is set, as the config loads (a config that fails to load: "failed to
+ * load config from …"), goes to the run's output, as the CLI prints it, not to this worker's
+ * console. Vitest's plugin replaces it once the config has loaded.
+ */
+export const viteLogger = (output: ReturnType<typeof capture>) =>
+  createLogger("info", {
+    console: new Console(output.stream),
+    allowClearScreen: false,
+  });
 
 /**
  * The last rejection no one handled in this process. Recorded before any nested Vitest's logger sees
@@ -206,7 +220,7 @@ export async function startSession(
         }),
         ...(options.root && { root: path.resolve(this.dir, options.root) }),
       },
-      {},
+      { customLogger: viteLogger(output) },
       { stdout: output.stream, stderr: output.stream },
     );
     return { vitest, output, end };

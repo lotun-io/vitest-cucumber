@@ -30,7 +30,13 @@ import { checkPluginModules, writeConfig } from "./config.ts";
 import { collectMessages } from "./messages.ts";
 import { normalize, relative, slash } from "./paths.ts";
 import { CONFIG, defaultConfig, defaultStorybookConfig } from "./project.ts";
-import { capture, collectGarbage, runResult, showExit } from "./run.ts";
+import {
+  capture,
+  collectGarbage,
+  runResult,
+  showExit,
+  viteLogger,
+} from "./run.ts";
 import { storybookPackage } from "./storybookProject.ts";
 import type { E2EWorld, RunResult } from "./world.ts";
 
@@ -214,7 +220,7 @@ export async function keptFor(this: E2EWorld): Promise<Kept | undefined> {
     vitest = await createVitest(
       // As `startSession`'s; not watching: its runs are the scenarios'.
       { root: dir, watch: false, silent: false, cache: false },
-      {},
+      { customLogger: viteLogger(output) },
       { stdout: output.stream, stderr: output.stream },
     );
     await vitest.standalone();

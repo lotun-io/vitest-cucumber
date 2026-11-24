@@ -6,7 +6,13 @@
 // is the plugin's own doing.
 import { createVitest } from "vitest/node";
 import { checkPluginModules } from "./config.ts";
-import { capture, collectGarbage, runResult, showExit } from "./run.ts";
+import {
+  capture,
+  collectGarbage,
+  runResult,
+  showExit,
+  viteLogger,
+} from "./run.ts";
 import { featureStoriesFiles } from "./storybookProject.ts";
 import type { E2EWorld } from "./world.ts";
 
@@ -21,7 +27,7 @@ export async function openVitest(this: E2EWorld) {
   const vitest = await createVitest(
     // As `startSession`'s.
     { root: this.dir, watch: false, silent: false, cache: false },
-    {},
+    { customLogger: viteLogger(output) },
     { stdout: output.stream, stderr: output.stream },
   );
   await vitest.standalone();
