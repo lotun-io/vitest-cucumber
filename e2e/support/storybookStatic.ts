@@ -139,6 +139,11 @@ export const startDev = async (dir: string) => {
     if (process.platform === "win32") {
       if (child.exitCode === null) {
         spawnSync("taskkill", ["/T", "/F", "/PID", String(pid)]);
+        // Its files let go as it exits: the scenario's folder is removed next.
+        await Promise.race([
+          exited,
+          new Promise((resolve) => setTimeout(resolve, 5000)),
+        ]);
       }
       return;
     }

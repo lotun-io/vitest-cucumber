@@ -58,6 +58,18 @@ export interface RunResult {
   }[];
 }
 
+/**
+ * A scenario's folder removed, retried a while: on Windows a folder a process still has files open
+ * in (a `storybook dev` just stopped, its handles let go a moment later) can't be removed yet
+ * (`EBUSY`, `EPERM`), which Node's `rm` retries.
+ */
+const removeOptions = {
+  recursive: true,
+  force: true,
+  maxRetries: 10,
+  retryDelay: 200,
+};
+
 export class E2EWorld extends World {
   /** The scenario's project. */
   dir = "";
@@ -134,7 +146,7 @@ Before(async function (this: E2EWorld, { pickle }) {
   const feature = path.basename(pickle.uri, ".feature");
   const line = pickle.location?.line ?? 0;
   this.dir = path.resolve("tmp", "e2e", `${feature}_${line}`);
-  await rm(this.dir, { recursive: true, force: true });
+  await rm(this.dir, removeOptions);
   // The plugin, as if installed: a scenario's own package.json would hide this package from it.
   const plugin = path.join(this.dir, "node_modules/@lotun/vitest-cucumber");
   await mkdir(path.dirname(plugin), { recursive: true });
@@ -161,7 +173,7 @@ After(async function (this: E2EWorld) {
     }
   }
   if (!process.env.E2E_KEEP) {
-    await rm(this.dir, { recursive: true, force: true });
+    await rm(this.dir, removeOptions);
   }
   if (errors.length > 0) {
     throw errors[0];
