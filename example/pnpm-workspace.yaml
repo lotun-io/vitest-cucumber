@@ -7,7 +7,7 @@ packages:
 # Dependencies more than one example has, one version each (`"catalog:"` in their `package.json`).
 catalog:
   "@cucumber/cucumber": ^13.3.0
-  "@lotun/vitest-cucumber": 1.0.0-beta.4
+  "@lotun/vitest-cucumber": 1.0.0-beta.5
   "@vitest/browser-playwright": ^5.1.1
   vitest: ^5.1.1
   # One Playwright for every example that opens a browser, so one browser build to install

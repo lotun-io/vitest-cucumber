@@ -4,17 +4,19 @@
 // run hook's `context`), read from the function's own text: its syntax is all there is of it as it
 // runs (TypeScript's types are erased, an annotation can't be the sign), and its length alone can't
 // tell the world from cucumber's callback, one more argument too. Only an arrow function: a
-// `function` has its `this`. A parameter after a comment or in a destructuring isn't read: cucumber's
-// own call then. Page-safe.
+// `function` has its `this`. A parameter in a destructuring isn't read: cucumber's own call then.
+// No parser: the text is read where the support code loads, a page too, and Vite's is Node's
+// alone; the unit test holds the pattern to Vite's reading of the same functions. Page-safe.
 import type { Code } from "../../types/supportCode.ts";
 
 /**
  * An arrow function's first parameter, a plain name (`world => …`, `(world, count) => …`,
- * `async (world = …) => …`): any other function's text starts with `function`, `class` or a
+ * `async (world = …) => …`), after any comments (a line of its own above it, in a function
+ * written over several lines): any other function's text starts with `function`, `class` or a
  * method's name, each followed by something else.
  */
 const firstParameter =
-  /^(?:async\s*)?\(?\s*([\p{ID_Start}$_][\p{ID_Continue}$]*)\s*(?:[,)=]|$)/u;
+  /^(?:async\s*)?\(?(?:\s|\/\/[^\n]*|\/\*[\s\S]*?\*\/)*([\p{ID_Start}$_][\p{ID_Continue}$]*)\s*(?:[,)=]|$)/u;
 
 /** Whether `code` is an arrow function whose first parameter is named `name`. */
 export const takesFirst = (code: Code, name: "world" | "context") =>

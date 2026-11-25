@@ -103,10 +103,19 @@ Then("the result is {int}", function (expected: number) {
 });
 ```
 
-A step's `this` is the scenario's [World](/guides/support-code#world), so these are `function`s;
-an arrow function takes it [as an argument](/guides/support-code#the-world-in-an-arrow-function)
-instead. Any assertion library works; Vitest's `expect` gives you its
-diffs.
+Each step is a `function`, and its `this` is the scenario's
+[World](/guides/support-code#world): the place to keep state between steps. If you prefer arrow
+functions, name the first parameter `world` and the World is passed there instead:
+
+```ts
+Given("the number {int}", (world, n: number) => {
+  world.result = n;
+});
+```
+
+More on both: [The World in an arrow function](/guides/support-code#the-world-in-an-arrow-function).
+
+Any assertion library works; Vitest's `expect` gives you its diffs.
 
 ### Run
 
