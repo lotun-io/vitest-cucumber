@@ -1,5 +1,13 @@
 # @lotun/vitest-cucumber
 
+## 1.0.0-beta.6
+
+### Patch Changes
+
+- d623653: An undefined step's snippet is an arrow function (`When('I pay', () => { … })`), as the docs now write steps and hooks; Cucumber's `function` form still works
+- 89bfa2d: Node mode loads Cucumber's own code only when your support code reads one of the exports only it has (a formatter class, `supportCodeLibraryBuilder`, …): about 40 ms and 23 MB less per worker, which with Vitest's default `isolate` is per feature file.
+- 9c507ef: An arrow function's `world` argument is recognised after a comment (`(/** @type {Cart} */ world, item) => …`, or a comment line above it in a function written over several lines): in a plain JavaScript support file such a function was called as Cucumber's own, its `world` the step's first argument
+
 ## 1.0.0-beta.5
 
 ### Patch Changes
