@@ -29,7 +29,8 @@ const tagged = "@smoke\nFeature: A\n  @one\n  Scenario: s\n    Given a step\n";
 
 /**
  * A project's feature plans and its Storybook plans on them (its support code the `support`
- * folder's, `import`), told a file's event as a host tells them: the feature plans first.
+ * folder's, `import`), told a file's event as a host tells them: Storybook's, which tell the
+ * feature plans.
  */
 const project = () => {
   const configuration = configurationOf({ import: ["support"] });
@@ -50,13 +51,7 @@ const project = () => {
     storybook,
     counted,
     /** What `file`'s event leaves for the host to do. */
-    fileChanged: async (
-      type: "add" | "change" | "unlink",
-      changed: string,
-    ) => ({
-      ...(await plans.onFileChange(type, changed)),
-      ...(await storybook.onFileChange(type, changed)),
-    }),
+    fileChanged: storybook.onFileChange,
   };
 };
 
@@ -280,6 +275,24 @@ test("the Storybook steps: whether the support files have one, on the Storybook 
   expect(await fileChanged("change", steps)).toEqual(nothing);
   plans.cache.clear();
   file("support/card.ts", withStep.replace("the {", "on the {"));
+  expect(await fileChanged("change", steps)).toEqual({
+    ...nothing,
+    staleFeatures: [id],
+  });
+  // Saved as a delete, then an add (an editor's), the file there again by then: the list is the
+  // same, the steps read again all the same.
+  file("support/card.ts", withStep.replace("the {", "with the {"));
+  expect(await fileChanged("unlink", steps)).toEqual({
+    ...nothing,
+    staleFeatures: [id],
+  });
+  expect(await fileChanged("add", steps)).toEqual(nothing);
+  // Any other file added, the list the same: the steps aren't read for it (a support file's own
+  // event is what says they may be others).
+  file("support/card.ts", withStep.replace("the {", "by the {"));
+  expect(await fileChanged("add", path.join(root, "sb/Card.tsx"))).toEqual(
+    nothing,
+  );
   expect(await fileChanged("change", steps)).toEqual({
     ...nothing,
     staleFeatures: [id],

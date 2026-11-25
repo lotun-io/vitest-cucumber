@@ -36,9 +36,9 @@ import { withoutQuery } from "./utils/withoutQuery.ts";
 export const createStorybookPlugin = (options: PresetOptions): Plugin[] => {
   const { core, hooks } = createBrowserHooks(cucumberOptionsOf(options));
   /**
-   * The Storybook plans, on the plugin's feature plans, told a watching Vitest's file changes after
-   * the feature plans; the features they say are out of date are rerun. A stories file's automatic
-   * title is Storybook's, by its options.
+   * The Storybook plans, on the plugin's feature plans: a watching Vitest's file changes go to
+   * them (they tell the feature plans), and the features they say are out of date are rerun. A
+   * stories file's automatic title is Storybook's, by its options.
    */
   const plans = createStorybookPlans({
     plans: core.featurePlans,
@@ -46,10 +46,7 @@ export const createStorybookPlugin = (options: PresetOptions): Plugin[] => {
     configuration: core.configuration,
     autoTitleOf: autoTitleOfStorybook(options),
   });
-  core.onFileChange(async (type, file) => {
-    const { staleFeatures } = await plans.onFileChange(type, file);
-    staleFeatures.forEach(core.rerun);
-  });
+  core.watchWith(plans.onFileChange);
 
   /** A feature file as its stories module, and its feature module. */
   const storiesPlugin: Plugin = {

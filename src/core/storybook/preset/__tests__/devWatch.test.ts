@@ -4,6 +4,13 @@ import { watchDevServer } from "../devWatch.ts";
 import { featuresMapId } from "../featuresModule.ts";
 import { previewSupportId } from "../supportModule.ts";
 
+/** Nothing left for the dev server. */
+const nothing = {
+  supportFilesChanged: false,
+  staleFeatures: [] as string[],
+  docsChanged: false,
+};
+
 const settled = () => new Promise((resolve) => setTimeout(resolve, 20));
 
 /** A feature file, and its two modules' ids (its stories module, its feature module). */
@@ -12,19 +19,17 @@ const featureModules = [feature, `${feature}?vitest-cucumber-storybook`];
 
 /**
  * A dev server's watcher on a fake server (its modules: `ids`, by id; a file's modules those whose
- * id is the file's, any query) and fake plans (the feature plans', then Storybook's, each
- * answering an event with `feature` and `storybook`; failing it with `failure` if any): what was
- * done, in order (`log`), and the project's listener of changed links.
+ * id is the file's, any query) and fake plans (Storybook's, answering an event with `nothing`
+ * and `answer`; failing it with `failure` if any): what was done, in order (`log`), and the
+ * project's listener of changed links.
  */
 const devWatch = ({
   ids = [],
-  feature: featureAnswer = { supportFilesChanged: false },
-  storybook = { staleFeatures: [], docsChanged: false },
+  answer = {},
   failure,
 }: {
   ids?: string[];
-  feature?: { supportFilesChanged: boolean };
-  storybook?: { staleFeatures: string[]; docsChanged: boolean };
+  answer?: Partial<typeof nothing>;
   failure?: Error;
 } = {}) => {
   const log: string[] = [];
@@ -55,18 +60,12 @@ const devWatch = ({
       config: { logger: { error } },
     },
     project: {
-      plans: {
-        onFileChange: (type: string, file: string) => {
-          log.push(`feature plans: ${type} ${file}`);
-          return failure
-            ? Promise.reject(failure)
-            : Promise.resolve(featureAnswer);
-        },
-      },
       storybookPlans: {
         onFileChange: (type: string, file: string) => {
-          log.push(`Storybook plans: ${type} ${file}`);
-          return Promise.resolve(storybook);
+          log.push(`plans: ${type} ${file}`);
+          return failure
+            ? Promise.reject(failure)
+            : Promise.resolve({ ...nothing, ...answer });
         },
       },
       onLinkedFeaturesChanged: (listener: () => Promise<void>) => {
@@ -83,7 +82,7 @@ const devWatch = ({
   return { watcher, log, error, listeners };
 };
 
-test("every file added, changed or deleted goes to the feature plans, then to Storybook's; nothing left to do: nothing done", async () => {
+test("every file added, changed or deleted goes to the plans, once; nothing left to do: nothing done", async () => {
   const { watcher, log } = devWatch({
     ids: [featuresMapId, previewSupportId, ...featureModules],
   });
@@ -92,21 +91,19 @@ test("every file added, changed or deleted goes to the feature plans, then to St
   watcher.emit("unlink", "/p/src/A.tsx");
   await settled();
   expect(log).toEqual([
-    "feature plans: change /p/src/A.stories.ts",
-    "Storybook plans: change /p/src/A.stories.ts",
-    "feature plans: unlink /p/src/A.tsx",
-    "Storybook plans: unlink /p/src/A.tsx",
+    "plans: change /p/src/A.stories.ts",
+    "plans: unlink /p/src/A.tsx",
   ]);
 });
 
 test("the support files' list changed: the support module reloaded (its hot update reloads the page)", async () => {
   const { watcher, log } = devWatch({
     ids: [previewSupportId, ...featureModules, featuresMapId],
-    feature: { supportFilesChanged: true },
+    answer: { supportFilesChanged: true },
   });
   watcher.emit("add", "/p/steps/more.ts");
   await settled();
-  expect(log.slice(2)).toEqual([`reload ${previewSupportId}`]);
+  expect(log.slice(1)).toEqual([`reload ${previewSupportId}`]);
 });
 
 test("which feature runs on which stories file changed: the features map reloaded", async () => {
@@ -118,21 +115,21 @@ test("which feature runs on which stories file changed: the features map reloade
 test("a linked feature's text changed: the features map reloaded (its own hot update tells the docs blocks), nothing else", async () => {
   const { watcher, log } = devWatch({
     ids: [featuresMapId, ...featureModules],
-    storybook: { staleFeatures: [], docsChanged: true },
+    answer: { docsChanged: true },
   });
   watcher.emit("change", feature);
   await settled();
-  expect(log.slice(2)).toEqual([`reload ${featuresMapId}`]);
+  expect(log.slice(1)).toEqual([`reload ${featuresMapId}`]);
 });
 
 test("feature files out of date: each one's modules reloaded (its stories module, its feature module), then Storybook's index told of them", async () => {
   const { watcher, log } = devWatch({
     ids: [featuresMapId, previewSupportId, ...featureModules],
-    storybook: { staleFeatures: [feature], docsChanged: false },
+    answer: { staleFeatures: [feature] },
   });
   watcher.emit("change", "/p/src/A.stories.ts");
   await settled();
-  expect(log.slice(2)).toEqual([
+  expect(log.slice(1)).toEqual([
     ...featureModules.map((id) => `reload ${id}`),
     `index out of date: ${feature}`,
   ]);
@@ -140,13 +137,16 @@ test("feature files out of date: each one's modules reloaded (its stories module
 
 test("a module no page has: not reloaded (Storybook's index told all the same)", async () => {
   const { watcher, log, listeners } = devWatch({
-    feature: { supportFilesChanged: true },
-    storybook: { staleFeatures: [feature], docsChanged: true },
+    answer: {
+      supportFilesChanged: true,
+      staleFeatures: [feature],
+      docsChanged: true,
+    },
   });
   await listeners.linkedFeaturesChanged?.();
   watcher.emit("change", "/p/src/A.stories.ts");
   await settled();
-  expect(log.slice(2)).toEqual([`index out of date: ${feature}`]);
+  expect(log.slice(1)).toEqual([`index out of date: ${feature}`]);
 });
 
 test("the plans fail: the error logged", async () => {

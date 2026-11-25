@@ -31,8 +31,18 @@ import { createVitestState } from "./vitestState.ts";
 import { createVitestWatcher, type FileChange } from "./vitestWatcher.ts";
 import { createWatchReruns } from "./watchReruns.ts";
 
-/** What a plugin built on this one does for a file's event (`createPlugin`'s `onFileChange`). */
-type FileChangeListener = (type: FileChange, file: string) => Promise<void>;
+/**
+ * What a file's event leaves for a watching Vitest to do, as the plans say (`createPlugin`'s
+ * `watchWith`): whether the support files' list is another, and the feature files to take as
+ * changed (Storybook's plans': their stories modules are made from more than their own text).
+ */
+type FileChangeAnswer = (
+  type: FileChange,
+  file: string,
+) => Promise<{
+  supportFilesChanged: boolean;
+  staleFeatures?: readonly string[];
+}>;
 
 /**
  * The shared hooks, which each mode's plugin calls from its own, plus what the modes need from them
@@ -60,8 +70,11 @@ export const createPlugin = (
   const plans = createFeaturePlans({ root: () => root, configuration });
   /** A watching Vitest: how feature files' modules are made again (`./watchReruns.ts`). */
   const reruns = createWatchReruns(() => vitestState.current());
-  /** What a plugin built on this one does for a file's event, after this one's own. */
-  const fileChangeListeners: FileChangeListener[] = [];
+  /**
+   * The plans a file's event is told to: the feature plans, or the ones a plugin built on this
+   * one puts on them (`watchWith`: Storybook's, which tell the feature plans themselves).
+   */
+  let onFileChange: FileChangeAnswer = plans.onFileChange;
   /** The Vitest the plugin serves and its projects there, while it's open (`./vitestState.ts`). */
   const vitestState = createVitestState(() => {
     plans.cache.dispose();
@@ -72,17 +85,19 @@ export const createPlugin = (
   const commands = createCommands({ cwd: () => root });
   /**
    * A file of a watching Vitest was added, changed or deleted: the plans are told
-   * (`../feature/plans.ts`'s `onFileChange`); the support files' list another, every feature
-   * file is rerun (their modules import the old one); then the plugins built on this one.
+   * (`../feature/plans.ts`'s `onFileChange`, or Storybook's on them); the support files' list
+   * another, every feature file is rerun (their modules import the old one); then the feature
+   * files the plans say are out of date.
    */
   const fileChanged = async (type: FileChange, file: string) => {
-    const { supportFilesChanged } = await plans.onFileChange(type, file);
+    const { supportFilesChanged, staleFeatures = [] } = await onFileChange(
+      type,
+      file,
+    );
     if (supportFilesChanged) {
       await reruns.everyFeature();
     }
-    for (const listener of fileChangeListeners) {
-      await listener(type, file);
-    }
+    staleFeatures.forEach(reruns.feature);
   };
   /** A watching Vitest's file changes. */
   const watchFiles = createVitestWatcher((type, file) => {
@@ -189,14 +204,13 @@ export const createPlugin = (
     /** The feature files' plans (see `../feature/plans.ts`). */
     featurePlans: plans,
     /**
-     * For a plugin built on this one (Storybook's: `../storybookPlugin.ts`): `listener` is
-     * called for each file a watching Vitest reports, after the feature plans were told.
+     * For a plugin built on this one (Storybook's: `../storybookPlugin.ts`): each file a watching
+     * Vitest reports goes to its plans' `onFileChange` (`answer`, which tells the feature plans
+     * itself), and what it says is out of date is rerun.
      */
-    onFileChange: (listener: FileChangeListener) => {
-      fileChangeListeners.push(listener);
+    watchWith: (answer: FileChangeAnswer) => {
+      onFileChange = answer;
     },
-    /** Has a watching Vitest take feature file `file` as changed (its module made again, the file rerun). */
-    rerun: reruns.feature,
     /** The commands (`../commands/commands.ts`): their browser command, what workers get. */
     commands,
     /** The shared part of the plugin's config (each mode adds its own). */

@@ -1,7 +1,7 @@
 // `storybook dev`: what the plugin does as the dev server's watcher reports a file added, changed
 // or deleted. Storybook and Vite handle a file's own change themselves (a hot update, the index
-// made again); the rest, what they can't know, the plans say (the feature plans, then Storybook's
-// on them: `../../feature/plans.ts`, `../stories/storybookPlans.ts`, each `onFileChange`), and the
+// made again); the rest, what they can't know, the plans say (Storybook's, which tell the feature
+// plans first: `../stories/storybookPlans.ts`'s `onFileChange`, `../../feature/plans.ts`), and the
 // dev server does. Each module is made again and a page that has it updated (`reloadModule`: no
 // module is invalidated by hand):
 // - the support files' list changed: the support module (the only module written from the
@@ -29,7 +29,7 @@ export const watchDevServer = ({
   server: DevServer;
   project: Pick<
     ReturnType<typeof projectOf>,
-    "plans" | "storybookPlans" | "onLinkedFeaturesChanged" | "indexOutOfDate"
+    "storybookPlans" | "onLinkedFeaturesChanged" | "indexOutOfDate"
   >;
 }) => {
   const graph = server.environments.client.moduleGraph;
@@ -51,16 +51,12 @@ export const watchDevServer = ({
 
   project.onLinkedFeaturesChanged(() => reload(featuresMapId));
 
-  /** A file was added, changed or deleted: the feature plans told first, then Storybook's. */
+  /** A file was added, changed or deleted: the plans told, then what they leave to do. */
   const fileChanged = async (
     type: "add" | "change" | "unlink",
     file: string,
   ) => {
-    const { supportFilesChanged } = await project.plans.onFileChange(
-      type,
-      file,
-    );
-    const { staleFeatures, docsChanged } =
+    const { supportFilesChanged, staleFeatures, docsChanged } =
       await project.storybookPlans.onFileChange(type, file);
     if (supportFilesChanged) {
       await reload(previewSupportId);

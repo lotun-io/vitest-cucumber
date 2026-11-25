@@ -4,7 +4,7 @@ import { createStoriesLinks } from "../storiesLinks.ts";
 const header = "/p/src/Header.stories.ts";
 const button = "/p/src/Button.stories.tsx";
 
-test("both sides: a feature's stories file, a stories file's features; none: the features that have none", () => {
+test("read both ways: a feature's stories file, a stories file's features; none: the features that have none", () => {
   const links = createStoriesLinks();
   links.link("/p/src/Header.feature", header);
   links.link("/p/features/Session.feature", header);
@@ -24,15 +24,13 @@ test("both sides: a feature's stories file, a stories file's features; none: the
     "/p/features/Session.feature",
     "/p/src/Card.feature",
   ]);
-  expect(
-    [...links.storiesFiles()].map(([file, its]) => [file, [...its]]),
-  ).toEqual([
-    [header, ["/p/src/Header.feature", "/p/features/Session.feature"]],
-    [undefined, ["/p/src/Card.feature"]],
+  expect(links.linked()).toEqual([
+    ["/p/src/Header.feature", header],
+    ["/p/features/Session.feature", header],
   ]);
 });
 
-test("linked to another stories file, or unlinked: taken out of the old one's features, both sides the same", () => {
+test("linked to another stories file, or unlinked: taken out of the old one's features", () => {
   const links = createStoriesLinks();
   links.link("/p/src/Header.feature", header);
   links.link("/p/features/Session.feature", header);
@@ -42,7 +40,7 @@ test("linked to another stories file, or unlinked: taken out of the old one's fe
   links.unlink("/p/src/Header.feature");
   expect(links.has("/p/src/Header.feature")).toBe(false);
   expect(links.featuresOf(header)).toEqual([]);
-  expect([...links.storiesFiles().keys()]).toEqual([button]);
+  expect(links.linked()).toEqual([["/p/features/Session.feature", button]]);
   links.clear();
   expect(links.features()).toEqual([]);
   expect(links.featuresOf(button)).toEqual([]);

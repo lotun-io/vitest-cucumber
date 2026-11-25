@@ -51,14 +51,6 @@ const createProject = (options: PresetOptions) => {
       void linkedFeaturesChanged?.();
     },
   });
-  /** The feature files linked so far that have a stories file (their links may fail), each with it. */
-  const linked = () =>
-    [...storybookPlans.links.storiesFiles()].flatMap(
-      ([storiesFile, features]) =>
-        storiesFile === undefined
-          ? []
-          : [...features].map((feature) => [feature, storiesFile] as const),
-    );
   return {
     root,
     plans,
@@ -82,15 +74,16 @@ const createProject = (options: PresetOptions) => {
     },
     /**
      * Each stories file's feature files (`./featuresModule.ts`), by their import paths (as Storybook's
-     * index writes them: a docs page's `parameters.fileName`, `./importPath.ts`), each
-     * file's features in their paths' order, each with its text as the plans read it (one that
-     * can't be read left out).
+     * index writes them: a docs page's `parameters.fileName`, `./importPath.ts`): the feature
+     * files linked so far that have a stories file (their links may fail), each file's features
+     * in their paths' order, each with its text as the plans read it (one that can't be read
+     * left out).
      */
     featuresMap: async () => {
       const features: Record<string, FeatureSource[]> = {};
-      for (const [feature, storiesFile] of linked().sort(([a], [b]) =>
-        a.localeCompare(b),
-      )) {
+      for (const [feature, storiesFile] of storybookPlans.links
+        .linked()
+        .sort(([a], [b]) => a.localeCompare(b))) {
         const read = await plans.fileOf(feature).catch(() => undefined);
         if (read) {
           (features[importPathOf(storiesFile)] ??= []).push({
