@@ -27,7 +27,6 @@ import { storiesModulePreview } from "../stories/featureStoriesModule.ts";
 import { watchDevServer } from "./devWatch.ts";
 import {
   featuresMapId,
-  featuresModuleCode,
   isFeaturesMap,
   mayBeFeaturesMap,
 } from "./featuresModule.ts";
@@ -110,10 +109,10 @@ export const storybookPreviewPlugin = (options: PresetOptions): Plugin => {
         return featureModulePreview(await plans.storybookPlanOf(file));
       }
       if (id === featuresMapId) {
-        // Made again by the dev server as a linked feature's text or the links change
-        // (`./devWatch.ts`).
+        // Reloaded by the dev server as it would be another (a linked feature's text, the links:
+        // `./devWatch.ts`).
         // Nothing caught: whatever goes wrong here is told (a build stops, `storybook dev` shows it).
-        return featuresModuleCode(await project.featuresMap());
+        return project.featuresMap.load();
       }
       if (id === previewSupportId) {
         const plan = await plans.storybookSupportPlanOf();

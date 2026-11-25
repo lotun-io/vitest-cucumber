@@ -11,8 +11,8 @@
 // None throws: a feature that can't be linked has a `FailedPlan`, as one that can't be parsed.
 //
 // Its parts are cached with the feature plans' (`plans.cache`, `../../feature/planCache.ts`: one
-// `clear()` for both): the Storybook steps (the support files' text), each stories file's
-// stories, and each feature's text as its plan was made from. A plan is put together at each ask.
+// `clear()` for both): the Storybook steps (the support files' text) and each stories file's
+// stories. A plan is put together at each ask.
 // Kept across `clear()`: which feature runs on which stories file, both ways (`links`,
 // `./storiesLinks.ts`: a watcher's events are looked up in them, and the host's features map
 // is written from them, `onLinkedFeaturesChanged` as they change).
@@ -23,8 +23,9 @@
 // changes nothing. What it gives back is what's left for the host to do: the feature plans'
 // answer (whether the support files' list is another), the feature files to take as changed
 // (their stories module is made from their stories file and the Storybook steps too, which
-// nothing else follows: `./staleFeatures.ts`), and whether a linked feature's text changed (what
-// shows it: `storybook dev`'s features map).
+// nothing else follows: `./staleFeatures.ts`). What shows a feature's text (`storybook dev`'s
+// features map) is its host's to follow: it's made again and compared there
+// (`../preset/featuresModule.ts`).
 // One ask doesn't wait for the host: Storybook's indexer's, which its own watcher may bring
 // before the file's event, so its feature file is taken as changed first.
 //
@@ -97,8 +98,6 @@ export interface StorybookFileChanged {
   supportFilesChanged: boolean;
   /** The feature files to take as changed, so their modules are made again. */
   staleFeatures: string[];
-  /** Whether the text of a feature that runs on a stories file changed: what shows it (docs) is out of date. */
-  docsChanged: boolean;
 }
 
 /**
@@ -114,7 +113,7 @@ export const createStorybookPlans = ({
 }: {
   plans: Pick<
     FeaturePlans,
-    "vitestPlanOf" | "fileOf" | "supportFiles" | "onFileChange" | "cache"
+    "vitestPlanOf" | "supportFiles" | "onFileChange" | "cache"
   >;
   root: () => string;
   configuration: Configuration;
@@ -138,8 +137,6 @@ export const createStorybookPlans = ({
   const stories = plans.cache.of<StoriesFile>({
     same: (a, b) => a.content === b.content,
   });
-  /** Each Storybook feature file's text, as its plan was last made from. */
-  const texts = plans.cache.of<string>();
   /** Which feature file runs on which stories file, both ways (their paths with `/`). */
   const links = plans.cache.keep(createStoriesLinks(onLinkedFeaturesChanged));
   /** Each Storybook feature file's label (`Feature: <name>`), as its plan was last made with. */
@@ -174,9 +171,6 @@ export const createStorybookPlans = ({
   /** Stories file `file`'s stories, as Storybook reads them. */
   const storiesOf = async (file: string): Promise<StoriesOf> =>
     (await stories(slash(file), () => readStoriesFile(slash(file)))).stories;
-  /** Reads feature file `file`'s text, as the feature plans have it. */
-  const readText = (file: string) => async () =>
-    (await plans.fileOf(file)).content;
 
   /**
    * Feature file `file`'s Storybook plan, put together: its Vitest plan, linked by the support
@@ -190,8 +184,6 @@ export const createStorybookPlans = ({
       links.link(slash(file));
       return plan;
     }
-    // The text it's made from: what its next event is compared with.
-    await texts(slash(file), readText(file));
     const by = await steps();
     const linked = featureLinksOf({
       feature: file,
@@ -274,8 +266,8 @@ export const createStorybookPlans = ({
      * The host's watcher reports `file` added, changed or deleted (`type`): the feature plans
      * are told first, here (`supportFilesChanged` is their answer). By what the file is:
      * - a feature file: deleted, it's forgotten, the others on its stories file in `staleFeatures`;
-     *   else `docsChanged` if its text is another and it runs on a stories file, and the others on
-     *   its stories file in `staleFeatures` if its label is another (a same label is refused).
+     *   else the others on its stories file are in `staleFeatures` if its label is another (a
+     *   same label is refused).
      * - a stories file (by its name, or one a feature runs on): changed with another text, added
      *   or deleted, the feature files it concerns are in `staleFeatures`.
      * - a support file (whatever its event: an editor may save one as a delete, then an add),
@@ -292,21 +284,13 @@ export const createStorybookPlans = ({
         const others = othersOf(id);
         if (type === "unlink") {
           links.unlink(id);
-          texts.drop(id);
           labels.drop(id);
-          return {
-            supportFilesChanged,
-            staleFeatures: others,
-            docsChanged: false,
-          };
+          return { supportFilesChanged, staleFeatures: others };
         }
-        const linked = links.storiesFileOf(id) !== undefined;
-        const textChanged = await texts.changed(id, readText(id));
         const labelChanged = await labels.changed(id, readLabel(id));
         return {
           supportFilesChanged,
           staleFeatures: labelChanged ? others : [],
-          docsChanged: textChanged && linked,
         };
       }
       let storiesChanged = false;
@@ -333,11 +317,7 @@ export const createStorybookPlans = ({
       for (const feature of stale.filter((feature) => !existsSync(feature))) {
         links.unlink(feature);
       }
-      return {
-        supportFilesChanged,
-        staleFeatures: stale.filter(links.has),
-        docsChanged: false,
-      };
+      return { supportFilesChanged, staleFeatures: stale.filter(links.has) };
     },
     /** Which Storybook feature file runs on which stories file, both ways: the features map's. */
     links,

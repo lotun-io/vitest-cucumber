@@ -1,6 +1,7 @@
 import { expect, test } from "vitest";
 import { ownModule } from "../../../utils/ownModule.ts";
 import {
+  createFeaturesMap,
   featuresModuleCode,
   isFeaturesMap,
   mayBeFeaturesMap,
@@ -43,4 +44,30 @@ test("the placeholder: its path as Vite writes it (any query), and the imports t
   expect(mayBeFeaturesMap("./featuresMap.mjs")).toBe(true);
   expect(mayBeFeaturesMap("./featuresMap.ts")).toBe(true);
   expect(mayBeFeaturesMap("./features.ts")).toBe(false);
+});
+
+test("a project's features map: made at each ask; made again, whether it's another than the one last made (never made: no)", async () => {
+  const linked = {
+    "./src/Header.stories.ts": [
+      { fileName: "./src/Header.feature", source: "Feature: Header\n" },
+    ],
+  };
+  let features: Record<string, { fileName: string; source: string }[]> = {};
+  const map = createFeaturesMap(() => Promise.resolve(features));
+  // No page has it yet.
+  expect(await map.changed()).toBe(false);
+  expect(await map.load()).toBe(featuresModuleCode({}));
+  // As it was served (a feature saved as it was, one on no stories file).
+  expect(await map.changed()).toBe(false);
+  // A feature linked, or its text another: once, then the same again.
+  features = linked;
+  expect(await map.changed()).toBe(true);
+  expect(await map.changed()).toBe(false);
+  expect(await map.load()).toBe(featuresModuleCode(linked));
+  // Two asks at once (the links' change and a file's event): one says so.
+  features = {};
+  expect(await Promise.all([map.changed(), map.changed()])).toEqual([
+    true,
+    false,
+  ]);
 });

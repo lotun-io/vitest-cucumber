@@ -6,9 +6,11 @@
 // module is invalidated by hand):
 // - the support files' list changed: the support module (the only module written from the
 //   list), whose own hot update reloads the page (`./supportModule.ts`);
-// - which feature runs on which stories file changed: the features map, written from that;
-// - the text of a linked feature changed: the features map (its text is written in). The map's
-//   own hot update tells the page's docs blocks (`../../../worker/storybook/linkedFeatures.ts`);
+// - the features map would be another (which feature runs on which stories file, a linked
+//   feature's text: both written in): made again as the links change and at a feature file's
+//   event, and reloaded only if it's another than the one last made (`./featuresModule.ts`).
+//   Its own hot update tells the page's docs blocks
+//   (`../../../worker/storybook/linkedFeatures.ts`);
 // - a feature's stories module is out of date (its stories file, the Storybook steps): the
 //   feature file's modules made again (its stories module, its feature module), and Storybook's
 //   index told of it (`../preset.ts`'s server channel hook: its index follows the stories
@@ -17,6 +19,7 @@
 // addon's Vitest answers each with a run: a saved stories file ran its features twice, traced
 // 2026-11-18). The addon's Vitest, another process, makes a run's feature modules again at the
 // run's start (`../../plugin/createPlugin.ts`).
+import { isFeatureFile } from "../../feature/featureFile.ts";
 import { featuresMapId } from "./featuresModule.ts";
 import type { DevServer } from "./locate.ts";
 import type { projectOf } from "./project.ts";
@@ -29,7 +32,10 @@ export const watchDevServer = ({
   server: DevServer;
   project: Pick<
     ReturnType<typeof projectOf>,
-    "storybookPlans" | "onLinkedFeaturesChanged" | "indexOutOfDate"
+    | "storybookPlans"
+    | "featuresMap"
+    | "onLinkedFeaturesChanged"
+    | "indexOutOfDate"
   >;
 }) => {
   const graph = server.environments.client.moduleGraph;
@@ -49,20 +55,28 @@ export const watchDevServer = ({
     }
   };
 
-  project.onLinkedFeaturesChanged(() => reload(featuresMapId));
+  /** The features map made again: reloaded if it's another than the one last made. */
+  const followFeaturesMap = async () => {
+    if (await project.featuresMap.changed()) {
+      await reload(featuresMapId);
+    }
+  };
+
+  project.onLinkedFeaturesChanged(followFeaturesMap);
 
   /** A file was added, changed or deleted: the plans told, then what they leave to do. */
   const fileChanged = async (
     type: "add" | "change" | "unlink",
     file: string,
   ) => {
-    const { supportFilesChanged, staleFeatures, docsChanged } =
+    const { supportFilesChanged, staleFeatures } =
       await project.storybookPlans.onFileChange(type, file);
     if (supportFilesChanged) {
       await reload(previewSupportId);
     }
-    if (docsChanged) {
-      await reload(featuresMapId);
+    // A feature file's text is written in the features map (the plans read it again by now).
+    if (isFeatureFile(file)) {
+      await followFeaturesMap();
     }
     await Promise.all(staleFeatures.map(reloadFile));
     await project.indexOutOfDate(staleFeatures);

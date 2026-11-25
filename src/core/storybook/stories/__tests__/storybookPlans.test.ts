@@ -59,7 +59,6 @@ const project = () => {
 const nothing = {
   supportFilesChanged: false,
   staleFeatures: [],
-  docsChanged: false,
 };
 
 test("storybookPlanOf: a feature next to its stories file: its plan from the parts as read, until one is read again", async () => {
@@ -305,7 +304,6 @@ test("the Storybook steps: whether the support files have one, on the Storybook 
   expect(await fileChanged("add", more)).toEqual({
     supportFilesChanged: true,
     staleFeatures: [id],
-    docsChanged: false,
   });
   rmSync(more);
   rmSync(steps);
@@ -344,31 +342,6 @@ test("a feature naming its stories file in a step: out of date as that file is d
   rmSync(steps);
 });
 
-test("a feature file's event: `docsChanged` only as the text of one that runs on a stories file really changed, never for a touch", async () => {
-  const id = file(
-    "live/Card.feature",
-    "Feature: Card\n  Scenario: s\n    Given a step\n",
-  );
-  stories("live/Card.stories.ts", ["A"]);
-  const unlinked = file("live/Loose.feature", tagged);
-  const { storybook, fileChanged } = project();
-  await storybook.storybookPlanOf(id);
-  await storybook.storybookPlanOf(unlinked);
-  // Touched, or saved as it was: the text read before.
-  expect(await fileChanged("change", id)).toEqual(nothing);
-  // Really edited.
-  writeFileSync(id, "Feature: Card\n  Scenario: other\n    Given a step\n");
-  expect(await fileChanged("change", id)).toEqual({
-    ...nothing,
-    docsChanged: true,
-  });
-  // The same event again (its echo): nothing more.
-  expect(await fileChanged("change", id)).toEqual(nothing);
-  // A feature with no stories file: none.
-  writeFileSync(unlinked, tagged.replace("@one", "@two"));
-  expect(await fileChanged("change", unlinked)).toEqual(nothing);
-});
-
 test("a touch changes nothing: a stories file's event with its text as read, and a feature's with its text as read", async () => {
   const id = file(
     "echo/Card.feature",
@@ -377,16 +350,13 @@ test("a touch changes nothing: a stories file's event with its text as read, and
   const storiesFile = stories("echo/Card.stories.ts", ["A"]);
   const { storybook, fileChanged } = project();
   await storybook.storybookPlanOf(id);
-  // The feature edited: its text for the host's docs; its stories file's event, its text as
-  // read (a touch, a save as it was): no feature out of date.
+  // The feature edited, its label the same: nothing of the plans' (its own module is its
+  // host's, what shows its text too); its stories file's event, its text as read (a touch, a
+  // save as it was): no feature out of date.
   writeFileSync(id, "Feature: Card\n  Scenario: edited\n    Given a step\n");
-  expect(await fileChanged("change", id)).toEqual({
-    ...nothing,
-    docsChanged: true,
-  });
+  expect(await fileChanged("change", id)).toEqual(nothing);
   expect(await fileChanged("change", storiesFile)).toEqual(nothing);
-  // The stories file edited: its feature out of date; the feature's own event then, its text
-  // as read: nothing for the docs.
+  // The stories file edited: its feature out of date; the feature's own event then: nothing.
   stories("echo/Card.stories.ts", ["A", "B"]);
   expect(await fileChanged("change", storiesFile)).toEqual({
     ...nothing,
@@ -428,10 +398,7 @@ test("two features on one stories file with the same label: refused, each naming
   );
   // Its text edited, its label the same: no other to make again.
   file("src/Dup.feature", "Feature: Login\n  Scenario: t\n    Given a step\n");
-  expect(await fileChanged("change", one)).toEqual({
-    ...nothing,
-    docsChanged: true,
-  });
+  expect(await fileChanged("change", one)).toEqual(nothing);
   // Renamed: the other to make again; neither refused.
   file(
     "src/Dup.feature",
@@ -440,7 +407,6 @@ test("two features on one stories file with the same label: refused, each naming
   expect(await fileChanged("change", one)).toEqual({
     ...nothing,
     staleFeatures: [two],
-    docsChanged: true,
   });
   expect(await planErrorOf(one)).toBeUndefined();
   expect(await planErrorOf(two)).toBeUndefined();

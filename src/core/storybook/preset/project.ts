@@ -14,6 +14,7 @@ import { configurationOf } from "../../plugin/options.ts";
 import { addonOptionsKey, type AddonOptions } from "../addon.ts";
 import { autoTitleOfStorybook } from "../stories/storiesTitle.ts";
 import { createStorybookPlans } from "../stories/storybookPlans.ts";
+import { createFeaturesMap } from "./featuresModule.ts";
 import { importPathOf } from "./importPath.ts";
 
 /** Storybook's options to a preset's functions: its config folder, its presets, the addon entry's options. */
@@ -77,9 +78,9 @@ const createProject = (options: PresetOptions) => {
      * index writes them: a docs page's `parameters.fileName`, `./importPath.ts`): the feature
      * files linked so far that have a stories file (their links may fail), each file's features
      * in their paths' order, each with its text as the plans read it (one that can't be read
-     * left out).
+     * left out), as the preview serves it (its code, and whether it would be another).
      */
-    featuresMap: async () => {
+    featuresMap: createFeaturesMap(async () => {
       const features: Record<string, FeatureSource[]> = {};
       for (const [feature, storiesFile] of storybookPlans.links
         .linked()
@@ -93,7 +94,7 @@ const createProject = (options: PresetOptions) => {
         }
       }
       return features;
-    },
+    }),
   };
 };
 
