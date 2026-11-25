@@ -43,6 +43,7 @@ import {
   failedPlan,
   type FailedPlan,
   type FeaturePlans,
+  type FileChange,
   type VitestPlan,
 } from "../../feature/plans.ts";
 import { featureLinksOf, isStoriesFile } from "./featureLinks.ts";
@@ -273,7 +274,7 @@ export const createStorybookPlans = ({
      *   expressions others, every Storybook feature file is in `staleFeatures`.
      */
     onFileChange: async (
-      type: "add" | "change" | "unlink",
+      type: FileChange,
       file: string,
     ): Promise<StorybookFileChanged> => {
       const { supportFilesChanged } = await plans.onFileChange(type, file);

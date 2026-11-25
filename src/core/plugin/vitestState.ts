@@ -4,7 +4,9 @@
 // restart with the same plugins) gives it to the next Vitest. Anything it kept of a closed Vitest
 // (its projects, Vitest itself) would keep that Vitest alive, and everything it holds (its Vite
 // servers, its runs): so the state is dropped as its Vitest closes, made anew by the next one's
-// first project, and `onClose` lets the plugin drop what it derived from it.
+// first project; `opened` lets the plugin start what it does once per Vitest (its watcher's
+// listeners), and `closed` drop what it derived from it. One Vitest at a time: a plugin is the
+// next Vitest's only once its last one closed, or was replaced.
 //
 // The rest of main's state, none of it holding a closed Vitest:
 // - a plugin's own (`./createPlugin.ts`): its root, cucumber's configuration (loaded once), and
@@ -22,8 +24,17 @@ export interface VitestState {
   readonly projects: ReadonlySet<TestProject>;
 }
 
-/** A plugin's state of its Vitest; `onClose` is called as that Vitest closes. */
-export const createVitestState = (onClose: () => void) => {
+/**
+ * A plugin's state of its Vitest: `opened` is called with a Vitest as its first project uses the
+ * plugin, `closed` as that Vitest closes.
+ */
+export const createVitestState = ({
+  opened,
+  closed,
+}: {
+  opened: (vitest: Vitest) => void;
+  closed: () => void;
+}) => {
   let current: { vitest: Vitest; projects: Set<TestProject> } | undefined;
   return {
     /** The open Vitest's state, if the plugin serves one. */
@@ -36,9 +47,10 @@ export const createVitestState = (onClose: () => void) => {
         vitest.onClose(() => {
           if (current === state) {
             current = undefined;
-            onClose();
+            closed();
           }
         });
+        opened(vitest);
       }
       current.projects.add(project);
     },

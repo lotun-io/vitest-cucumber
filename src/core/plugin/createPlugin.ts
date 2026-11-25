@@ -17,6 +17,7 @@ import { featureModule } from "../feature/featureModule.ts";
 import {
   createFeaturePlans,
   type FailedPlan,
+  type FileChange,
   type TagsPlan,
 } from "../feature/plans.ts";
 import type { PlannedFeature } from "../runs/runStart.ts";
@@ -29,7 +30,7 @@ import { frameFilterOf, internalDirectories } from "./frames.ts";
 import { configurationOf } from "./options.ts";
 import { declareTags } from "./tags.ts";
 import { createVitestState } from "./vitestState.ts";
-import { createVitestWatcher, type FileChange } from "./vitestWatcher.ts";
+import { watchVitest } from "./vitestWatcher.ts";
 import { createWatchReruns } from "./watchReruns.ts";
 
 /**
@@ -76,9 +77,22 @@ export const createPlugin = (
    * one puts on them (`watchWith`: Storybook's, which tell the feature plans themselves).
    */
   let onFileChange: FileChangeAnswer = plans.onFileChange;
-  /** The Vitest the plugin serves and its projects there, while it's open (`./vitestState.ts`). */
-  const vitestState = createVitestState(() => {
-    plans.cache.dispose();
+  /**
+   * The Vitest the plugin serves and its projects there, while it's open (`./vitestState.ts`): a
+   * watching one's file changes listened to as it opens (`./vitestWatcher.ts`), what was read
+   * for its plans dropped as it closes.
+   */
+  const vitestState = createVitestState({
+    opened: (vitest) => {
+      watchVitest(vitest, (type, file) => {
+        fileChanged(type, file).catch((error: unknown) => {
+          vitest.logger.error(error);
+        });
+      });
+    },
+    closed: () => {
+      plans.cache.dispose();
+    },
   });
   /** Whether a Vitest set up a project with this plugin (`configureVitest`, which only Vitest calls). */
   const inVitest = () => vitestState.current() !== undefined;
@@ -100,12 +114,6 @@ export const createPlugin = (
     }
     staleFeatures.forEach(reruns.feature);
   };
-  /** A watching Vitest's file changes. */
-  const watchFiles = createVitestWatcher((type, file) => {
-    fileChanged(type, file).catch((error: unknown) => {
-      vitestState.current()?.vitest.logger.error(error);
-    });
-  });
   /** A feature file's tags (one that can't be used: none). */
   const tagsOf = (plan: TagsPlan | FailedPlan) =>
     "error" in plan ? [] : plan.tags;
@@ -235,7 +243,6 @@ export const createPlugin = (
     }: VitestPluginContext) => {
       vitestState.add(vitest, project);
       testRunsOf(vitest).register(project, source);
-      watchFiles(vitest);
       await declareProjectTags(project);
 
       // A feature module contains the plugin's options and support files, not just the file's

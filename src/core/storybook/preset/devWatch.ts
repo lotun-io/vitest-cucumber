@@ -20,6 +20,7 @@
 // 2026-11-18). The addon's Vitest, another process, makes a run's feature modules again at the
 // run's start (`../../plugin/createPlugin.ts`).
 import { isFeatureFile } from "../../feature/featureFile.ts";
+import type { FileChange } from "../../feature/plans.ts";
 import { featuresMapId } from "./featuresModule.ts";
 import type { DevServer } from "./locate.ts";
 import type { projectOf } from "./project.ts";
@@ -65,10 +66,7 @@ export const watchDevServer = ({
   project.onLinkedFeaturesChanged(followFeaturesMap);
 
   /** A file was added, changed or deleted: the plans told, then what they leave to do. */
-  const fileChanged = async (
-    type: "add" | "change" | "unlink",
-    file: string,
-  ) => {
+  const fileChanged = async (type: FileChange, file: string) => {
     const { supportFilesChanged, staleFeatures } =
       await project.storybookPlans.onFileChange(type, file);
     if (supportFilesChanged) {

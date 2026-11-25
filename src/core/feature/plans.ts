@@ -61,6 +61,9 @@ export interface VitestPlan extends TagsPlan {
   supportFiles: string[];
 }
 
+/** How a file changed, as a watcher names it (`onFileChange`'s). */
+export type FileChange = "add" | "change" | "unlink";
+
 /** A feature file that can't be used: why. */
 export interface FailedPlan {
   error: Error;
@@ -86,12 +89,10 @@ export const createFeaturePlans = ({
   /** The run's options, from the configuration. */
   const options = runOptionsOf(configuration);
 
-  /** Feature file `file` as it is on disk: its text and its uri, with the feature files' language and the run's options. */
+  /** Feature file `file` as it is on disk: its text and its uri. */
   const read = async (file: string) => ({
     content: await readFile(file, "utf8"),
     uri: slash(path.relative(root(), file)),
-    language: configuration.language,
-    options,
   });
   type FeatureFile = Awaited<ReturnType<typeof read>>;
 
@@ -101,7 +102,7 @@ export const createFeaturePlans = ({
   const tagsByText = cache.keep(fileCache<TagsPlan>());
   const parsedByText = cache.keep(fileCache<Parsed | FailedPlan>());
 
-  /** Feature file `file`'s text, its uri, the language and the run's options. */
+  /** Feature file `file`'s text and its uri. */
   const readOf = (file: string) => reads(slash(file), () => read(file));
   /** The support files' list. */
   const supportFiles = cache.single({
@@ -109,13 +110,13 @@ export const createFeaturePlans = ({
     same: (a, b) => a.join("\n") === b.join("\n"),
   });
 
-  /** Feature file `file` (read as `{ content, uri, language }`) parsed, or why it can't be. */
-  const parsedOf = (file: string, { content, uri, language }: FeatureFile) =>
+  /** Feature file `file` (read as `{ content, uri }`) parsed, or why it can't be. */
+  const parsedOf = (file: string, { content, uri }: FeatureFile) =>
     parsedByText(slash(file), content, (): Parsed | FailedPlan => {
       const { featureTree, parseErrors, gherkin } = planOf(
         content,
         uri,
-        language,
+        configuration.language,
       );
       return gherkin && parseErrors.length === 0
         ? { uri, tags: tagsOfDocument(gherkin.document), featureTree, gherkin }
@@ -136,11 +137,10 @@ export const createFeaturePlans = ({
       : {
           ...parsed,
           content: now.content,
-          options: now.options,
+          options,
           supportFiles: await supportFiles(),
         };
   };
-  const vitestOf = (file: string) => makeVitestPlan(file).catch(failedPlan);
 
   return {
     /** Feature file `file` as read (its text, for a run's source message), as its plans are made with. */
@@ -148,16 +148,16 @@ export const createFeaturePlans = ({
     /** Feature file `file`'s tags (parsed for them alone, once per text). */
     tagsPlanOf: (file: string): Promise<TagsPlan | FailedPlan> =>
       readOf(file).then(
-        ({ content, uri, language }) =>
+        ({ content, uri }) =>
           tagsByText(slash(file), content, () => ({
             uri,
-            tags: tagsOf(content, uri, language),
+            tags: tagsOf(content, uri, configuration.language),
           })),
         failedPlan,
       ),
     /** Feature file `file` planned: its parse, the run's options, the support files. */
     vitestPlanOf: (file: string): Promise<VitestPlan | FailedPlan> =>
-      vitestOf(file),
+      makeVitestPlan(file).catch(failedPlan),
     /** The support files, in order. */
     supportFiles,
     /** The run's options, from the user's configuration: every plan's. */
@@ -171,7 +171,7 @@ export const createFeaturePlans = ({
      * plan again).
      */
     onFileChange: async (
-      type: "add" | "change" | "unlink",
+      type: FileChange,
       file: string,
     ): Promise<{ supportFilesChanged: boolean }> => {
       const id = slash(file);

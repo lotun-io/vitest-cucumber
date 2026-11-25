@@ -10,6 +10,7 @@
 // - a stories file added: also the features with no stories file (a stories file step of
 //   theirs may name it: only a file that exists is linked).
 // Any other file: none.
+import type { FileChange } from "../../feature/plans.ts";
 import { isStoriesFile, siblingFeaturesOf } from "./featureLinks.ts";
 import type { StoriesLinks } from "./storiesLinks.ts";
 
@@ -20,7 +21,7 @@ export const staleFeaturesOf = ({
   stepsChanged,
 }: {
   /** The event, and its file (with `/`). */
-  type: "add" | "change" | "unlink";
+  type: FileChange;
   file: string;
   /** Which Storybook feature runs on which stories file. */
   links: Pick<StoriesLinks, "features" | "featuresOf" | "has">;
