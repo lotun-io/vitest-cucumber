@@ -1,5 +1,15 @@
 # @lotun/vitest-cucumber
 
+## 1.0.0-beta.5
+
+### Patch Changes
+
+- 0dc176f: Browser mode and Storybook projects run with Vitest's `fsModuleCache` off: Vitest kept a feature's generated module there, so `vitest list` and `--changed` could read an outdated one
+- a9c5507: A step whose parameter type's transformer throws `null` or `undefined` fails, instead of passing without running
+- b06fdb2: The `import` option is required: `cucumber()` without it fails with what to give, e.g. `import: ["features/**/*.ts"]`
+- 0dc176f: `vitest list` lists every scenario and example row at its Gherkin line, in node mode, browser mode and Storybook, and Vitest's filters apply to it (`file:line`, tags). A failure's header names the scenario's line in every run
+- d55740f: `@vitest/utils` is installed with the plugin: no peer dependency to add
+
 ## 1.0.0-beta.4
 
 ### Patch Changes
