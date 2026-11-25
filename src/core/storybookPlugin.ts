@@ -43,7 +43,6 @@ export const createStorybookPlugin = (options: PresetOptions): Plugin[] => {
   const plans = createStorybookPlans({
     plans: core.featurePlans,
     root: core.root,
-    configuration: core.configuration,
     autoTitleOf: autoTitleOfStorybook(options),
   });
   core.watchWith(plans.onFileChange);

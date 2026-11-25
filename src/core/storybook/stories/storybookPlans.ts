@@ -45,7 +45,6 @@ import {
   type FeaturePlans,
   type VitestPlan,
 } from "../../feature/plans.ts";
-import { runOptionsOf, type Configuration } from "../../plugin/options.ts";
 import { featureLinksOf, isStoriesFile } from "./featureLinks.ts";
 import { featureLabelOf } from "./featureStories.ts";
 import {
@@ -101,22 +100,20 @@ export interface StorybookFileChanged {
 }
 
 /**
- * The Storybook plans of the project at `root`, on its feature `plans`, with the user's
- * `configuration` and Storybook's automatic titles (`autoTitleOf`).
+ * The Storybook plans of the project at `root`, on its feature `plans` (the run's options
+ * theirs), with Storybook's automatic titles (`autoTitleOf`).
  */
 export const createStorybookPlans = ({
   plans,
   root,
-  configuration,
   autoTitleOf,
   onLinkedFeaturesChanged = () => undefined,
 }: {
   plans: Pick<
     FeaturePlans,
-    "vitestPlanOf" | "supportFiles" | "onFileChange" | "cache"
+    "vitestPlanOf" | "supportFiles" | "options" | "onFileChange" | "cache"
   >;
   root: () => string;
-  configuration: Configuration;
   /** Storybook's automatic title of a stories file (`./storiesTitle.ts`): the host knows its `stories`. */
   autoTitleOf: AutoTitleOf;
   /**
@@ -255,7 +252,7 @@ export const createStorybookPlans = ({
     > => {
       try {
         return {
-          options: runOptionsOf(configuration),
+          options: plans.options,
           supportFiles: await plans.supportFiles(),
           storybookSteps: (await steps()).used,
         };

@@ -1,5 +1,6 @@
 import { DecodedMap, getOriginalPosition } from "@vitest/utils/source-map";
 import { expect, test } from "vitest";
+import { defaultRunOptions } from "../../../../utils/runOptions.ts";
 import { errorCode } from "../../../utils/errorCode.ts";
 import { ownModule } from "../../../utils/ownModule.ts";
 import { supportModuleCode } from "../../preset/supportModule.ts";
@@ -70,7 +71,7 @@ test("a stories module: its code, in story tests then the feature's tests as cal
     },
     gherkin: { document: { comments: [] }, pickles: [] },
     link: { key: "" },
-    options: {},
+    options: defaultRunOptions,
     supportFiles: ["/p/steps.ts"],
     storybookSteps: false,
     stories: {
@@ -133,7 +134,7 @@ test("a feature module, from its feature's plan: story tests' exports the runtim
     tags: [],
     featureTree: { name: "A", line: 1, column: 1, children: [] },
     link: { key: "" },
-    options: {},
+    options: defaultRunOptions,
     supportFiles: ["/p/steps.ts"],
     storybookSteps: true,
     stories: {
@@ -154,7 +155,7 @@ test("a feature module, from its feature's plan: story tests' exports the runtim
       "export const { testStory, storyTests, convertToFilePath, vitest } = storyTestsModule({",
       "  testStory: addonTestStory,",
       "  convertToFilePath: addonConvertToFilePath,",
-      '  run: {"cwd":"/p","options":{},"storybookSteps":true},',
+      `  run: {"cwd":"/p","options":${JSON.stringify(defaultRunOptions)},"storybookSteps":true},`,
       "});",
       `export default createFeature(${JSON.stringify(model)});`,
     ].join("\n"),
@@ -174,14 +175,16 @@ test("the support module, from its support plan: the support files' import, the 
   const code = supportModuleCode({
     cwd: "/p",
     plan: {
-      options: { strict: true },
+      options: { ...defaultRunOptions, strict: false },
       supportFiles: ["/p/steps.ts"],
       storybookSteps: true,
     },
   });
   expect(code).toContain("export const storybookSteps = true;");
   expect(code).toContain('await import("/p/steps.ts");');
-  expect(code).toContain('export const options = {"strict":true};');
+  expect(code).toContain(
+    'export const options = {"strict":false,"dryRun":false,"worldParameters":{}};',
+  );
   expect(code).toContain('export const cwd = "/p";');
   expect(code).toContain("import.meta.hot.accept(() => location.reload());");
 });

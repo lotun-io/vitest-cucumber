@@ -6,6 +6,7 @@ import {
 } from "@cucumber/gherkin";
 import { IdGenerator } from "@cucumber/messages";
 import { beforeAll, describe, expect, test } from "vitest";
+import { defaultRunOptions } from "../../../../utils/runOptions.ts";
 import { Given } from "../../../cucumber/recorders.ts";
 import { platform } from "../platform.ts";
 
@@ -42,7 +43,7 @@ const messageOf = async (name: string) => {
 };
 
 beforeAll(async () => {
-  platform.use({ cwd: "/p", options: {} }, async () => {
+  platform.use({ cwd: "/p", options: defaultRunOptions }, async () => {
     Given("a step", () => undefined);
     Given("a step defined twice", () => undefined);
     Given("a step defined twice", () => undefined);

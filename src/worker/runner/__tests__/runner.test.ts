@@ -9,6 +9,7 @@ import { describe, expect, test } from "vitest";
 import type { FeatureGherkin, RunOptions } from "../../../types/feature.ts";
 import type { Query } from "../../../types/query.ts";
 import type { Code, SupportCall } from "../../../types/supportCode.ts";
+import { defaultRunOptions } from "../../../utils/runOptions.ts";
 import { createRuntimeEnvironment } from "../../browser/runtimeEnvironment.ts";
 import { world as currentWorld } from "../../cucumber/page.ts";
 import { failuresOf } from "../failures.ts";
@@ -44,7 +45,7 @@ const call = (method: string, ...args: unknown[]): SupportCall => ({
 
 const runnerOf = (
   calls: SupportCall[],
-  options: RunOptions = {},
+  options: Partial<RunOptions> = {},
   wrapper?: (code: Code, o: unknown) => Code,
   environment = pageEnvironment(),
 ) => {
@@ -53,7 +54,7 @@ const runnerOf = (
     workerId: "1",
     support: buildSupportCode(calls, { newId, wrapper }),
     newId,
-    options,
+    options: { ...defaultRunOptions, ...options },
     environment,
   });
 };
@@ -679,7 +680,7 @@ test("the platform's `around`: each step as the feature reads it, and BeforeAll,
       { newId },
     ),
     newId,
-    options: {},
+    options: defaultRunOptions,
     environment: {
       ...pageEnvironment(),
       around: async (label, run) => {

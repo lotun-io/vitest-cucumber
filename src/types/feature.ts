@@ -38,9 +38,9 @@ export interface FeatureTest extends Located {
 
 /** The options a run follows: of the plugin's configuration (main's, with cucumber's defaults), what the runtime reads. */
 export interface RunOptions {
-  strict?: boolean;
-  dryRun?: boolean;
-  worldParameters?: unknown;
+  strict: boolean;
+  dryRun: boolean;
+  worldParameters: unknown;
 }
 
 export interface Feature {

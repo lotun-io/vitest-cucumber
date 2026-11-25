@@ -24,6 +24,7 @@ import { testRunsOf, type ProjectSource } from "../runs/testRuns.ts";
 import { withoutQuery } from "../utils/withoutQuery.ts";
 import { colorsOf } from "./colors.ts";
 import { cucumberVersion } from "./cucumberVersion.ts";
+import { featureFilesOf } from "./featureFiles.ts";
 import { frameFilterOf, internalDirectories } from "./frames.ts";
 import { configurationOf } from "./options.ts";
 import { declareTags } from "./tags.ts";
@@ -46,7 +47,7 @@ type FileChangeAnswer = (
 
 /**
  * The shared hooks, which each mode's plugin calls from its own, plus what the modes need from them
- * (`root`, `configuration`, …), with the user's options (`given`: `import` required, the others
+ * (`root`, `featurePlans`, …), with the user's options (`given`: `import` required, the others
  * cucumber's defaults where none; a missing or wrong one throws here, as the plugin is made). `platform` is the path of the mode's `Platform`
  * module, which every feature module imports; feature modules carry the file's Gherkin document and
  * pickles, which the plugin's runtime runs (`../../worker/runner/`).
@@ -115,9 +116,7 @@ export const createPlugin = (
    * filter may name a tag of a file outside it).
    */
   const declareProjectTags = async (project: TestProject) => {
-    const features = (await project.globTestFiles()).testFiles.flatMap(
-      (file) => featureOfTestFile(file) ?? [],
-    );
+    const features = await featureFilesOf(project);
     // One that can't be read: no tags.
     const read = await Promise.all(features.map(plans.tagsPlanOf));
     declareTags(project, read.flatMap(tagsOf));
@@ -199,8 +198,6 @@ export const createPlugin = (
   return {
     /** The project's root, cucumber's `cwd`. */
     root: () => root,
-    /** The user's configuration: their options, with cucumber's defaults. */
-    configuration,
     /** The feature files' plans (see `../feature/plans.ts`). */
     featurePlans: plans,
     /**

@@ -1,5 +1,6 @@
 import { DecodedMap, getOriginalPosition } from "@vitest/utils/source-map";
 import { expect, test } from "vitest";
+import { defaultRunOptions } from "../../../utils/runOptions.ts";
 import { featureModule } from "../featureModule.ts";
 import { planOf } from "../plan.ts";
 import type { VitestPlan } from "../plans.ts";
@@ -22,7 +23,7 @@ const planFor = (content: string): VitestPlan => {
     tags: [],
     featureTree,
     gherkin,
-    options: {},
+    options: defaultRunOptions,
     supportFiles: ["/p/features/steps.ts"],
   };
 };

@@ -39,7 +39,6 @@ const project = () => {
   const storybook = createStorybookPlans({
     plans,
     root: () => root,
-    configuration,
     // Every stories file here writes its title.
     autoTitleOf: () => Promise.resolve(undefined),
     onLinkedFeaturesChanged: () => {

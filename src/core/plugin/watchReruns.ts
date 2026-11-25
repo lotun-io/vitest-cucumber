@@ -5,25 +5,16 @@
 // when the support files' list changed, every feature file of its projects (`everyFeature`: their
 // modules import the old list; Vitest wouldn't rerun anything by itself: no module imports a new
 // file yet, and a deleted file triggers nothing), looked up then (one may have been added since).
-import { featureOfTestFile } from "../feature/featureFile.ts";
+import { featureFilesOf } from "./featureFiles.ts";
 import type { VitestState } from "./vitestState.ts";
 
 export const createWatchReruns = (
   /** The open Vitest the plugin serves, and its projects using the plugin (`./vitestState.ts`). */
   state: () => VitestState | undefined,
 ) => {
-  /**
-   * The projects' feature files, absolute (Vitest's `include` and `exclude`; a Storybook project's
-   * from its `stories`), whose modules import the support code.
-   */
-  const featureFilesOf = async ({ projects }: VitestState) => {
-    const files = await Promise.all(
-      [...projects].map(async (project) =>
-        (await project.globTestFiles()).testFiles.flatMap(
-          (file) => featureOfTestFile(file) ?? [],
-        ),
-      ),
-    );
+  /** The projects' feature files (`./featureFiles.ts`), whose modules import the support code. */
+  const everyFeatureOf = async ({ projects }: VitestState) => {
+    const files = await Promise.all([...projects].map(featureFilesOf));
     return [...new Set(files.flat())];
   };
 
@@ -36,7 +27,7 @@ export const createWatchReruns = (
     everyFeature: async () => {
       const current = state();
       if (current) {
-        for (const file of await featureFilesOf(current)) {
+        for (const file of await everyFeatureOf(current)) {
           current.vitest.watcher.onFileChange(file);
         }
       }

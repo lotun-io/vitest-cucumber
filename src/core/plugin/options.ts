@@ -5,6 +5,7 @@
 import { dialects } from "@cucumber/gherkin";
 import type { CucumberOptions, RunOptions } from "../../types/feature.ts";
 import { pluginError } from "../../utils/errors.ts";
+import { defaultRunOptions } from "../../utils/runOptions.ts";
 import { jsonWorldParameters } from "./worldParameters.ts";
 
 /** The plugin's options, every one set. */
@@ -30,11 +31,13 @@ export const configurationOf = (
   }
   const configuration: Configuration = {
     import: globs,
-    dryRun: options.dryRun ?? false,
+    dryRun: options.dryRun ?? defaultRunOptions.dryRun,
     backtrace: options.backtrace ?? false,
     language: options.language ?? "en",
-    strict: options.strict ?? true,
-    worldParameters: jsonWorldParameters(options.worldParameters ?? {}),
+    strict: options.strict ?? defaultRunOptions.strict,
+    worldParameters: jsonWorldParameters(
+      options.worldParameters ?? defaultRunOptions.worldParameters,
+    ),
   };
   const { language } = configuration;
   if (!Object.hasOwn(dialects, language)) {

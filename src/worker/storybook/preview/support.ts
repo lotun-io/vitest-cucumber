@@ -5,6 +5,7 @@
 // the project's root, the run's options, whether a support file has a Storybook step, cucumber's version. This file's code runs only without the
 // preset: no `importSupport`, which the runner says (`./runner.ts`). Preview only.
 import type { ImportSupport, RunOptions } from "../../../types/feature.ts";
+import { defaultRunOptions } from "../../../utils/runOptions.ts";
 
 /** Imports the support files, in order: none here (the preset serves this module's code). */
 export const importSupport: ImportSupport | undefined = undefined;
@@ -12,8 +13,8 @@ export const importSupport: ImportSupport | undefined = undefined;
 /** The project's root, cucumber's `cwd`. */
 export const cwd: string = "";
 
-/** The run's options. */
-export const options: RunOptions = {};
+/** The run's options (cucumber's defaults here). */
+export const options: RunOptions = defaultRunOptions;
 
 /** Whether a support file has a Storybook step (the page then defines their parameter types). */
 export const storybookSteps: boolean = false;

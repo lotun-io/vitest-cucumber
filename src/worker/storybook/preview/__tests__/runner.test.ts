@@ -4,6 +4,7 @@ import type {
   HookOutcome,
   ScenarioOutcome,
 } from "../../../../types/platform.ts";
+import { defaultRunOptions } from "../../../../utils/runOptions.ts";
 import { scenarioAt } from "../../../platform/scenario/scenarioAt.ts";
 import { runStory } from "../../story.ts";
 import { beforeAll as annotationBeforeAll } from "../annotation.ts";
@@ -40,7 +41,7 @@ const fakes = () => {
   const importSupport = async () => undefined;
   const runner = createPreviewRunner({
     platform,
-    run: { cwd: "/p", options: {} },
+    run: { cwd: "/p", options: defaultRunOptions },
     importSupport,
     note,
   });
@@ -54,7 +55,7 @@ describe("the preview's runner", () => {
     await runner.run(scenario);
     await runner.run(scenario);
     expect(platform.use).toHaveBeenCalledWith(
-      { cwd: "/p", options: {} },
+      { cwd: "/p", options: defaultRunOptions },
       importSupport,
     );
     expect(platform.beforeAll).toHaveBeenCalledTimes(1);
@@ -132,7 +133,7 @@ describe("the preview's runner", () => {
     platform.use.mockClear();
     const runner = createPreviewRunner({
       platform,
-      run: { cwd: "/p", options: {} },
+      run: { cwd: "/p", options: defaultRunOptions },
       importSupport: undefined,
       note: () => undefined,
     });

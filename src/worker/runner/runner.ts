@@ -68,10 +68,7 @@ export const createRunner = ({
   // `world` and `context` read the platform's scope.
   useScope(environment.scope);
   const defaultTimeout = environment.defaultTimeouts.hook;
-  const worldParameters = options.worldParameters ?? {};
-  // Cucumber's strict defaults to true.
-  const strict = options.strict ?? true;
-  const dryRun = options.dryRun ?? false;
+  const { worldParameters, strict, dryRun } = options;
 
   /** Runs a BeforeAll or AfterAll hook (cucumber's `runTestRunHook`): whether it didn't fail. */
   const runTestRunHook = async (

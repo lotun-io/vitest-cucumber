@@ -6,6 +6,7 @@ import {
 } from "@cucumber/gherkin";
 import { IdGenerator, type Pickle } from "@cucumber/messages";
 import { describe, expect, test } from "vitest";
+import { defaultRunOptions } from "../../../../utils/runOptions.ts";
 import { createRuntimeEnvironment } from "../../../browser/runtimeEnvironment.ts";
 import { createRunner } from "../../../runner/runner.ts";
 import { buildSupportCode } from "../../../runner/supportCode.ts";
@@ -37,7 +38,7 @@ describe("summaryOf", () => {
         { newId },
       ),
       newId,
-      options: {},
+      options: defaultRunOptions,
       environment: {
         ...createRuntimeEnvironment(),
         defaultTimeouts: { test: 5000, hook: 5000 },

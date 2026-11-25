@@ -160,6 +160,8 @@ export const createFeaturePlans = ({
       vitestOf(file),
     /** The support files, in order. */
     supportFiles,
+    /** The run's options, from the user's configuration: every plan's. */
+    options,
     /**
      * The host's watcher reports `file` added, changed or deleted (`type`): the part read from
      * it is dropped, now (whatever asks next reads it again). A feature file: its text (deleted:
