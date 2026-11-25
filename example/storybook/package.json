@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "lint": "oxlint",
+    "lint": "tsc -b && oxlint",
     "preview": "vite preview",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
@@ -36,7 +36,7 @@
     "playwright": "catalog:",
     "react-syntax-highlighter": "^15.6.6",
     "storybook": "^10.6.8",
-    "typescript": "~7.0.2",
+    "typescript": "catalog:",
     "vite": "^8.3.8",
     "vitest": "catalog:"
   }

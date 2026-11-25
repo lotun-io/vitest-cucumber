@@ -4,8 +4,8 @@ import type { PlaywrightWorld } from "../support/world.ts";
 
 Given(
   "the URL {string} returns:",
-  async function mockUrl(this: PlaywrightWorld, url: string, body: string) {
-    await this.context.route(url, async (route) => {
+  async (world: PlaywrightWorld, url: string, body: string) => {
+    await world.context.route(url, async (route) => {
       await route.fulfill({
         status: 200,
         contentType: "text/html",
@@ -17,14 +17,14 @@ Given(
 
 Given(
   "I open the URL {string}",
-  async function openUrl(this: PlaywrightWorld, url: string) {
-    await this.page.goto(url);
+  async (world: PlaywrightWorld, url: string) => {
+    await world.page.goto(url);
   },
 );
 
 Given(
   "the page title should be {string}",
-  async function checkTitle(this: PlaywrightWorld, title: string) {
-    await expect(this.page).toHaveTitle(title);
+  async (world: PlaywrightWorld, title: string) => {
+    await expect(world.page).toHaveTitle(title);
   },
 );

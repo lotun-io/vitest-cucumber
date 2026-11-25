@@ -1,8 +1,11 @@
 {
-  "extends": "@tsconfig/node24/tsconfig.json",
+  "extends": "@tsconfig/node26/tsconfig.json",
   "compilerOptions": {
     "noEmit": true,
-    // @tsconfig/node24's, and `RegExp.escape` (Node 24 has it).
+    // The base leaves it to TypeScript's default.
+    "strict": true,
+    // Node 24's, the lowest Node the package supports (`engines`), not the base's (Node 26's:
+    // `Temporal`, which Node 24 doesn't have): `@tsconfig/node24`'s list, and `RegExp.escape`.
     "lib": [
       "es2024",
       "ES2025.RegExp",

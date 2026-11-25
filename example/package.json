@@ -4,6 +4,7 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "test": "pnpm -r --sequential test"
+    "test": "pnpm -r --sequential test",
+    "lint": "pnpm -r lint"
   }
 }

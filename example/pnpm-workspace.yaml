@@ -8,7 +8,9 @@ packages:
 catalog:
   "@cucumber/cucumber": ^13.3.0
   "@lotun/vitest-cucumber": 1.0.0-beta.5
+  "@tsconfig/node26": ^26.0.2
   "@vitest/browser-playwright": ^5.1.1
+  typescript: ~7.0.2
   vitest: ^5.1.1
   # One Playwright for every example that opens a browser, so one browser build to install
   # (`@playwright/test` depends on the `playwright` of its own version: keep the two the same).

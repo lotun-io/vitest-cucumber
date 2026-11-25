@@ -15,12 +15,18 @@ catalogs:
     '@playwright/test':
       specifier: ^1.65.1
       version: 1.65.1
+    '@tsconfig/node26':
+      specifier: ^26.0.2
+      version: 26.0.2
     '@vitest/browser-playwright':
       specifier: ^5.1.1
       version: 5.1.1
     playwright:
       specifier: ^1.65.1
       version: 1.65.1
+    typescript:
+      specifier: ~7.0.2
+      version: 7.0.2
     vitest:
       specifier: ^5.1.1
       version: 5.1.1
@@ -46,6 +52,9 @@ importers:
       playwright:
         specifier: 'catalog:'
         version: 1.65.1
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
       vitest:
         specifier: 'catalog:'
         version: 5.1.1(@types/node@24.19.2)(@vitest/browser-playwright@5.1.1)(@vitest/coverage-v8@5.1.1)(@vitest/ui@5.1.1)(vite@8.3.8(@types/node@24.19.2)(esbuild@0.28.2)(yaml@2.9.1))
@@ -58,6 +67,12 @@ importers:
       '@lotun/vitest-cucumber':
         specifier: 'catalog:'
         version: 1.0.0-beta.5(@cucumber/cucumber@13.3.0)(storybook@10.6.8(@types/react@19.3.0)(react@19.3.1))(vitest@5.1.1)
+      '@tsconfig/node26':
+        specifier: 'catalog:'
+        version: 26.0.2
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
       vitest:
         specifier: 'catalog:'
         version: 5.1.1(@types/node@24.19.2)(@vitest/browser-playwright@5.1.1)(@vitest/coverage-v8@5.1.1)(@vitest/ui@5.1.1)(vite@8.3.8(@types/node@24.19.2)(esbuild@0.28.2)(yaml@2.9.1))
@@ -73,9 +88,15 @@ importers:
       '@playwright/test':
         specifier: 'catalog:'
         version: 1.65.1
+      '@tsconfig/node26':
+        specifier: 'catalog:'
+        version: 26.0.2
       playwright:
         specifier: 'catalog:'
         version: 1.65.1
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
       vitest:
         specifier: 'catalog:'
         version: 5.1.1(@types/node@24.19.2)(@vitest/browser-playwright@5.1.1)(@vitest/coverage-v8@5.1.1)(@vitest/ui@5.1.1)(vite@8.3.8(@types/node@24.19.2)(esbuild@0.28.2)(yaml@2.9.1))
@@ -144,7 +165,7 @@ importers:
         specifier: ^10.6.8
         version: 10.6.8(@types/react@19.3.0)(react@19.3.1)
       typescript:
-        specifier: ~7.0.2
+        specifier: 'catalog:'
         version: 7.0.2
       vite:
         specifier: ^8.3.8
@@ -1171,6 +1192,9 @@ packages:
     peerDependenciesMeta:
       '@tmcp/auth':
         optional: true
+
+  '@tsconfig/node26@26.0.2':
+    resolution: {integrity: sha512-RIBSoNGQxUQ8r4hSrEzS6TrUneoKaCuX6BjL4zF3wqttGq2w06zCea4d8P1gRvM/HZyDT1FQJ8trZSyy/63oMg==}
 
   '@tybys/wasm-util@0.10.3':
     resolution: {integrity: sha512-F3fo1MYrRJYL3zER0OUOmkutjr1Vp23m7OsSgp7nq4SP6OqX6C/56XFIPAl5bt3zaBRjmW7SGz3u/6LwFpYcOg==}
@@ -3347,6 +3371,8 @@ snapshots:
       '@tmcp/session-manager': 0.2.2(tmcp@1.20.1(typescript@7.0.2))
       esm-env: 1.2.2
       tmcp: 1.20.1(typescript@7.0.2)
+
+  '@tsconfig/node26@26.0.2': {}
 
   '@tybys/wasm-util@0.10.3':
     dependencies:

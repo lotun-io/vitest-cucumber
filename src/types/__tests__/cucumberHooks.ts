@@ -1,7 +1,7 @@
 // Cucumber's hooks as the plugin's types give them (`../cucumber.d.mts`), checked by TypeScript
 // alone (`tsc`, part of `pnpm lint`): what must typecheck does, and each `@ts-expect-error` line is
-// an error. Never run.
-import type * as real from "#cucumber";
+// an error. Never run. The packed package's own declaration is checked by the examples' `lint`
+// (`example/`: arrow functions taking the World in their hooks), in CI's smoke job.
 import {
   After,
   AfterAll,
@@ -134,33 +134,3 @@ export const cucumbers = () => {
     void this.nope;
   });
 };
-
-/**
- * The one thing the declaration can't compute: how many ways cucumber's method can be called. It
- * reads three (`CallsOf`): a method read as four has its first twice while it has no more.
- */
-type FourCallsOf<Method> = Method extends {
-  (...args: infer A): unknown;
-  (...args: infer B): unknown;
-  (...args: infer C): unknown;
-  (...args: infer D): unknown;
-}
-  ? [A, B, C, D]
-  : never;
-type Same<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
-type AtMostThree<Method> = Same<FourCallsOf<Method>[0], FourCallsOf<Method>[1]>;
-
-/** Cucumber's own hooks (`#cucumber`: the real module), each `true` while it has at most three. */
-export const calls: [
-  AtMostThree<typeof real.Before>,
-  AtMostThree<typeof real.After>,
-  AtMostThree<typeof real.BeforeStep>,
-  AtMostThree<typeof real.AfterStep>,
-  AtMostThree<typeof real.BeforeAll>,
-  AtMostThree<typeof real.AfterAll>,
-] = [true, true, true, true, true, true];
-/** The check isn't empty: as if cucumber added a way to call `Before`. */
-type OneMore = ((name: string, tags: string, code: () => void) => void) &
-  typeof real.Before;
-// @ts-expect-error -- four ways: not `true`
-export const added: AtMostThree<OneMore> = true;

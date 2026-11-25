@@ -5,20 +5,20 @@ import type { PlaywrightWorld } from "./world.ts";
 
 let browser: Browser;
 
-BeforeAll(async function launchBrowser() {
+BeforeAll(async () => {
   browser = await chromium.launch({ headless: true });
 });
 
-AfterAll(async function closeBrowser() {
+AfterAll(async () => {
   await browser.close();
 });
 
-Before(async function openPage(this: PlaywrightWorld) {
-  this.browser = browser;
-  this.context = await browser.newContext();
-  this.page = await this.context.newPage();
+Before(async (world: PlaywrightWorld) => {
+  world.browser = browser;
+  world.context = await browser.newContext();
+  world.page = await world.context.newPage();
 });
 
-After(async function closePage(this: PlaywrightWorld) {
-  await this.context.close();
+After(async (world: PlaywrightWorld) => {
+  await world.context.close();
 });

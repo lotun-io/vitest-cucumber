@@ -78,6 +78,11 @@ jobs:
       - name: Install packed tarball into example workspaces
         working-directory: example
         run: pnpm -r add "../../lotun-vitest-cucumber-$(node -p "require('../package.json').version").tgz"
+      # The examples typecheck against the packed package: their hooks are arrow functions taking
+      # the World, which only the plugin's types of cucumber's hooks allow (the build kept each
+      # entry's reference to that declaration and shipped it as it is).
+      - working-directory: example
+        run: pnpm lint
       # One browser build for every example: they share one Playwright version (the examples'
       # catalog, `example/pnpm-workspace.yaml`: `playwright` and `@playwright/test`).
       - name: Install the examples' browser

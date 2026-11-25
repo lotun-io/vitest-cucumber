@@ -3,13 +3,16 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "test": "vitest run"
+    "test": "vitest run",
+    "lint": "tsc"
   },
   "devDependencies": {
     "@cucumber/cucumber": "catalog:",
     "@lotun/vitest-cucumber": "catalog:",
     "@playwright/test": "catalog:",
+    "@tsconfig/node26": "catalog:",
     "playwright": "catalog:",
+    "typescript": "catalog:",
     "vitest": "catalog:"
   }
 }

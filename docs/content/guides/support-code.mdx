@@ -112,20 +112,20 @@ Cucumber's own `world` and `context` exports work in arrow functions too
 #### TypeScript
 
 Annotate the argument with your World's type (`world: CartWorld`). Steps then typecheck as they
-are. Hooks need the plugin's types, which type Cucumber's hooks for this form too:
+are. Hooks need the plugin's types, which type Cucumber's hooks for this form too. Add them to
+the `tsconfig.json` that checks your support code:
 
-- If the same `tsconfig.json` checks your `vitest.config.ts` (or `.storybook/main.ts`) and your
-  support code, TypeScript already has them: the config imports the plugin.
-- If not (config files checked by a `tsconfig.node.json` of their own, for example), add them to
-  the one that checks your support code:
-
-  ```json filename="tsconfig.json"
-  {
-    "compilerOptions": {
-      "types": ["@lotun/vitest-cucumber"]
-    }
+```json filename="tsconfig.json"
+{
+  "compilerOptions": {
+    "types": ["@lotun/vitest-cucumber"]
   }
-  ```
+}
+```
+
+That works in every setup. TypeScript also picks them up on its own when the same `tsconfig.json`
+checks a file that imports the plugin (your `vitest.config.ts`, or `.storybook/main.ts`), but
+projects often check their config files with a `tsconfig.node.json` of their own, so name them.
 
 Without the annotation, TypeScript reads a hook's first argument as Cucumber's hook parameter.
 

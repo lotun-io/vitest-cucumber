@@ -6,15 +6,15 @@ import type { StoryWorld } from "./world.ts";
 const user = { name: "Ada Lovelace", email: "ada@example.com" };
 let realFetch: typeof fetch | undefined;
 
-Before({ tags: "@api" }, function (this: StoryWorld) {
+Before({ tags: "@api" }, (world: StoryWorld) => {
   realFetch = globalThis.fetch;
   globalThis.fetch = async () => Response.json(user);
-  this.log("fetch answers with a user of our own");
+  world.log("fetch answers with a user of our own");
 });
 
-After({ tags: "@api" }, function (this: StoryWorld) {
+After({ tags: "@api" }, (world: StoryWorld) => {
   if (realFetch) {
     globalThis.fetch = realFetch;
   }
-  this.attach(JSON.stringify(user), { mediaType: "application/json", fileName: "user.json" });
+  world.attach(JSON.stringify(user), { mediaType: "application/json", fileName: "user.json" });
 });
