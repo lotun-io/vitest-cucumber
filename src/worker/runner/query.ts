@@ -37,8 +37,8 @@ type SupportQuery = Pick<
  * `context`: messages that aren't the run's, read for its lookups only, never kept (a scenario's
  * Gherkin document and pickle, a retry's test case). With `support`, the support code's messages
  * (its step definitions, hooks and parameter types) are the support query's, looked up there, never
- * copied or written: a run has none of its own. The lists it gives are kept up to date: read, never
- * written.
+ * copied or written: a run has none of its own (`from`, chosen once). The lists it gives are kept
+ * up to date: read, never written.
  */
 export const createQuery = (
   envelopes: readonly Envelope[] = [],
@@ -163,7 +163,7 @@ export const createQuery = (
     const entry =
       testStepId === undefined ? undefined : testSteps.get(testStepId);
     const hookId = entry?.testStep.hookId;
-    const type = hookId === undefined ? undefined : hookOf(hookId)?.type;
+    const type = hookId === undefined ? undefined : from.hook(hookId)?.type;
     const before = type
       ? type.startsWith("BEFORE")
       : !entry ||
@@ -190,8 +190,13 @@ export const createQuery = (
     read(envelope);
   };
 
-  /** A hook, by id: the support query's, if any. */
-  const hookOf = (id: string) => (support ? support.hook(id) : hooks.get(id));
+  /** Where the support code's messages are looked up: the support query, else what was read here. */
+  const from: SupportQuery = support ?? {
+    hook: (id) => hooks.get(id),
+    stepDefinition: (id) => stepDefinitions.get(id),
+    parameterTypes: () => parameterTypes,
+    undefinedParameterTypes: () => undefinedParameterTypes,
+  };
   context.forEach(read);
   envelopes.forEach(update);
   return {
@@ -200,16 +205,13 @@ export const createQuery = (
     testStepResults: (): readonly Finished[] =>
       results.filter(({ testStepId }) => testStepId !== undefined),
     attachments: (): readonly Attachment[] => attachments,
-    parameterTypes: (): readonly ParameterType[] =>
-      support ? support.parameterTypes() : parameterTypes,
-    undefinedParameterTypes: (): readonly UndefinedParameterType[] =>
-      support ? support.undefinedParameterTypes() : undefinedParameterTypes,
+    parameterTypes: from.parameterTypes,
+    undefinedParameterTypes: from.undefinedParameterTypes,
     suggestions: (): readonly Suggestion[] => suggestions,
     testStep: (testStepId: string) => testSteps.get(testStepId)?.testStep,
     stepOf,
-    stepDefinition: (id: string) =>
-      support ? support.stepDefinition(id) : stepDefinitions.get(id),
-    hook: hookOf,
+    stepDefinition: from.stepDefinition,
+    hook: from.hook,
     firstUnexplained: () => firstUnexplained,
     testRunFinished: () => testRunFinished,
     update,
