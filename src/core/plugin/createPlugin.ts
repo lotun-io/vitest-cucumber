@@ -134,8 +134,9 @@ export const createPlugin = (
         // said so where no watcher of the plugin's listens (the addon's Vitest: probed
         // 2026-11-18, a run used a module made before its stories changed).
         project.vitest.invalidateFile(feature);
-        // A file that can't be used has no tags and no messages: its module throws its error as
-        // it runs (`../feature/featureModule.ts`).
+        // A file that can't be used has no tags, and of the run's messages its source alone
+        // (`../runs/runStart.ts`): its module throws its error as it runs
+        // (`../feature/featureModule.ts`).
         // Its plan, and its text for the run's messages (its source), from the one reading. One
         // that can't be read: its plan has the error.
         const read = await plans.fileOf(feature).catch(() => undefined);
@@ -168,13 +169,13 @@ export const createPlugin = (
     totalWorkers: project.config.maxWorkers,
     isolate: project.config.isolate,
     version: cucumberVersion,
-    // The user's tag definitions with a timeout (the Gherkin tags the plugin declares have none).
     testTimeout: project.config.testTimeout,
     hookTimeout: project.config.hookTimeout,
     internalDirectories,
     projectName: project.name,
     // Set as each run starts (`../runs/testRuns.ts`).
     sendMessages: false,
+    // The user's tag definitions with a timeout (the Gherkin tags the plugin declares have none).
     timedTags: (project.config.tags ?? [])
       .filter(({ timeout }) => timeout !== undefined)
       .map(({ name }) => name),

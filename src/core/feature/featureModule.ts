@@ -54,7 +54,7 @@ export const featureModule = ({
     return { code: failingSuiteCode(plan.error) };
   }
   const { uri, featureTree, gherkin, options, supportFiles, content } = plan;
-  const feature: Omit<Feature, "featureTree"> = { cwd, uri, options, gherkin };
+  const feature: Feature = { cwd, uri, options, gherkin };
   const code = treeCalls({
     content,
     tree: featureTree,

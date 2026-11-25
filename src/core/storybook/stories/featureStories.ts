@@ -1,6 +1,6 @@
 // Storybook: a feature file as a stories module (`notes/storybook.md`, "The feature file as the CSF
-// module"). Storybook indexes it (`../preset.ts`'s indexer for `.feature`), its preview and its story
-// tests import it (the preset's transform, `../../storybookPlugin.ts`'s): it imports its stories file
+// module"). Storybook indexes it (`../preset/indexer.ts`), its preview and its story
+// tests import it (the preview's transform, `../preset/previewPlugin.ts`; story tests', `../../storybookPlugin.ts`): it imports its stories file
 // (`./linkedFeature.ts`), whose meta is its own (Storybook composes a story with the meta of the module
 // exporting it), and exports a story per scenario or Outline row: the story it runs on spread (its
 // args, render, decorators, loaders), or none (the meta's defaults), its name and tags, its `play`

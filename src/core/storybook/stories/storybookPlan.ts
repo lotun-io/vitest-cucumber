@@ -1,4 +1,4 @@
-// Storybook: a planned feature file made for Storybook (`../../feature/plans.ts`'s
+// Storybook: a planned feature file made for Storybook (`./storybookPlans.ts`'s
 // `storybookPlanOf`): linked to its stories file (`./linkedFeature.ts`, by the support files'
 // Storybook steps) and its stories module written (`./featureStories.ts`), or, its links failing,
 // what stops it (the plugin's error, every one listed). A hook writes the module its plan gives
@@ -43,7 +43,7 @@ export const storybookPlanFrom = async ({
   /** Whether a support file has a Storybook step (the plan's `storybookSteps`). */
   storybookSteps: boolean;
   root: string;
-  /** A stories file's stories, as Storybook reads them (kept: `../../feature/plans.ts`). */
+  /** A stories file's stories, as Storybook reads them (kept: `./storybookPlans.ts`). */
   storiesOf: (file: string) => Promise<StoriesOf>;
   /** Storybook's automatic title of a stories file (`./storiesTitle.ts`). */
   autoTitleOf: AutoTitleOf;

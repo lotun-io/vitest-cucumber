@@ -173,23 +173,23 @@ test("a stories file's event: really changed, or deleted, the features that run 
   const { storybook, fileChanged } = project();
   await storybook.storybookPlanOf(id);
   await storybook.storybookPlanOf(other);
-  /** The feature files to touch for the watcher's event for `name`. */
-  const touched = async (event: "add" | "change" | "unlink", name: string) =>
+  /** The feature files out of date after the watcher's event for `name`. */
+  const staleAfter = async (event: "add" | "change" | "unlink", name: string) =>
     (await fileChanged(event, path.join(root, name))).staleFeatures;
   // Its stories file with the text it had (touched, or saved as it was): nothing.
-  expect(await touched("change", "watch/Page.stories.ts")).toEqual([]);
+  expect(await staleAfter("change", "watch/Page.stories.ts")).toEqual([]);
   // Really edited: its features.
   stories("watch/Page.stories.ts", ["A", "B"]);
-  expect(await touched("change", "watch/Page.stories.ts")).toEqual([id]);
+  expect(await staleAfter("change", "watch/Page.stories.ts")).toEqual([id]);
   // Any other file changed, or added: none.
-  expect(await touched("change", "watch/Page.tsx")).toEqual([]);
-  expect(await touched("add", "watch/Page.tsx")).toEqual([]);
+  expect(await staleAfter("change", "watch/Page.tsx")).toEqual([]);
+  expect(await staleAfter("add", "watch/Page.tsx")).toEqual([]);
   // Its stories file deleted: it; the other doesn't run on it.
   rmSync(storiesFile);
-  expect(await touched("unlink", "watch/Page.stories.ts")).toEqual([id]);
-  // A feature deleted: forgotten, not touched.
+  expect(await staleAfter("unlink", "watch/Page.stories.ts")).toEqual([id]);
+  // A feature deleted: forgotten, not out of date.
   rmSync(other);
-  expect(await touched("unlink", "watch/Other.feature")).toEqual([]);
+  expect(await staleAfter("unlink", "watch/Other.feature")).toEqual([]);
   expect(storybook.links.features()).toEqual([id]);
 });
 
@@ -238,7 +238,7 @@ test("storybookIndexPlanOf: its Storybook plan and its index entries, with the t
   expect(changed).toMatchObject(await storybook.storybookPlanOf(id));
 });
 
-test("the Storybook steps: whether the support files have one, on the Storybook plan and the support plan; their expressions others, every Storybook feature to touch", async () => {
+test("the Storybook steps: whether the support files have one, on the Storybook plan and the support plan; their expressions others, every Storybook feature out of date", async () => {
   const id = file(
     "sb/Card.feature",
     "Feature: Card\n  Scenario: s\n    Given a step\n",
@@ -298,7 +298,7 @@ test("the Storybook steps: whether the support files have one, on the Storybook 
   rmSync(steps);
 });
 
-test("a feature naming its stories file in a step: touched as that file is deleted, and as it's created again", async () => {
+test("a feature naming its stories file in a step: out of date as that file is deleted, and as it's created again", async () => {
   const steps = file(
     "support/named.ts",
     `Given("the stories of {storybook:storiesFile}", () => {});\n`,
@@ -356,7 +356,7 @@ test("a feature file's event: `docsChanged` only as the text of one that runs on
   expect(await fileChanged("change", unlinked)).toEqual(nothing);
 });
 
-test("a touch changes nothing: a stories file's event with its text as read, and the event of a feature the host touched", async () => {
+test("a touch changes nothing: a stories file's event with its text as read, and a feature's with its text as read", async () => {
   const id = file(
     "echo/Card.feature",
     "Feature: Card\n  Scenario: s\n    Given a step\n",
@@ -365,15 +365,15 @@ test("a touch changes nothing: a stories file's event with its text as read, and
   const { storybook, fileChanged } = project();
   await storybook.storybookPlanOf(id);
   // The feature edited: its text for the host's docs; its stories file's event, its text as
-  // read (a touch, a save as it was): no feature to touch.
+  // read (a touch, a save as it was): no feature out of date.
   writeFileSync(id, "Feature: Card\n  Scenario: edited\n    Given a step\n");
   expect(await fileChanged("change", id)).toEqual({
     ...nothing,
     docsChanged: true,
   });
   expect(await fileChanged("change", storiesFile)).toEqual(nothing);
-  // The stories file edited: its feature to touch; the feature's event (the host's touch),
-  // its text as read: nothing for the docs.
+  // The stories file edited: its feature out of date; the feature's own event then, its text
+  // as read: nothing for the docs.
   stories("echo/Card.stories.ts", ["A", "B"]);
   expect(await fileChanged("change", storiesFile)).toEqual({
     ...nothing,

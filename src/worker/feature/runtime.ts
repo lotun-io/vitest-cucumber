@@ -21,7 +21,7 @@ export const feature = ({
   importSupport,
 }: {
   /** The feature file, from main's plan of it (its tests are the module's calls). */
-  plan: Omit<Feature, "featureTree">;
+  plan: Feature;
   /** The mode's platform. */
   platform: Platform;
   /** Imports the support files. */

@@ -40,7 +40,7 @@ const reloadOnUpdate =
 
 /**
  * The support module's code, for the project at `cwd`, from its support plan
- * (`../../feature/plans.ts`'s `storybookSupportPlanOf`; one that failed is thrown by the preview's
+ * (`../stories/storybookPlans.ts`'s `storybookSupportPlanOf`; one that failed is thrown by the preview's
  * plugin, not written: `./previewPlugin.ts`): the support files' import, the run's options, and
  * whether the support files have a Storybook step.
  */

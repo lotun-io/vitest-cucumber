@@ -6,7 +6,7 @@ import type { GherkinDocument, Pickle } from "@cucumber/messages";
 
 /**
  * The plugin's options: the cucumber options it supports (see cucumber's configuration docs), its
- * configuration. `import` is required (no default: none loads no support code).
+ * configuration. `import` is required (no default; an empty list loads no support code).
  */
 export type CucumberOptions = Pick<IConfiguration, "import"> &
   Partial<
@@ -36,7 +36,7 @@ export interface FeatureTest extends Located {
   isExample?: true;
 }
 
-/** The options a run follows: of cucumber's resolved configuration, what the runtime reads. */
+/** The options a run follows: of the plugin's configuration (main's, with cucumber's defaults), what the runtime reads. */
 export interface RunOptions {
   strict?: boolean;
   dryRun?: boolean;
@@ -48,13 +48,11 @@ export interface Feature {
   cwd: string;
   /** The file's path from `cwd`, with `/` (cucumber's `uri`). */
   uri: string;
-  /** Its tests; the root is the feature (named by `uri` if it has no name). */
-  featureTree: FeatureSuite;
-  /** The run's options, from the user's configuration as cucumber resolved it in main. */
+  /** The run's options, from the plugin's configuration (main's). */
   options: RunOptions;
   /**
    * Its Gherkin document and pickles, as cucumber's Gherkin parser compiled them, which the worker or
-   * the page runs (none if the file didn't parse).
+   * the page runs.
    */
   gherkin: FeatureGherkin;
 }

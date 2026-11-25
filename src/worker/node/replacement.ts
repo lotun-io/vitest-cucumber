@@ -1,8 +1,8 @@
 // Node mode's support code loading, with the plugin's replacement of `@cucumber/cucumber` while it
 // loads and cucumber itself after. The replacement is one object, cucumber's exports with the plugin's own
 // where the runtime has its own (the support code's methods recording; `world`, `context`, `World`,
-// `DataTable` and `wrapPromiseWithTimeout` the runtime's copies, so no cucumber code runs in the
-// worker), which the support code gets both ways: an import through Vitest's mock (`vi.doMock`), a
+// `DataTable` and `wrapPromiseWithTimeout` the runtime's copies, so cucumber's module loads for its
+// exports and its runtime never runs in the worker), which the support code gets both ways: an import through Vitest's mock (`vi.doMock`), a
 // `require` from Node's module cache (`require.cache`, cucumber's entry's `exports` swapped for it).
 // Then `vi.doUnmock` and cucumber's own exports back, so a later import or `require` is cucumber's own; the
 // support modules keep what they got: a definition they make later fails (`../cucumber/registry.ts`).
