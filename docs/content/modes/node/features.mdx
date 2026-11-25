@@ -45,7 +45,7 @@ Feature: Greeting
     Then the greeting is "Good day, Ada."
 ```
 
-Each scenario gets a new World, `this` in its steps and hooks:
+Each scenario gets a new World, the `world` argument of its steps and hooks:
 
 ```ts filename="features/support/world.ts"
 import { setWorldConstructor } from "@cucumber/cucumber";
@@ -64,8 +64,8 @@ import { Before } from "@cucumber/cucumber";
 import type { GreetingWorld } from "./world.ts";
 
 // Only for scenarios tagged @formal
-Before({ tags: "@formal" }, function (this: GreetingWorld) {
-  this.formal = true;
+Before({ tags: "@formal" }, (world: GreetingWorld) => {
+  world.formal = true;
 });
 ```
 
@@ -74,16 +74,16 @@ import { Given, Then, When } from "@cucumber/cucumber";
 import { expect } from "vitest";
 import type { GreetingWorld } from "../support/world.ts";
 
-Given("a visitor named {string}", function (this: GreetingWorld, name: string) {
-  this.name = name;
+Given("a visitor named {string}", (world: GreetingWorld, name: string) => {
+  world.name = name;
 });
 
-When("they are greeted", function (this: GreetingWorld) {
-  this.greeting = this.formal ? `Good day, ${this.name}.` : `Hello, ${this.name}!`;
+When("they are greeted", (world: GreetingWorld) => {
+  world.greeting = world.formal ? `Good day, ${world.name}.` : `Hello, ${world.name}!`;
 });
 
-Then("the greeting is {string}", function (this: GreetingWorld, text: string) {
-  expect(this.greeting).toBe(text);
+Then("the greeting is {string}", (world: GreetingWorld, text: string) => {
+  expect(world.greeting).toBe(text);
 });
 ```
 
@@ -105,21 +105,21 @@ import type { PlaywrightWorld } from "./world.ts";
 
 let browser: Browser;
 
-BeforeAll(async function () {
+BeforeAll(async () => {
   browser = await chromium.launch({ headless: true });
 });
 
-AfterAll(async function () {
+AfterAll(async () => {
   await browser.close();
 });
 
-Before(async function (this: PlaywrightWorld) {
-  this.context = await browser.newContext();
-  this.page = await this.context.newPage();
+Before(async (world: PlaywrightWorld) => {
+  world.context = await browser.newContext();
+  world.page = await world.context.newPage();
 });
 
-After(async function (this: PlaywrightWorld) {
-  await this.context.close();
+After(async (world: PlaywrightWorld) => {
+  await world.context.close();
 });
 ```
 
@@ -128,12 +128,12 @@ import { Given, Then } from "@cucumber/cucumber";
 import { expect } from "@playwright/test";
 import type { PlaywrightWorld } from "../support/world.ts";
 
-Given("I open {string}", async function (this: PlaywrightWorld, url: string) {
-  await this.page.goto(url);
+Given("I open {string}", async (world: PlaywrightWorld, url: string) => {
+  await world.page.goto(url);
 });
 
-Then("the title is {string}", async function (this: PlaywrightWorld, title: string) {
-  await expect(this.page).toHaveTitle(title);
+Then("the title is {string}", async (world: PlaywrightWorld, title: string) => {
+  await expect(world.page).toHaveTitle(title);
 });
 ```
 

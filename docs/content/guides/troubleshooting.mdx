@@ -35,12 +35,12 @@ test: { include: ["features/**/*.feature"] },
 
 You can implement missing steps with the snippets below:
 
-Given('an empty cart', function () {
+Given('an empty cart', () => {
   // Write code here that turns the phrase above into concrete actions
   return 'pending';
 });
 
-When('I add {string}', function (string) {
+When('I add {string}', (string) => {
   // Write code here that turns the phrase above into concrete actions
   return 'pending';
 });[0m
@@ -102,6 +102,30 @@ NoStoryMountedError: No component is mounted in your story.
 Storybook's error, in its Interactions panel: a scenario plays an unmounted story
 (`{storybook:storyUnmounted}`) and none of its steps mounts it. Call `mount()` in a step:
 [Mounting](/modes/storybook/features#mounting).
+
+## TypeScript
+
+### A hook with a `world` argument doesn't type-check
+
+```text
+error TS2345: Argument of type '(world: CartWorld) => void' is not assignable to parameter of type 'TestCaseHookFunction<IWorld<any>>'.
+  Types of parameters 'world' and 'arg' are incompatible.
+```
+
+TypeScript is reading Cucumber's own types for the hook: the plugin's types, which also type a hook
+that takes the World, aren't in the project. Name them in the `tsconfig.json` that checks your
+support code:
+
+```json filename="tsconfig.json"
+{
+  "compilerOptions": {
+    "types": ["@lotun/vitest-cucumber"]
+  }
+}
+```
+
+Steps never show this error: Cucumber types their arguments loosely. More:
+[TypeScript](/guides/support-code#typescript).
 
 ## A bug in the plugin
 

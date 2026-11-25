@@ -46,18 +46,18 @@ import { Given, Then, When } from "@cucumber/cucumber";
 import { expect } from "vitest";
 import { page, userEvent } from "vitest/browser";
 
-Given("a visitor named {string}", function (name: string) {
+Given("a visitor named {string}", (name: string) => {
   document.body.innerHTML = `<button>Say hello</button><p hidden>Hello, ${name}!</p>`;
   document.querySelector("button")!.onclick = () => {
     document.querySelector("p")!.hidden = false;
   };
 });
 
-When("they are greeted", async function () {
+When("they are greeted", async () => {
   await userEvent.click(page.getByRole("button", { name: "Say hello" }));
 });
 
-Then("the greeting is {string}", async function (text: string) {
+Then("the greeting is {string}", async (text: string) => {
   await expect.element(page.getByText(text)).toBeVisible();
 });
 ```

@@ -55,20 +55,27 @@ Feature: Greeting
 
 ```ts
 // features/steps/greeting.ts
-import { Given, Then, When } from "@cucumber/cucumber";
+import { Given, type IWorld, Then, When } from "@cucumber/cucumber";
 import { expect } from "vitest";
 
-Given("a visitor named {string}", function (name: string) {
-  this.name = name;
+Given("a visitor named {string}", (world: IWorld, name: string) => {
+  world.name = name;
 });
 
-When("they are greeted", function () {
-  this.greeting = `Hello, ${this.name}!`;
+When("they are greeted", (world: IWorld) => {
+  world.greeting = `Hello, ${world.name}!`;
 });
 
-Then("the greeting is {string}", function (text: string) {
-  expect(this.greeting).toBe(text);
+Then("the greeting is {string}", (world: IWorld, text: string) => {
+  expect(world.greeting).toBe(text);
 });
+```
+
+In a TypeScript project, name the plugin's types in your `tsconfig.json`, so Cucumber's hooks are
+typed for a `world` argument too:
+
+```json
+{ "compilerOptions": { "types": ["@lotun/vitest-cucumber"] } }
 ```
 
 ```bash

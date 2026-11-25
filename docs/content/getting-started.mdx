@@ -21,6 +21,7 @@ The steps below create these files:
     <FileTree.File name="calculator.feature" />
   </FileTree.Folder>
   <FileTree.File name="package.json" />
+  <FileTree.File name="tsconfig.json" />
   <FileTree.File name="vitest.config.ts" />
 </FileTree>
 
@@ -72,6 +73,22 @@ export default defineConfig({
 To keep the options in a file of their own, import them from it:
 [Where the options go](/reference/options#where-the-options-go).
 
+### Add the plugin's types
+
+In a TypeScript project, name the plugin's types in the `tsconfig.json` that checks your support
+code:
+
+```json filename="tsconfig.json"
+{
+  "compilerOptions": {
+    "types": ["@lotun/vitest-cucumber"]
+  }
+}
+```
+
+They type Cucumber's hooks for arrow functions that take the World, the way the steps below are
+written: [TypeScript](/guides/support-code#typescript).
+
 ### Write a feature
 
 ```gherkin filename="features/calculator.feature"
@@ -101,30 +118,23 @@ class Calculator extends World {
 
 setWorldConstructor(Calculator);
 
-Given("the number {int}", function (this: Calculator, n: number) {
-  this.result = n;
+Given("the number {int}", (world: Calculator, n: number) => {
+  world.result = n;
 });
 
-When("I add {int}", function (this: Calculator, n: number) {
-  this.result += n;
+When("I add {int}", (world: Calculator, n: number) => {
+  world.result += n;
 });
 
-Then("the result is {int}", function (this: Calculator, expected: number) {
-  expect(this.result).toBe(expected);
+Then("the result is {int}", (world: Calculator, expected: number) => {
+  expect(world.result).toBe(expected);
 });
 ```
 
 Each scenario gets a new `Calculator`, its [World](/guides/support-code#world): the place to keep
-state between steps. A `function` step gets it as `this`. If you prefer arrow functions, name the
-first parameter `world` and the World is passed there instead:
-
-```ts
-Given("the number {int}", (world: Calculator, n: number) => {
-  world.result = n;
-});
-```
-
-More on both: [The World in an arrow function](/guides/support-code#the-world-in-an-arrow-function).
+state between steps. A step gets it as its first argument when that parameter is named `world`.
+Cucumber's own form, a `function` with the World as `this`, works too:
+[The World in an arrow function](/guides/support-code#the-world-in-an-arrow-function).
 
 Any assertion library works; Vitest's `expect` gives you its diffs.
 

@@ -127,6 +127,22 @@ sets `extends: false`, so give the other projects their own `cucumber({ … })` 
 `.storybook/preview.ts(x)` exports a `Preview` object as usual. CSF factories (`definePreview`) are
 not supported on Storybook 10.
 
+### Add the plugin's types
+
+In a TypeScript project, name the plugin's types in the `tsconfig.json` that checks your support
+code:
+
+```json filename="tsconfig.json"
+{
+  "compilerOptions": {
+    "types": ["@lotun/vitest-cucumber"]
+  }
+}
+```
+
+They type Cucumber's hooks for arrow functions that take the World:
+[TypeScript](/guides/support-code#typescript).
+
 </Steps>
 
 ## Title prefix

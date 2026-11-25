@@ -12,12 +12,12 @@ They can be TypeScript (or TSX): Vite transforms them, with no loader or `requir
 
 | Cucumber API | Node | Browser | Storybook |
 | --- | :-: | :-: | :-: |
+| [The World as an arrow function's first argument](#the-world-in-an-arrow-function) (the plugin's own) | ✅ | ✅ | ✅ |
 | `Given` / `When` / `Then` / `defineStep` (Cucumber expressions, regular expressions) | ✅ | ✅ | ✅ |
 | `Before` / `After` / `BeforeStep` / `AfterStep` (tags, names, timeouts) | ✅ | ✅ | ✅ |
 | `BeforeAll` / `AfterAll` | ✅ | ✅ | ✅ |
 | `setWorldConstructor` / `World` | ✅ | ✅ | ✅ |
 | `world` / `context` / `version` | ✅ | ✅ | ✅ |
-| [The World as an arrow function's first argument](#the-world-in-an-arrow-function) (the plugin's own) | ✅ | ✅ | ✅ |
 | `defineParameterType` (incl. async transformers) | ✅ | ✅ | ✅ |
 | `DataTable` / doc strings / `Status` | ✅ | ✅ | ✅ |
 | Async, promise-returning and callback (`done`) steps and hooks | ✅ | ✅ | ✅ |
@@ -25,7 +25,7 @@ They can be TypeScript (or TSX): Vite transforms them, with no loader or `requir
 | A definition's `{ timeout }` | ✅ | ✅ | ✅ |
 | `wrapPromiseWithTimeout` | ✅ | ✅ | ✅ |
 | `setDefinitionFunctionWrapper` | ✅ | ✅ | ✅ |
-| `this.attach` / `this.log` / `this.link` | ✅ | ⚠️ | ⚠️ |
+| `world.attach` / `world.log` / `world.link` | ✅ | ⚠️ | ⚠️ |
 | `setDefaultTimeout` | 🔀 | 🔀 | 🔀 |
 | `BeforeAll` / `AfterAll` with `on: "COORDINATOR"` | 🔀 | 🔀 | 🔀 |
 | `@cucumber/cucumber/api`, formatter classes | ✅ | ❌ | ❌ |
@@ -42,9 +42,10 @@ What isn't supported fails where it's used, with the plugin's error:
 
 ## World
 
-Each scenario gets a new World: `this` in its steps and its `Before`/`After`/`BeforeStep`/`AfterStep`
-hooks. A `function` gets it as `this`. An arrow function has no `this`: it takes the World
-[as an argument](#the-world-in-an-arrow-function).
+Each scenario gets a new World, shared by its steps and its `Before`/`After`/`BeforeStep`/`AfterStep`
+hooks. An arrow function takes it [as its first argument](#the-world-in-an-arrow-function), named
+`world`, which is how these docs write steps and hooks. Cucumber's own form works too: a `function`
+gets the World as `this`.
 
 ```ts filename="features/support/world.ts"
 import { setWorldConstructor, World, type IWorldOptions } from "@cucumber/cucumber";
@@ -128,11 +129,13 @@ checks a file that imports the plugin (your `vitest.config.ts`, or `.storybook/m
 projects often check their config files with a `tsconfig.node.json` of their own, so name them.
 
 Without the annotation, TypeScript reads a hook's first argument as Cucumber's hook parameter.
+Without the types, a hook with a `world` argument fails to type-check:
+[Troubleshooting](/guides/troubleshooting#a-hook-with-a-world-argument-doesnt-type-check).
 
 ## World parameters
 
-`worldParameters` in the plugin's options are each World's `this.parameters`, a fresh copy per
-scenario:
+`worldParameters` in the plugin's options are each World's `parameters` (`world.parameters`), a
+fresh copy per scenario:
 
 ```ts filename="vitest.config.ts"
 cucumber({
@@ -143,12 +146,13 @@ cucumber({
 
 They go through JSON: a value JSON can't hold fails every feature file (a `BigInt`, a cycle), and one
 it changes arrives changed (a `Date` as a string, a `Map` as `{}`). To share such values, set them on
-`this.parameters` in a `BeforeAll`: every World of that worker gets a copy.
+its context's `parameters` in a `BeforeAll` (`context.parameters`): every World of that worker gets
+a copy.
 
 ## Hooks
 
 `Before` and `After` run around each scenario, `BeforeStep` and `AfterStep` around each step, with
-the scenario's World as `this` (or as [an arrow function's `world`](#the-world-in-an-arrow-function)).
+the scenario's World as [an arrow function's `world`](#the-world-in-an-arrow-function) (or as a `function`'s `this`).
 With `tags`, only for the scenarios that match:
 
 ```ts filename="features/support/hooks.ts"
@@ -156,12 +160,12 @@ import { After, Before } from "@cucumber/cucumber";
 import type { CartWorld } from "./world.ts";
 
 // Only for scenarios tagged @with-apples
-Before({ tags: "@with-apples" }, function (this: CartWorld) {
-  this.items = ["apples"];
+Before({ tags: "@with-apples" }, (world: CartWorld) => {
+  world.items = ["apples"];
 });
 
-After(function (this: CartWorld) {
-  this.log(`${this.items.length} items`);
+After((world: CartWorld) => {
+  world.log(`${world.items.length} items`);
 });
 ```
 
@@ -217,10 +221,10 @@ const env = import.meta.env.CUCUMBER_WORKER_ID ? import.meta.env : process.env;
 ## Attachments
 
 ```ts
-Then("I see the receipt", async function (this: CartWorld) {
-  this.log("receipt checked");
-  this.link("https://example.com/orders/42");
-  this.attach(JSON.stringify(this.items), "application/json");
+Then("I see the receipt", async (world: CartWorld) => {
+  world.log("receipt checked");
+  world.link("https://example.com/orders/42");
+  world.attach(JSON.stringify(world.items), "application/json");
 });
 ```
 
@@ -233,7 +237,7 @@ streams; a page takes strings only, so attach binary data as base64 with a `base
 Each step and hook has its own timeout, as in Cucumber:
 
 ```ts
-When("the report is ready", { timeout: 30_000 }, async function () {
+When("the report is ready", { timeout: 30_000 }, async () => {
   // …
 });
 ```

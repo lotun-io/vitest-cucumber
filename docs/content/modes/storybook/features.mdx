@@ -188,8 +188,8 @@ Scenario: Unmounted
 import { When } from "@cucumber/cucumber";
 import type { StoryWorld } from "../support/world.ts";
 
-When("I mount the story", async function (this: StoryWorld) {
-  await this.story.mount();
+When("I mount the story", async (world: StoryWorld) => {
+  await world.story.mount();
 });
 ```
 
@@ -219,17 +219,17 @@ import { Then, When } from "@cucumber/cucumber";
 import { expect } from "storybook/test";
 import type { StoryWorld } from "../support/world.ts";
 
-When("I click the {string} button", async function (this: StoryWorld, name: string) {
-  const { canvas, userEvent } = this.story;
+When("I click the {string} button", async (world: StoryWorld, name: string) => {
+  const { canvas, userEvent } = world.story;
   await userEvent.click(canvas.getByRole("button", { name }));
 });
 
-Then("I see the text {string}", async function (this: StoryWorld, text: string) {
-  await expect(this.story.canvas.getByText(text)).toBeVisible();
+Then("I see the text {string}", async (world: StoryWorld, text: string) => {
+  await expect(world.story.canvas.getByText(text)).toBeVisible();
 });
 
-Then("its {string} handler was called", async function (this: StoryWorld, handler: string) {
-  await expect(this.story.args[handler]).toHaveBeenCalled();
+Then("its {string} handler was called", async (world: StoryWorld, handler: string) => {
+  await expect(world.story.args[handler]).toHaveBeenCalled();
 });
 ```
 

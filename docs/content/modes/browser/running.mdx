@@ -41,7 +41,7 @@ More, with retries, bail, watch mode and coverage: [Running and filtering](/guid
   `process.env`: `import.meta.env.CUCUMBER_WORKER_ID`. A page's `VITEST_WORKER_ID` and
   `VITEST_POOL_ID` are its slot, shared by the pages that use it in turn.
 - **[Attachments](/guides/support-code#attachments) are strings only.** For binary data, attach
-  base64 with a `base64:` media type: `this.attach(base64, "base64:image/png")`.
+  base64 with a `base64:` media type: `world.attach(base64, "base64:image/png")`.
 - **Not available in the page**: Cucumber's JavaScript API (`@cucumber/cucumber/api`) and its
   formatter and runner classes. See [Limitations](/reference/limitations#in-a-page-browser-mode-and-storybook).
 - **A page that reloads or crashes** during a run fails its feature file instead of hanging.

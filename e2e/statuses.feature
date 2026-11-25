@@ -36,7 +36,7 @@ Feature: Scenario statuses
 
       You can implement missing steps with the snippets below:
 
-      Given('a step nobody defined', function () {
+      Given('a step nobody defined', () => {
       """
 
     Examples:
@@ -169,12 +169,12 @@ Feature: Scenario statuses
 
       You can implement missing steps with the snippets below:
 
-      Given('a red car', function () {
+      Given('a red car', () => {
         // Write code here that turns the phrase above into concrete actions
         return 'pending';
       });
 
-      Given('a big box', function () {
+      Given('a big box', () => {
         // Write code here that turns the phrase above into concrete actions
         return 'pending';
       });

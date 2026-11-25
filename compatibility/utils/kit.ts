@@ -344,6 +344,14 @@ const ignoredKeys = new Set([
   "stackTrace",
 ]);
 
+/**
+ * A snippet's code with its function an arrow function: the plugin writes a step's snippet that
+ * way (`src/worker/runner/suggestion.ts`), cucumber as a `function`. The rest of it is compared
+ * as it is: its expression, its parameters, its body.
+ */
+const asArrowSnippet = (code: string) =>
+  code.replace(/', function \(([^)]*)\) \{\n/, "', ($1) => {\n");
+
 /** A message's value, as compared: ids, references, times and frames left out (see `ignoredKeys`). */
 const normalized = (value: unknown, key = "", inPage = false): unknown => {
   if (typeof value === "string") {
@@ -373,6 +381,10 @@ const normalized = (value: unknown, key = "", inPage = false): unknown => {
           // `expect`), not Node's: its type and its step's status still compared.
           if (inPage && key === "exception" && name === "message") {
             return [];
+          }
+          // An undefined step's snippet: cucumber's `function` as the plugin's arrow function.
+          if (name === "code" && typeof item === "string") {
+            return [[name, normalized(asArrowSnippet(item), name, inPage)]];
           }
           // A definition's file: its name (a page loads the steps' page copy, `steps-page/`).
           if (key === "sourceReference" && name === "uri") {

@@ -111,7 +111,7 @@ The same scenarios, in two hosts. What differs:
 | A skipped scenario | a skipped test | a passed story, with a "Skipped" step |
 
 - Don't make scenarios depend on each other: a story plays alone in Storybook's UI.
-- The Vitest addon turns Vitest's file writing off, so `this.attach`'s data is dropped in story
+- The Vitest addon turns Vitest's file writing off, so `world.attach`'s data is dropped in story
   tests (its name is kept). Set `test.api.allowWrite: true` in the project if you need it.
 
 ## A broken feature

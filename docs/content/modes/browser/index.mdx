@@ -64,6 +64,22 @@ export default defineConfig({
 The plugin switches to browser mode when `test.browser.enabled` is set in the config. Chromium,
 Firefox and WebKit all work.
 
+### Add the plugin's types
+
+In a TypeScript project, name the plugin's types in the `tsconfig.json` that checks your support
+code:
+
+```json filename="tsconfig.json"
+{
+  "compilerOptions": {
+    "types": ["@lotun/vitest-cucumber"]
+  }
+}
+```
+
+They type Cucumber's hooks for arrow functions that take the World:
+[TypeScript](/guides/support-code#typescript).
+
 ## Next
 
 - [Writing features](/modes/browser/features): steps that render, click and read the page.

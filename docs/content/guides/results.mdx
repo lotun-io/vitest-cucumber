@@ -68,7 +68,7 @@ formatter prints it.
 
 You can implement missing steps with the snippets below:
 
-When('I pay with {string}', function (string) {
+When('I pay with {string}', (string) => {
   // Write code here that turns the phrase above into concrete actions
   return 'pending';
 });[0m
@@ -111,7 +111,7 @@ When('I pay with {string}', function (string) {
 
 You can implement missing steps with the snippets below:
 
-When('I pay in euro', function () {
+When('I pay in euro', () => {
   // Write code here that turns the phrase above into concrete actions
   return 'pending';
 });[0m
@@ -123,14 +123,16 @@ snippets. It's in color when Vitest's output is.
 
 ## Attachments
 
-`this.log(text)`, `this.link(url)` and `this.attach(data, mediaType)` become the test's
+The World's `log(text)`, `link(url)` and `attach(data, mediaType)` become the test's
 [annotations](https://vitest.dev/guide/test-annotations), in the order they ran, hooks included:
 
 ```ts filename="features/steps/checkout.ts"
-When("I pay with {string}", function (method: string) {
-  this.log(`Paying with ${method}`);
-  this.link("https://example.com/orders/42");
-  this.attach(JSON.stringify({ total: 5 }), "application/json");
+import { When, type IWorld } from "@cucumber/cucumber";
+
+When("I pay with {string}", (world: IWorld, method: string) => {
+  world.log(`Paying with ${method}`);
+  world.link("https://example.com/orders/42");
+  world.attach(JSON.stringify({ total: 5 }), "application/json");
 });
 ```
 
@@ -154,9 +156,9 @@ npx vitest run --reporter=verbose
 
 | Call                          | Annotation                                             |
 | ----------------------------- | ------------------------------------------------------ |
-| `this.log("text")`            | type `log`, the text                                   |
-| `this.link("https://…")`      | type `link`, the URL                                   |
-| `this.attach(data, type)`     | type `attachment`, the file name or media type, data attached |
+| `world.log("text")`           | type `log`, the text                                   |
+| `world.link("https://…")`     | type `link`, the URL                                   |
+| `world.attach(data, type)`    | type `attachment`, the file name or media type, data attached |
 
 The JUnit and HTML reporters and Vitest's UI include them too. A retried scenario keeps every
 attempt's.

@@ -45,6 +45,22 @@ Both are required: `test.include` lists your feature files, [`import`](/referenc
 your support code. Support files load in order: each glob's matches sorted, globs in your order, so
 put your World and hooks first if your steps depend on them.
 
+### Add the plugin's types
+
+In a TypeScript project, name the plugin's types in the `tsconfig.json` that checks your support
+code:
+
+```json filename="tsconfig.json"
+{
+  "compilerOptions": {
+    "types": ["@lotun/vitest-cucumber"]
+  }
+}
+```
+
+They type Cucumber's hooks for arrow functions that take the World:
+[TypeScript](/guides/support-code#typescript).
+
 ## Next
 
 - [Writing features](/modes/node/features): a feature, its World, hooks and steps, and driving a
