@@ -78,12 +78,10 @@ export const createRunner = ({
     hook: DefinedTestRunHook,
     {
       label,
-      dryRun,
       emit,
     }: {
       /** `BeforeAll` or `AfterAll` (`RuntimeEnvironment["around"]`). */
       label: string;
-      dryRun: boolean;
       emit: (envelope: Envelope) => void;
     },
   ) => {
@@ -160,7 +158,7 @@ export const createRunner = ({
     try {
       let success = true;
       for (const hook of hooks) {
-        if (!(await runTestRunHook(hook, { label, dryRun, emit }))) {
+        if (!(await runTestRunHook(hook, { label, emit }))) {
           success = false;
         }
       }

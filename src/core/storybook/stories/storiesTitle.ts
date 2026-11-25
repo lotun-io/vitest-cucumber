@@ -52,11 +52,8 @@ export const createAutoTitleOf = (
  * Storybook's automatic titles for the project of Storybook's `options` (asked at the first
  * title: a host may not have them before): its `stories`, written from its config folder.
  */
-export const autoTitleOfStorybook = (options: () => PresetOptions) =>
-  createAutoTitleOf(async () => {
-    const storybook = options();
-    return {
-      from: storybook.configDir,
-      entries: await storybook.presets.apply("stories", [], storybook),
-    };
-  });
+export const autoTitleOfStorybook = (options: PresetOptions) =>
+  createAutoTitleOf(async () => ({
+    from: options.configDir,
+    entries: await options.presets.apply("stories", [], options),
+  }));

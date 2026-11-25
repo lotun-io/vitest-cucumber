@@ -30,13 +30,13 @@ import type {
   RunOptions,
 } from "../../types/feature.ts";
 import { quietError } from "../../utils/errors.ts";
-import { parseErrorMessage } from "../../utils/parseErrors.ts";
 import { slash } from "../../utils/slash.ts";
 import { runOptionsOf, type Configuration } from "../plugin/options.ts";
 import { supportFilesOf } from "../support/supportFiles.ts";
 import { fileCache } from "../utils/fileCache.ts";
 import { isFeatureFile } from "./featureFile.ts";
 import { tagsOf, tagsOfDocument } from "./featureTags.ts";
+import { parseErrorMessage } from "./parseErrors.ts";
 import { planOf } from "./plan.ts";
 import { createPlanCache } from "./planCache.ts";
 
@@ -158,8 +158,6 @@ export const createFeaturePlans = ({
     /** Feature file `file` planned: its parse, the run's options, the support files. */
     vitestPlanOf: (file: string): Promise<VitestPlan | FailedPlan> =>
       vitestOf(file),
-    /** The user's configuration: their options, with cucumber's defaults. */
-    configuration,
     /** The support files, in order. */
     supportFiles,
     /**

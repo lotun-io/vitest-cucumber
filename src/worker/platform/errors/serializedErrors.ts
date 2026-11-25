@@ -83,7 +83,7 @@ const withFrame = (
 };
 
 /** `failures` as a Vitest host sends them (see the module comment). */
-export const serializedErrors = (
+const serializedErrors = (
   failures: readonly Failure[],
   transform?: (copy: unknown) => unknown,
 ): unknown[] => {

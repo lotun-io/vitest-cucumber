@@ -100,7 +100,7 @@ export const errorsOf = (
       return failures.map((error) =>
         isError(error)
           ? { value: error, ...(frame && { frame }) }
-          : { value: asError(error, step?.text ?? `${what} failed`, frame) },
+          : { value: errorAt(step?.text ?? `${what} failed`, frame, error) },
       );
     }
     if (!scenario || summarized) {

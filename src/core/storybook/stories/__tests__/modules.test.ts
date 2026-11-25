@@ -76,7 +76,6 @@ test("a stories module: its code, in story tests then the feature's tests as cal
     stories: {
       code: "the code",
       title: "T/Feature: A",
-      label: "Feature: A",
       titles: {},
     },
   };
@@ -140,7 +139,6 @@ test("a feature module, from its feature's plan: story tests' exports the runtim
     stories: {
       code: "the code",
       title: "T/Feature: A",
-      label: "Feature: A",
       titles: {},
     },
   };

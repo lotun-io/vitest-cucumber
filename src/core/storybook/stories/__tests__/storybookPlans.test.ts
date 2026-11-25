@@ -112,8 +112,6 @@ test("storybookPlanOf: a feature next to its stories file: its plan from the par
   await fileChanged("unlink", id);
   expect(storybook.links.features()).toEqual([]);
   expect(counted.linkedChanges).toBe(2);
-  // Its cache is the feature plans'.
-  expect(storybook.cache).toBe(plans.cache);
 });
 
 test("a feature that can't be planned is the feature plans' failed plan, for Storybook too", async () => {

@@ -76,12 +76,10 @@ export interface StorybookSupportPlan {
 export interface StorybookPlan extends VitestPlan {
   /** Whether a support file has a Storybook step: its page then defines their parameter types. */
   storybookSteps: boolean;
-  /** Its stories module: its code, its title (its stories file's, then its label), its label. */
-  /** Its stories module: its code, its title and label, each story's own title by export. */
+  /** Its stories module: its code, its title (its stories file's, then its label), each story's own title by export. */
   stories: {
     code: string;
     title: string;
-    label: string;
     titles: Record<string, string>;
   };
 }
@@ -330,8 +328,6 @@ export const createStorybookPlans = ({
     },
     /** Which Storybook feature file runs on which stories file, both ways: the features map's. */
     links,
-    /** The cache of the plans' parts: the feature plans' (one `clear()`, one `dispose()` for both). */
-    cache: plans.cache,
   };
 };
 

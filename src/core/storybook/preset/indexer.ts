@@ -41,7 +41,6 @@ export const featureIndexer = (options: PresetOptions): Indexer => ({
       }
       return [];
     }
-    // Its own copies: the plan keeps these, whatever Storybook does with what it's given.
-    return structuredClone(plan.indexEntries);
+    return plan.indexEntries;
   },
 });

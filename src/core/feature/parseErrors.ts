@@ -2,8 +2,8 @@
 // plugin's name and the file (cucumber's wording, lowercase as the plugin's messages are, the file unquoted: `parse error
 // in <uri>`), then each parse
 // error on a line of its own, as the Gherkin parser words it (its position first:
-// `(line:column): expected: …`). Everywhere (main and the page).
-import { pluginErrorMessage } from "./errors.ts";
+// `(line:column): expected: …`). Main's (a feature file is parsed there: `./plans.ts`).
+import { pluginErrorMessage } from "../../utils/errors.ts";
 
 /** The message of feature file `uri`'s `parseErrors` (`@cucumber/gherkin`'s messages). */
 export const parseErrorMessage = (

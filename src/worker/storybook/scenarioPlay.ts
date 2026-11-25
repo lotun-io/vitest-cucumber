@@ -1,6 +1,6 @@
-// A scenario story's `play` (`./feature.ts`'s `playAt`), marked as one, with its pickle's line, its
-// story and its tags: its story test is collected by that line and declared as the feature file's
-// scenario's (`./vitest/tests.ts`).
+// A scenario story's `play` (`./feature.ts`'s `playAt`), marked as one, with its pickle's line: its
+// story test is collected by that line and run as the feature file's scenario's
+// (`./vitest/tests.ts`).
 // Page-safe.
 import type { PlayedScenario } from "../../types/storybook.ts";
 

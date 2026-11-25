@@ -36,7 +36,6 @@ describe("a feature's play of a scenario, or Outline row, at its line", () => {
     const context = {};
     await createFeature(model).playAt({
       line: 3,
-      story: "Primary",
       unmounted: false,
     })(context);
     expect(runs).toEqual([
@@ -51,13 +50,11 @@ describe("a feature's play of a scenario, or Outline row, at its line", () => {
   test("its text: an unmounted one's destructures `mount` (Storybook doesn't render first), any other's doesn't", () => {
     const feature = createFeature(model);
     expect(
-      feature
-        .playAt({ line: 3, story: "Primary", unmounted: false })
-        .toString(),
+      feature.playAt({ line: 3, unmounted: false }).toString(),
     ).not.toContain("mount");
-    expect(
-      feature.playAt({ line: 3, story: "Primary", unmounted: true }).toString(),
-    ).toMatch(/^async \(\{\s*mount,/);
+    expect(feature.playAt({ line: 3, unmounted: true }).toString()).toMatch(
+      /^async \(\{\s*mount,/,
+    );
   });
 
   test("unmounted: the steps get Storybook's `mount`, and only they mount the story", async () => {
@@ -71,42 +68,25 @@ describe("a feature's play of a scenario, or Outline row, at its line", () => {
       },
     });
     const feature = createFeature(model);
-    await feature.playAt({ line: 3, story: "Primary", unmounted: true })({
+    await feature.playAt({ line: 3, unmounted: true })({
       mount,
     });
     expect(mounts).toEqual([["<Button big />"]]);
     mounts.length = 0;
     recorded();
-    await feature.playAt({ line: 3, story: "Primary", unmounted: true })({
+    await feature.playAt({ line: 3, unmounted: true })({
       mount,
     });
     expect(mounts).toEqual([]);
   });
 
-  test("marked with its line, its story and its pickle's tags; a line without one, with none", () => {
+  test("marked with its line, whatever its story", () => {
     const feature = createFeature(model);
-    expect(
-      scenarioOf(
-        feature.playAt({ line: 3, story: "Primary", unmounted: false }),
-      ),
-    ).toEqual({
+    expect(scenarioOf(feature.playAt({ line: 3, unmounted: false }))).toEqual({
       line: 3,
-      exportName: "Primary",
-      tags: ["@smoke"],
     });
-    expect(
-      scenarioOf(feature.playAt({ line: 12, story: null, unmounted: false })),
-    ).toEqual({
+    expect(scenarioOf(feature.playAt({ line: 12, unmounted: false }))).toEqual({
       line: 12,
-      exportName: null,
-      tags: [],
-    });
-    expect(
-      scenarioOf(feature.playAt({ line: 99, story: null, unmounted: false })),
-    ).toEqual({
-      line: 99,
-      exportName: null,
-      tags: [],
     });
   });
 });

@@ -50,11 +50,9 @@ export type LocateResponse =
   | { id: number; locations: Actions["locate"][1] }
   | { id: number; error: string };
 
-/** The scenario a play plays: its line (its pickle's), the story it runs on (none: the meta), its tags. */
+/** The scenario a play plays: its line (its pickle's). */
 export interface PlayedScenario {
   line: number;
-  exportName: string | null;
-  tags: string[];
 }
 
 /**

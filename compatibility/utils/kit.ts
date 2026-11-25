@@ -16,7 +16,7 @@ import path from "node:path";
 const repo = path.resolve(import.meta.dirname, "../..");
 
 /** The kit's samples' folder. */
-export const kit = path.join(
+const kit = path.join(
   repo,
   "node_modules/@cucumber/compatibility-kit/features",
 );

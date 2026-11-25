@@ -45,7 +45,7 @@ test("from Storybook's options, as both hosts have them: its `stories` (its pres
       },
     },
   } as unknown as PresetOptions;
-  const autoTitleOf = autoTitleOfStorybook(() => options);
+  const autoTitleOf = autoTitleOfStorybook(options);
   expect(asked).toEqual([]);
   expect(await autoTitleOf(file("src/stories/Auto.stories.ts"))).toBe(
     "stories/Auto",

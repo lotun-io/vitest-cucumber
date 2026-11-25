@@ -103,17 +103,6 @@ Then("the output doesn't contain:", function (this: E2EWorld, text: string) {
   expect(stripVTControlCharacters(this.lastRun.output)).not.toContain(text);
 });
 
-// Each line of `text`, after the previous one's.
-Then("the output contains, in order:", function (this: E2EWorld, text: string) {
-  const output = stripVTControlCharacters(this.lastRun.output);
-  let from = 0;
-  for (const line of text.split("\n")) {
-    const index = output.indexOf(line, from);
-    expect(index, `"${line}" after ${from}:\n${output}`).not.toBe(-1);
-    from = index + line.length;
-  }
-});
-
 // A file the run wrote, in the directory it ran in: e.g. a cucumber formatter's
 // (`format: [["message", "messages.ndjson"]]`).
 Then(
@@ -133,15 +122,6 @@ Then(
     expect(await readFile(path.join(this.lastRun.dir, name), "utf8")).toContain(
       text.replaceAll("/", path.sep),
     );
-  },
-);
-
-Then(
-  "the file {string} doesn't contain:",
-  async function (this: E2EWorld, name: string, text: string) {
-    expect(
-      await readFile(path.join(this.lastRun.dir, name), "utf8"),
-    ).not.toContain(text);
   },
 );
 

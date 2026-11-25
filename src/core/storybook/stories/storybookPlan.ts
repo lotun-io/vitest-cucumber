@@ -89,7 +89,7 @@ export const storybookPlanFrom = async ({
   }
   // Storybook's own ids (`storybook/internal/csf`: loaded only in Storybook projects).
   const { sanitize } = await import("storybook/internal/csf");
-  const { code, title, label, titles } = featureStoriesOf({
+  const { code, title, titles } = featureStoriesOf({
     feature,
     document: gherkin.document,
     tree: featureTree,
@@ -103,6 +103,6 @@ export const storybookPlanFrom = async ({
   return {
     ...plan,
     storybookSteps,
-    stories: { code, title, label, titles },
+    stories: { code, title, titles },
   };
 };

@@ -24,11 +24,10 @@ Given("a Storybook project", function (this: E2EWorld) {
   return writeDefaultConfig.call(this, "storybook");
 });
 
-/** Builds the project's preview (`storybook build`): its result, the scenario's (`storybookBuild`). */
+/** Builds the project's preview (`storybook build`): its result. */
 async function buildStorybook(this: E2EWorld) {
   await featureStoriesFiles.call(this);
-  this.storybookBuild = await build(this.dir);
-  return this.storybookBuild;
+  return build(this.dir);
 }
 
 When(

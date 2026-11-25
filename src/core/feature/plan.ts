@@ -66,7 +66,7 @@ export const planOf = (
     }
   }
   return {
-    featureTree: featureTree(uri, document, pickles),
+    featureTree: featureTree(document, pickles),
     parseErrors,
     ...(document && { gherkin: { document, pickles } }),
   };

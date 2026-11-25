@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
+import type { FeatureSuite, FeatureTest } from "../../../types/feature.ts";
 import { tagsOf } from "../featureTags.ts";
-import { testsOf } from "../featureTree.ts";
 import { planOf } from "../plan.ts";
+
+/** Every test of `tree`, in order (its scenarios', and its Outlines' rows'). */
+const testsOf = (tree: FeatureSuite): FeatureTest[] =>
+  tree.children.flatMap((child) =>
+    "children" in child ? testsOf(child) : [child],
+  );
 
 /** The tags of the tests of the feature file's plan. */
 const planTags = (content: string, uri: string) => [

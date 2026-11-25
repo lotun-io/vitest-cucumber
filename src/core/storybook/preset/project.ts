@@ -46,7 +46,7 @@ const createProject = (options: PresetOptions) => {
     plans,
     root: () => root,
     configuration,
-    autoTitleOf: autoTitleOfStorybook(() => options),
+    autoTitleOf: autoTitleOfStorybook(options),
     onLinkedFeaturesChanged: () => {
       void linkedFeaturesChanged?.();
     },

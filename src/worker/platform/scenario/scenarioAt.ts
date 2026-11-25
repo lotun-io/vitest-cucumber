@@ -5,17 +5,15 @@ import type { FeatureGherkin } from "../../../types/feature.ts";
 import type { ScenarioToRun } from "../../../types/platform.ts";
 import { pluginError } from "../../../utils/errors.ts";
 
-/** The pickle at `line` of `gherkin`, if one is there. */
-export const pickleAt = (gherkin: FeatureGherkin | undefined, line: number) =>
-  gherkin?.pickles.find(({ location }) => location?.line === line);
-
-/** The scenario at `line` of the feature at `uri`: an error if there's none. */
+/** The scenario at `line` of the feature at `uri` (its pickle there): an error if there's none. */
 export const scenarioAt = (
-  { uri, gherkin }: { uri: string; gherkin: FeatureGherkin | undefined },
+  { uri, gherkin }: { uri: string; gherkin: FeatureGherkin },
   line: number,
 ): ScenarioToRun => {
-  const pickle = pickleAt(gherkin, line);
-  if (!gherkin || !pickle) {
+  const pickle = gherkin.pickles.find(
+    ({ location }) => location?.line === line,
+  );
+  if (!pickle) {
     throw pluginError(`no scenario at line ${String(line)} of ${uri}`, {
       internal: true,
     });

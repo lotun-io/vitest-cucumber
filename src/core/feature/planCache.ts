@@ -100,10 +100,6 @@ export const createPlanCache = () => {
       /** The value: made at the first ask (and the first after `clear()`), the same from then on. */
       const value = () => cache(key, make);
       return Object.assign(value, {
-        /** Forgets the value. */
-        drop: () => {
-          cache.drop(key);
-        },
         /** Makes the value again, and keeps it: whether it's another than the one last made. */
         changed: () => cache.changed(key, make),
       });
@@ -126,6 +122,3 @@ export const createPlanCache = () => {
     },
   };
 };
-
-/** A project's plan cache (`createPlanCache`). */
-export type PlanCache = ReturnType<typeof createPlanCache>;

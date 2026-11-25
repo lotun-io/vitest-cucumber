@@ -81,7 +81,7 @@ test("keep(): out of clear(), emptied by dispose(), with every cache", async () 
   expect(await texts.changed("a", made("two"))).toBe(false);
 });
 
-test("single(): one value, no key, its maker given once; cleared, dropped and compared as any cache's", async () => {
+test("single(): one value, no key, its maker given once; cleared and compared as any cache's", async () => {
   const caches = createPlanCache();
   let files = ["a"];
   const make = vi.fn(() => Promise.resolve([...files]));
@@ -100,9 +100,4 @@ test("single(): one value, no key, its maker given once; cleared, dropped and co
   // Cleared: made again at the next ask; the one last made is what it's compared with.
   caches.clear();
   expect(await list.changed()).toBe(false);
-  // Dropped: never made.
-  list.drop();
-  files = ["c"];
-  expect(await list.changed()).toBe(false);
-  expect(await list()).toEqual(["c"]);
 });

@@ -188,13 +188,6 @@ export async function startSession(
     restoreExit();
     process.exitCode = exitCode;
   };
-  // The command line as `vitest [filters]` gives it (the plugin reads a named feature file from it).
-  const argv = process.argv;
-  process.argv = [
-    argv[0] ?? "node",
-    "vitest",
-    ...filters.map((filter) => path.resolve(this.dir, filter)),
-  ];
   try {
     const vitest = await startVitest(
       // Vitest finds `file:line` filters from the working directory.
@@ -227,7 +220,5 @@ export async function startSession(
   } catch (error) {
     end();
     throw new StartupError(output.text(), error);
-  } finally {
-    process.argv = argv;
   }
 }

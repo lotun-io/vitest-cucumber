@@ -35,7 +35,6 @@ const exampleName = (language: string) =>
   dialects[language]?.scenario[0] ?? "Example";
 
 export const featureTree = (
-  uri: string,
   gherkinDocument: GherkinDocument | undefined,
   pickles: readonly Pickle[],
 ): FeatureSuite => {
@@ -94,12 +93,6 @@ export const featureTree = (
   }
   return root;
 };
-
-/** Every test of `tree`, in order (its scenarios', and its Outlines' rows'). */
-export const testsOf = (tree: FeatureSuite): FeatureTest[] =>
-  tree.children.flatMap((child) =>
-    "children" in child ? testsOf(child) : [child],
-  );
 
 /** A test's place in its feature's tree: the test, and the names of the suites above it. */
 export interface TestPlace {

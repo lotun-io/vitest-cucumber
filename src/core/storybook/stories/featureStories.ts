@@ -192,7 +192,7 @@ export const featureStoriesOf = ({
               ]),
           `  name: ${json(name)},`,
           `  tags: ${json(storyTags)},`,
-          `  play: __cucumberFeature.playAt(${json({ line, story: story ?? null, unmounted })}),`,
+          `  play: __cucumberFeature.playAt(${json({ line, unmounted })}),`,
           "};",
         ].join("\n"),
     ),
@@ -201,5 +201,5 @@ export const featureStoriesOf = ({
     [featureStoryExport, title],
     ...scenarios.map((scenario) => [scenario.export, scenario.title]),
   ]);
-  return { code, title, label, scenarios, titles };
+  return { code, title, scenarios, titles };
 };

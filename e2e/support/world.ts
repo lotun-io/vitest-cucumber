@@ -117,9 +117,6 @@ export class E2EWorld extends World {
   /** The tests the scenario's last `vitest list` found, each with its location (`../support/listVitest.ts`). */
   listed?: { tests: { name: string; location: string }[]; output: string };
 
-  /** The Storybook project's last build (`storybook build`: see `../steps/storybook.ts`). */
-  storybookBuild?: { exitCode: number; output: string };
-
   /** The files the steps wrote before the run, by name (relative to `dir`): their content. */
   files = new Map<string, string>();
 

@@ -44,7 +44,7 @@ export const createStorybookPlugin = (options: PresetOptions): Plugin[] => {
     plans: core.featurePlans,
     root: core.root,
     configuration: core.configuration,
-    autoTitleOf: autoTitleOfStorybook(() => options),
+    autoTitleOf: autoTitleOfStorybook(options),
   });
   core.onFileChange(async (type, file) => {
     const { staleFeatures } = await plans.onFileChange(type, file);
