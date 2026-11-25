@@ -25,9 +25,12 @@ jobs:
     needs: ci
     runs-on: ubuntu-latest
     outputs:
-      # Whether a version was published: the stable path publishes only once its version PR is
-      # merged (else it opens or updates that PR); the beta path publishes or fails.
-      published: ${{ steps.changesets.outputs.published == 'true' || steps.beta.outcome == 'success' }}
+      # Whether a version was published. The stable path publishes only once its version PR is
+      # merged, no changeset left (else it opens or updates that PR), its step failing if the
+      # publish script does; not the action's own `published`, which it sets from what
+      # `changeset publish` writes (`CHANGESETS_OUTPUT`), and the script is `pnpm publish`. The
+      # beta path publishes or fails.
+      published: ${{ (steps.changesets.outcome == 'success' && steps.changesets.outputs.has-changesets == 'false') || steps.beta.outcome == 'success' }}
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6

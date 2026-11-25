@@ -9,6 +9,7 @@
 - b06fdb2: The `import` option is required: `cucumber()` without it fails with what to give, e.g. `import: ["features/**/*.ts"]`
 - 0dc176f: `vitest list` lists every scenario and example row at its Gherkin line, in node mode, browser mode and Storybook, and Vitest's filters apply to it (`file:line`, tags). A failure's header names the scenario's line in every run
 - d55740f: `@vitest/utils` is installed with the plugin: no peer dependency to add
+- bf3fbcd: An arrow function can take the World as an argument: a step or hook whose first parameter is named `world` gets the World there, before Cucumber's own arguments (`Given("a cart with {string}", (world: CartWorld, item: string) => …)`, `Before((world: CartWorld, { pickle }) => …)`); a `BeforeAll` or `AfterAll` hook whose first parameter is named `context` gets its context. The plugin's types type Cucumber's hooks for it (`"types": ["@lotun/vitest-cucumber"]` in a `tsconfig.json` that doesn't check the Vitest config). An arrow step whose first parameter was already named `world` for something else needs another name
 
 ## 1.0.0-beta.4
 
