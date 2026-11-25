@@ -103,8 +103,9 @@ Then("the result is {int}", function (expected: number) {
 });
 ```
 
-Use `function`s, not arrow functions: a step's `this` is the scenario's
-[World](/guides/support-code#world). Any assertion library works; Vitest's `expect` gives you its
+A step's `this` is the scenario's [World](/guides/support-code#world), so these are `function`s;
+an arrow function takes it [as an argument](/guides/support-code#the-world-in-an-arrow-function)
+instead. Any assertion library works; Vitest's `expect` gives you its
 diffs.
 
 ### Run

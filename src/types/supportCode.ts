@@ -34,6 +34,11 @@ export interface Definition {
   code: Code;
   /** Its own timeout (else the default timeout applies). */
   timeout?: number;
+  /**
+   * Whether the code takes what cucumber gives it as `this` (the World, a test run hook's context)
+   * as its first argument too (`../worker/runner/thisFirst.ts`).
+   */
+  thisFirst: boolean;
 }
 
 /** A `BeforeStep` or `AfterStep` hook (core has none). */

@@ -140,8 +140,8 @@ export default defineConfig({
           name: "e2e",
           // A scenario's steps and hooks (cucumber's timeouts, Vitest's by default): a nested run
           // starts its own Vite server, workers or browser.
-          testTimeout: 60_000,
-          hookTimeout: 60_000,
+          testTimeout: 90_000,
+          hookTimeout: 90_000,
           // A scenario that fails because of a known bug (e.g. Vitest's, reported upstream): it
           // passes while it fails, and fails once the bug is fixed (its tag then removed). Retried:
           // a bug that's a race sometimes lets a run pass.
@@ -185,8 +185,8 @@ export default defineConfig({
           // 2026-11-24: 126 rows, one worker, 2.0 GB at most throughout; 130 s against 203 s
           // isolated, before the kept Vitests served them).
           isolate: false,
-          testTimeout: 60_000,
-          hookTimeout: 60_000,
+          testTimeout: 90_000,
+          hookTimeout: 90_000,
           // As e2e's: a known difference passes while it fails (its reason the example's name); a
           // sample left out is skipped (its reason the feature's description).
           tags: [

@@ -3,7 +3,8 @@ import { Callout } from "nextra/components";
 # Support code
 
 Your step definitions, hooks, World and parameter types use
-[`@cucumber/cucumber`](https://github.com/cucumber/cucumber-js)'s API, unchanged.
+[`@cucumber/cucumber`](https://github.com/cucumber/cucumber-js)'s API, unchanged. The plugin adds
+one thing to it: an arrow function can take [the World as an argument](#the-world-in-an-arrow-function).
 The plugin loads the files the [`import`](/reference/options#import) option lists, in every mode.
 They can be TypeScript (or TSX): Vite transforms them, with no loader or `requireModule` to set up.
 
@@ -16,6 +17,7 @@ They can be TypeScript (or TSX): Vite transforms them, with no loader or `requir
 | `BeforeAll` / `AfterAll` | ✅ | ✅ | ✅ |
 | `setWorldConstructor` / `World` | ✅ | ✅ | ✅ |
 | `world` / `context` / `version` | ✅ | ✅ | ✅ |
+| [The World as an arrow function's first argument](#the-world-in-an-arrow-function) (the plugin's own) | ✅ | ✅ | ✅ |
 | `defineParameterType` (incl. async transformers) | ✅ | ✅ | ✅ |
 | `DataTable` / doc strings / `Status` | ✅ | ✅ | ✅ |
 | Async, promise-returning and callback (`done`) steps and hooks | ✅ | ✅ | ✅ |
@@ -41,7 +43,8 @@ What isn't supported fails where it's used, with the plugin's error:
 ## World
 
 Each scenario gets a new World: `this` in its steps and its `Before`/`After`/`BeforeStep`/`AfterStep`
-hooks. Steps must be `function`s, not arrow functions, to get it.
+hooks. A `function` gets it as `this`. An arrow function has no `this`: it takes the World
+[as an argument](#the-world-in-an-arrow-function).
 
 ```ts filename="features/support/world.ts"
 import { setWorldConstructor, World, type IWorldOptions } from "@cucumber/cucumber";
@@ -58,6 +61,73 @@ setWorldConstructor(CartWorld);
 ```
 
 A World constructor that throws fails every scenario.
+
+### The World in an arrow function
+
+An arrow function whose first parameter is named `world` gets the World as that argument, before
+the arguments Cucumber gives it. This is the plugin's own addition: Cucumber itself doesn't run
+such a function.
+
+```ts filename="features/steps/cart.ts"
+import { After, Before, Given, When, type DataTable } from "@cucumber/cucumber";
+import type { CartWorld } from "../support/world.ts";
+
+Given("a cart with {string}", (world: CartWorld, item: string) => {
+  world.items.push(item);
+});
+
+When("I add:", async (world: CartWorld, table: DataTable) => {
+  world.items.push(...table.raw().flat());
+});
+
+Before((world: CartWorld, { pickle }) => {
+  world.log(`starting ${pickle.name}`);
+});
+
+After({ tags: "@with-apples" }, (world: CartWorld) => {
+  world.items = [];
+});
+```
+
+- **The name is the sign.** The parameter must be named `world`. Any other function is called as
+  Cucumber calls it: a `function`, an arrow function with another first parameter
+  (`(item, done) => …` still gets Cucumber's callback), one that destructures it (`({ items }) => …`).
+- **The rest is Cucumber's.** After the World come the step's arguments, its data table or doc
+  string, and Cucumber's callback if the function takes one more. The number of arguments is
+  checked as Cucumber checks it, the World counted.
+- **`BeforeAll` and `AfterAll`** have no World. Their `this` is their context (`{ parameters }`),
+  which an arrow function gets as a first parameter named `context`:
+
+  ```ts
+  import { BeforeAll, type IContext } from "@cucumber/cucumber";
+
+  BeforeAll((context: IContext) => {
+    context.parameters.startedAt = Date.now();
+  });
+  ```
+
+Cucumber's own `world` and `context` exports work in arrow functions too
+(`import { world } from "@cucumber/cucumber"`), typed as Cucumber's `IWorld`.
+
+#### TypeScript
+
+Annotate the argument with your World's type (`world: CartWorld`). Steps then typecheck as they
+are. Hooks need the plugin's types, which type Cucumber's hooks for this form too:
+
+- If the same `tsconfig.json` checks your `vitest.config.ts` (or `.storybook/main.ts`) and your
+  support code, TypeScript already has them: the config imports the plugin.
+- If not (config files checked by a `tsconfig.node.json` of their own, for example), add them to
+  the one that checks your support code:
+
+  ```json filename="tsconfig.json"
+  {
+    "compilerOptions": {
+      "types": ["@lotun/vitest-cucumber"]
+    }
+  }
+  ```
+
+Without the annotation, TypeScript reads a hook's first argument as Cucumber's hook parameter.
 
 ## World parameters
 
@@ -78,7 +148,8 @@ it changes arrives changed (a `Date` as a string, a `Map` as `{}`). To share suc
 ## Hooks
 
 `Before` and `After` run around each scenario, `BeforeStep` and `AfterStep` around each step, with
-the scenario's World as `this`. With `tags`, only for the scenarios that match:
+the scenario's World as `this` (or as [an arrow function's `world`](#the-world-in-an-arrow-function)).
+With `tags`, only for the scenarios that match:
 
 ```ts filename="features/support/hooks.ts"
 import { After, Before } from "@cucumber/cucumber";

@@ -4,7 +4,9 @@
 // validation (`./validateArguments.ts`). Steps, `Before`/`After`, `BeforeAll`/`AfterAll` and parameter
 // types go to core's builder. What core doesn't have stays here, for the runtime (`./runner.ts`,
 // `./testCaseRunner.ts`): `BeforeStep` and `AfterStep`, each definition's timeout and wrapper options,
-// the definition function wrapper (applied to every definition, as cucumber does) and the World class
+// the definition function wrapper (applied to every definition, as cucumber does), whether its code
+// takes the World as its first argument (`./thisFirst.ts`: read from the code as written, before
+// its wrapper) and the World class
 // (the default timeout is the host's: `setDefaultTimeout` isn't supported, refused here with
 // `setParallelCanAssign`). Each
 // call's location comes from its recorded stack, source-mapped (browser mode: by main).
@@ -22,6 +24,7 @@ import type {
 } from "../../types/supportCode.ts";
 import { locatedError, pluginError } from "../../utils/errors.ts";
 import { createQuery } from "./query.ts";
+import { takesFirst } from "./thisFirst.ts";
 import { validateArguments } from "./validateArguments.ts";
 
 type Options = Record<string, unknown>;
@@ -151,6 +154,7 @@ export const buildSupportCode = (
           fn: handleOf({
             code: wrap(code as Code, wrapperOptions),
             timeout: timeout as number | undefined,
+            thisFirst: takesFirst(code as Code, "world"),
           }),
           sourceReference,
         });
@@ -166,6 +170,7 @@ export const buildSupportCode = (
           fn: handleOf({
             code: wrap(code),
             timeout: options.timeout as number | undefined,
+            thisFirst: takesFirst(code, "world"),
           }),
           name: options.name as string | undefined,
           tags: options.tags as string | undefined,
@@ -188,6 +193,7 @@ export const buildSupportCode = (
         (method === "BeforeStep" ? beforeStepHooks : afterStepHooks).push({
           code: wrap(code),
           timeout: options.timeout as number | undefined,
+          thisFirst: takesFirst(code, "world"),
           ...(tags !== undefined && { tags: parse(tags) }),
         });
       } else if (method === "BeforeAll" || method === "AfterAll") {
@@ -202,6 +208,7 @@ export const buildSupportCode = (
           fn: handleOf({
             code: wrap(code),
             timeout: options.timeout as number | undefined,
+            thisFirst: takesFirst(code, "context"),
           }),
           name: options.name as string | undefined,
           sourceReference,

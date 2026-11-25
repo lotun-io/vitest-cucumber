@@ -16,6 +16,14 @@ The Vite plugin for node and browser mode: feature files as Vitest tests. Its op
 
 The type of `cucumber()`'s options.
 
+### Cucumber's hooks, typed for a `world` argument
+
+The package's types also type `@cucumber/cucumber`'s hooks (`Before`, `After`, `BeforeStep`,
+`AfterStep`, `BeforeAll`, `AfterAll`) for an arrow function that takes the World as its first
+argument. A project gets them once TypeScript has the plugin's types: a file importing the plugin,
+or `"types": ["@lotun/vitest-cucumber"]` in `tsconfig.json`.
+[The World in an arrow function](/guides/support-code#the-world-in-an-arrow-function).
+
 ## `@lotun/vitest-cucumber/storybook/node`
 
 For `.storybook/main.ts`, which Storybook runs in Node ([Storybook](/modes/storybook)).

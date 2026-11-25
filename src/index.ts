@@ -1,6 +1,10 @@
 // The plugin's entry point for node and browser projects: Vite plugins, node mode's and browser
 // mode's, each applying only to its own kind of project (`test.browser.enabled`). Storybook projects
 // get theirs from the plugin's Storybook addon (`./core/storybook/preset.ts`), never from here.
+// With its types a project gets cucumber's hooks typed for the World as a first argument
+// (`./types/cucumber.d.mts`).
+// eslint-disable-next-line @typescript-eslint/triple-slash-reference -- an ambient declaration: no import brings one in
+/// <reference path="./types/cucumber.d.mts" preserve="true" />
 import type { Plugin } from "vitest/config";
 import { createBrowserPlugin } from "./core/browserPlugin.ts";
 import { createNodePlugin } from "./core/nodePlugin.ts";

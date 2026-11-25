@@ -29,6 +29,8 @@ jobs:
       # Playwright's browsers in one folder on every OS, cached by its version (below).
       PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/.cache/ms-playwright
     strategy:
+      # Every OS and Node version runs to its end: one failing doesn't cancel the others.
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
         node-version: [24, 26]

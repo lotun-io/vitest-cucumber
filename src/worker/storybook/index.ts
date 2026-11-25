@@ -7,6 +7,9 @@
 // (`../../core/storybook/stories/featureStories.ts`). No import of Vitest's or
 // Storybook's: the page's runner is the preset's (its project annotation: `./preview/annotation.ts`
 // in Storybook's preview, `./vitest/annotation.ts` in its story tests).
+// With its types a project gets cucumber's hooks typed for the World as a first argument.
+// eslint-disable-next-line @typescript-eslint/triple-slash-reference -- an ambient declaration: no import brings one in
+/// <reference path="../../types/cucumber.d.mts" preserve="true" />
 import { pluginError } from "../../utils/errors.ts";
 import { currentStory } from "./story.ts";
 

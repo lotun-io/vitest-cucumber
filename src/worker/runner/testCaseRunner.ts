@@ -6,7 +6,8 @@
 // (they get the worst result so far, its object as it is: a hook can change it, as cucumber's can).
 // A step runs between the `BeforeStep` hooks that apply (by tags) and the `AfterStep` hooks (in
 // reverse), unless a BeforeStep hook failed. Each definition gets cucumber's parameters (a step: its
-// arguments' values, then its data table or doc string; a hook: its hook parameter) and its arity
+// arguments' values, then its data table or doc string; a hook: its hook parameter), after the World
+// if its code takes it as its first argument (`./thisFirst.ts`), and its arity
 // check. An attempt is Vitest's (its number and whether more remain: `../platform/scenario/attempts.ts`), its
 // `willBeRetried` cucumber's (Vitest's retries stop when it's false). An undefined step's suggestion is cucumber's (`./suggestion.ts`).
 // Page-safe.
@@ -25,7 +26,6 @@ import {
 } from "@cucumber/messages";
 import type { RuntimeEnvironment } from "../../types/runtimeEnvironment.ts";
 import type {
-  Code,
   Definition,
   StepHook,
   SupportCode,
@@ -60,27 +60,42 @@ interface TestCaseRun {
   environment: RuntimeEnvironment;
 }
 
-/** What a definition gets, and the code lengths it may have (cucumber's `getInvocationParameters`). */
+/**
+ * What a definition gets, and how many of them its code may take if it's synchronous or returns a
+ * promise (`lengths`; one more than the last: with cucumber's callback), as cucumber's
+ * `getInvocationParameters` has them.
+ */
 interface Invocation {
   parameters: unknown[];
-  validCodeLengths: number[];
-  invalidCodeLengthMessage: () => string;
+  lengths: number[];
 }
 
-/** Cucumber's `buildInvalidCodeLengthMessage`. */
-const invalidCodeLength = (
-  code: Code,
-  syncOrPromise: string | number,
-  callback: string | number,
-) =>
-  `function has ${String(code.length)} arguments, should have ${String(syncOrPromise)} (if synchronous or returning a promise) or ${String(callback)} (if accepting a callback)`;
-
 /** A hook's invocation: its hook parameter; 0 or 1 arguments, or 2 with a callback. */
-const hookInvocation = (code: Code, hookParameter: object): Invocation => ({
+const hookInvocation = (hookParameter: object): Invocation => ({
   parameters: [hookParameter],
-  validCodeLengths: [0, 1, 2],
-  invalidCodeLengthMessage: () => invalidCodeLength(code, "0 or 1", "2"),
+  lengths: [0, 1],
 });
+
+/**
+ * The arguments `definition`'s code is called with for `invocation`, and the lengths it may have:
+ * cucumber's, or each with the World before them, one more (`./thisFirst.ts`).
+ */
+const callOf = (
+  { code, thisFirst }: Definition,
+  { parameters, lengths }: Invocation,
+  world: unknown,
+) => {
+  const first = thisFirst ? 1 : 0;
+  const sync = lengths.map((length) => length + first);
+  const callback = Math.max(...sync) + 1;
+  return {
+    args: thisFirst ? [world, ...parameters] : parameters,
+    valid: [...sync, callback].includes(code.length),
+    /** Cucumber's `buildInvalidCodeLengthMessage`; with the World, saying it's counted. */
+    invalidCodeLengthMessage: () =>
+      `function has ${String(code.length)} arguments, should have ${sync.join(" or ")} (if synchronous or returning a promise) or ${String(callback)} (if accepting a callback)${thisFirst ? ", the world counted" : ""}`,
+  };
+};
 
 const skipped = (): TestStepResult => ({
   status: TestStepResultStatus.SKIPPED,
@@ -119,9 +134,14 @@ const runDefinition = async ({
     failure = { value: invocationError };
   }
   if (invocation) {
-    if (invocation.validCodeLengths.includes(definition.code.length)) {
+    const { args, valid, invalidCodeLengthMessage } = callOf(
+      definition,
+      invocation,
+      world,
+    );
+    if (valid) {
       const outcome = await runUserCode({
-        args: invocation.parameters,
+        args,
         thisArg: world,
         fn: definition.code,
         timeout: definition.timeout ?? defaultTimeout,
@@ -132,7 +152,7 @@ const runDefinition = async ({
       failure = outcome.failure;
     } else {
       // Cucumber's message is text; the test's error, an Error of it.
-      const message = invocation.invalidCodeLengthMessage();
+      const message = invalidCodeLengthMessage();
       error = message;
       failure = { value: new Error(message) };
     }
@@ -280,7 +300,7 @@ export const runTestCase = async (
     const results: TestStepResult[] = [];
     for (const hook of hooks) {
       const { result } = await invoke(hook, async () =>
-        hookInvocation(hook.code, hookParameter),
+        hookInvocation(hookParameter),
       );
       results.push(result);
     }
@@ -342,16 +362,7 @@ export const runTestCase = async (
               "rows" in argument ? new DataTable(argument) : argument.content,
             ),
           );
-          return {
-            parameters,
-            validCodeLengths: [parameters.length, parameters.length + 1],
-            invalidCodeLengthMessage: () =>
-              invalidCodeLength(
-                definition.code,
-                parameters.length,
-                parameters.length + 1,
-              ),
-          };
+          return { parameters, lengths: [parameters.length] };
         },
         `${stepOf(pickleStep)?.keyword ?? ""}${pickleStep.text}`,
       );
@@ -425,7 +436,7 @@ export const runTestCase = async (
           }
           const definition = support.definitionOf(prepared.fn);
           ({ result: testStepResult } = await invoke(definition, async () =>
-            hookInvocation(definition.code, hookParameter),
+            hookInvocation(hookParameter),
           ));
         }
       } else {

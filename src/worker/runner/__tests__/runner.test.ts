@@ -420,6 +420,189 @@ describe("user code", () => {
   });
 });
 
+describe("the World as a first argument (an arrow function whose first parameter is `world`)", () => {
+  const feature = gherkinOf(`Feature: A
+  Scenario: one
+    Given 2 items
+      | a |
+`);
+  type Cart = { parameters: unknown; items?: unknown[] };
+
+  test("a step: the World, then cucumber's arguments, then its callback; `this`-less, the same World as a `function`'s", async () => {
+    const seen: unknown[] = [];
+    const worlds: unknown[] = [];
+    for (const code of [
+      (world: Cart, count: number, table: { raw(): unknown }) => {
+        worlds.push(world);
+        seen.push([world.parameters, count, table.raw()]);
+      },
+      async (world: Cart, count: number) => {
+        await Promise.resolve();
+        seen.push([world.parameters, count]);
+      },
+      (world: Cart, count: number, table: unknown, done: () => void) => {
+        seen.push([world.parameters, count, typeof done]);
+        setTimeout(done, 1);
+      },
+    ]) {
+      const runner = runnerOf(
+        [
+          call("Before", function (this: Cart) {
+            worlds.push(this);
+          }),
+          // The second one takes no table: a step without one.
+          call("Given", "{int} items", code),
+        ],
+        { worldParameters: { currency: "EUR" } },
+      );
+      const { query } = await runner.scenario(
+        ...scenario(
+          code.length === 2
+            ? gherkinOf("Feature: A\n  Scenario: one\n    Given 2 items\n")
+            : feature,
+        ),
+      );
+      expect(statusesOf(query)).toEqual(["hook: PASSED", "2 items: PASSED"]);
+    }
+    expect(seen).toEqual([
+      [{ currency: "EUR" }, 2, [["a"]]],
+      [{ currency: "EUR" }, 2],
+      [{ currency: "EUR" }, 2, "function"],
+    ]);
+    expect(worlds[0]).toBe(worlds[1]);
+  });
+
+  test("a hook: the World, then its parameter, then its callback", async () => {
+    const seen: unknown[] = [];
+    const runner = runnerOf([
+      call("Before", (world: Cart) => void seen.push(["Before", world.items])),
+      call("Before", "@none", (world: Cart) => void seen.push(world)),
+      call(
+        "After",
+        (
+          world: Cart,
+          { pickle }: { pickle: Pickle },
+          done: (error?: unknown) => void,
+        ) => {
+          seen.push(["After", world.items, pickle.name]);
+          done();
+        },
+      ),
+      call(
+        "BeforeStep",
+        (world: Cart, { pickleStep }: { pickleStep: { text: string } }) =>
+          void seen.push(["BeforeStep", world.items, pickleStep.text]),
+      ),
+      call(
+        "AfterStep",
+        (world: Cart, { result }: { result: { status: string } }) =>
+          void seen.push(["AfterStep", world.items, result.status]),
+      ),
+      call("Given", "{int} items", (world: Cart, count: number) => {
+        world.items = [count];
+      }),
+    ]);
+    const { query } = await runner.scenario(
+      ...scenario(
+        gherkinOf("Feature: A\n  Scenario: one\n    Given 2 items\n"),
+      ),
+    );
+    expect(statusesOf(query)).toEqual([
+      "hook: PASSED",
+      "2 items: PASSED",
+      "hook: PASSED",
+    ]);
+    expect(seen).toEqual([
+      ["Before", undefined],
+      ["BeforeStep", undefined, "2 items"],
+      ["AfterStep", [2], "PASSED"],
+      ["After", [2], "one"],
+    ]);
+  });
+
+  test("its arity counts the World; a definition function wrapper gets it too, the code read as written", async () => {
+    const resultOf = async (
+      calls: SupportCall[],
+      wrapper?: (code: Code, o: unknown) => Code,
+    ) =>
+      (
+        await runnerOf(calls, {}, wrapper).scenario(
+          ...scenario(
+            gherkinOf("Feature: A\n  Scenario: one\n    Given 2 items\n"),
+          ),
+        )
+      ).query.results()[0]?.result;
+    expect(
+      (await resultOf([call("Given", "{int} items", (world: Cart) => world)]))
+        ?.message,
+    ).toBe(
+      "Error: function has 1 arguments, should have 2 (if synchronous or returning a promise) or 3 (if accepting a callback), the world counted",
+    );
+    expect(
+      (
+        await resultOf([
+          call("Given", "{int} items", (count: number) => count),
+          call(
+            "Before",
+            (world: Cart, a: unknown, b: unknown, c: unknown) =>
+              void [world, a, b, c],
+          ),
+        ])
+      )?.message,
+    ).toBe(
+      "Error: function has 4 arguments, should have 1 or 2 (if synchronous or returning a promise) or 3 (if accepting a callback), the world counted",
+    );
+    const seen: unknown[] = [];
+    expect(
+      (
+        await resultOf(
+          [
+            call("Given", "{int} items", (world: Cart, count: number) => {
+              seen.push([world.parameters, count]);
+            }),
+          ],
+          (code) =>
+            function (this: unknown, ...args: unknown[]) {
+              seen.push(args.length);
+              return code.apply(this, args);
+            },
+        )
+      )?.status,
+    ).toBe("PASSED");
+    // The World, the step's argument and, as every call's last one, cucumber's callback.
+    expect(seen).toEqual([3, [{}, 2]]);
+  });
+
+  test("a test run hook: its context (`context`), then its callback", async () => {
+    const seen: unknown[] = [];
+    const runner = runnerOf(
+      [
+        call(
+          "BeforeAll",
+          (context: Cart) => void seen.push(["BeforeAll", context.parameters]),
+        ),
+        call("AfterAll", (context: Cart, done: () => void) => {
+          seen.push(["AfterAll", context.parameters]);
+          setTimeout(done, 1);
+        }),
+        // Cucumber's own: one argument is its callback.
+        call("AfterAll", (done: () => void) => {
+          seen.push(["AfterAll, cucumber's", typeof done]);
+          done();
+        }),
+      ],
+      { worldParameters: { currency: "EUR" } },
+    );
+    expect((await runner.beforeAll()).success).toBe(true);
+    expect((await runner.afterAll()).success).toBe(true);
+    expect(seen).toEqual([
+      ["BeforeAll", { currency: "EUR" }],
+      ["AfterAll, cucumber's", "function"],
+      ["AfterAll", { currency: "EUR" }],
+    ]);
+  });
+});
+
 test("step hooks: BeforeStep by tags; a failing one skips the step; AfterStep in reverse", async () => {
   const feature = gherkinOf(`Feature: A
   @tagged

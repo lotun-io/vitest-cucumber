@@ -106,7 +106,8 @@ export const createRunner = ({
       const call = () =>
         environment.scope.withContext(context, () =>
           runUserCode({
-            args: [],
+            // Its context, if its code takes it as an argument (`./thisFirst.ts`).
+            args: definition.thisFirst ? [context] : [],
             thisArg: context,
             fn: definition.code,
             timeout: definition.timeout ?? defaultTimeout,

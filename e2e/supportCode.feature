@@ -603,6 +603,84 @@ Feature: The support code's API
       | browser   |
       | storybook |
 
+  # The plugin's own, not cucumber's: an arrow function has no `this`, so one whose first parameter
+  # is named `world` (a test run hook's: `context`) gets it there, before cucumber's arguments.
+  Scenario Outline: An arrow function whose first parameter is `world` gets the World as that argument (<mode>)
+    Given a file named "features/steps.ts" with:
+      """
+      import { After, AfterStep, Before, BeforeAll, type DataTable, Given, type IContext, setWorldConstructor, Then, When, World } from "@cucumber/cucumber";
+      import { expect } from "vitest";
+
+      class Cart extends World {
+        items: string[] = [];
+        trail: string[] = [];
+      }
+      setWorldConstructor(Cart);
+
+      BeforeAll((context: IContext) => {
+        context.parameters.fromBeforeAll = "set";
+      });
+      Before((world: Cart, { pickle }) => {
+        expect(world).toBeInstanceOf(Cart);
+        world.trail.push(`Before ${pickle.name}`);
+      });
+      AfterStep((world: Cart, { result }) => {
+        world.trail.push(result.status);
+      });
+      After((world: Cart, { result }, done: () => void) => {
+        expect(result?.status).toBe("PASSED");
+        expect(world.trail).toEqual(["Before arrows", "PASSED", "PASSED", "PASSED", "PASSED", "PASSED"]);
+        setTimeout(done, 10);
+      });
+      Given("a cart with {string}", (world: Cart, item: string) => {
+        world.items.push(item);
+      });
+      When("I add {int} of each:", async (world: Cart, count: number, table: DataTable) => {
+        await new Promise((resolve) => setTimeout(resolve, 10));
+        for (const [item] of table.raw()) {
+          world.items.push(...Array.from({ length: count }, () => item));
+        }
+      });
+      When("I add {string} later", (world: Cart, item: string, done: () => void) => {
+        setTimeout(() => {
+          world.items.push(item);
+          done();
+        }, 10);
+      });
+      // Cucumber's own, next to them: `this`, and an arrow function with its callback.
+      Then("the cart has {int} items", function (this: Cart, count: number) {
+        expect(this.items).toHaveLength(count);
+        expect(this.parameters).toEqual({ fromBeforeAll: "set" });
+      });
+      Then("{string} is a word", (word: string, done: () => void) => {
+        expect(word).toBe("fig");
+        done();
+      });
+      """
+    And a file named "features/a.feature" with:
+      """
+      Feature: A
+        Scenario: arrows
+          Given a cart with "apple"
+          When I add 2 of each:
+            | kiwi |
+            | lime |
+          And I add "fig" later
+          Then the cart has 6 items
+          And "fig" is a word
+      """
+    When I run vitest in <mode> mode
+    Then it passes
+    And it runs the scenarios:
+      | NAME   | STATUS |
+      | arrows | passed |
+
+    Examples:
+      | mode      |
+      | node      |
+      | browser   |
+      | storybook |
+
   # A monorepo's shared steps, built (`packages/<name>/dist/`): their locations are theirs. Vitest's
   # default frame filter drops `/packages/<name>/dist/` (its own packages, run from source): the
   # plugin locates definitions without it, in every mode.

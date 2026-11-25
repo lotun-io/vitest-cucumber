@@ -22,6 +22,9 @@
     "vite-plugin",
     "storybook"
   ],
+  "imports": {
+    "#cucumber": "@cucumber/cucumber"
+  },
   "exports": {
     ".": {
       "import": "./src/index.ts"

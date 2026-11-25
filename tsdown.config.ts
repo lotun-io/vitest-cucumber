@@ -37,6 +37,11 @@ export default defineConfig([
     outDir: "dist",
     // Declarations for what users can import only: the exports `package.json` types.
     dts: { entry: typedEntries },
+    // The declarations written by hand (`src/types/*.d.mts`: cucumber's types as the plugin's give
+    // them, an ambient declaration), as they are: an entry's output is a module's (`export {}`
+    // added), which an ambient declaration can't be. The entries' declarations refer to them
+    // (`src/index.ts`).
+    copy: [{ from: "src/types/*.d.mts", to: "dist/types" }],
     sourcemap: true,
     unbundle: true,
     // No constant inlined across modules: the preview's support module (a placeholder whose code the
