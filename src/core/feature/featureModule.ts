@@ -6,7 +6,7 @@
 //
 //   import { feature } from "<runtime>"; import { platform } from "<platform>"; const { describe, scenarioTest } = feature({ plan, platform, importSupport }); describe("Cart", () => {
 //
-//   scenarioTest("Adding an item", { tags: ["@smoke"] }, 3);
+//   scenarioTest("Adding an item", { tags: ["@smoke"] }, { line: 3 });
 //   (a step's line: empty)
 //   … });
 //
@@ -61,7 +61,7 @@ export const featureModule = ({
     calls: {
       describe: ({ name }) => `describe(${JSON.stringify(name)}, () => {`,
       test: ({ name, tags, line }) =>
-        `scenarioTest(${JSON.stringify(name)}, { tags: ${JSON.stringify(tags)} }, ${String(line)});`,
+        `scenarioTest(${JSON.stringify(name)}, { tags: ${JSON.stringify(tags)} }, { line: ${String(line)} });`,
     },
   });
   code.prepend(

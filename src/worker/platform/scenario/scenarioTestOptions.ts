@@ -1,5 +1,5 @@
 // A scenario's test's options, a feature file's (`../../feature/runtime.ts`) and a story test's
-// (`../../storybook/vitest/tests.ts`) alike: its Gherkin tags as Vitest tags, after any it's given (the
+// (`../../storybook/vitest/cucumberTests.ts`) alike: its Gherkin tags as Vitest tags, after any it's given (the
 // addon's, if it ever gives some); cucumber's own timeouts (`timeout: 0`: Vitest's `testTimeout`
 // doesn't apply), unless one of its tags' Vitest definitions sets a `timeout`: then Vitest's, from
 // its tags (the lowest `priority` first, else the last of the test's tags, a pickle's innermost);

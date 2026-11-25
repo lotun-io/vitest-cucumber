@@ -1,12 +1,7 @@
-import {
-  AstBuilder,
-  compile,
-  GherkinClassicTokenMatcher,
-  Parser,
-} from "@cucumber/gherkin";
 import { IdGenerator, type Pickle } from "@cucumber/messages";
 import { describe, expect, test } from "vitest";
 import { defaultRunOptions } from "../../../../utils/runOptions.ts";
+import { gherkinOf } from "../../../__tests__/gherkinOf.ts";
 import { createRuntimeEnvironment } from "../../../browser/runtimeEnvironment.ts";
 import { createRunner } from "../../../runner/runner.ts";
 import { buildSupportCode } from "../../../runner/supportCode.ts";
@@ -15,16 +10,11 @@ import { summaryOf } from "../summary.ts";
 describe("summaryOf", () => {
   /** A run of a scenario with a pending step (the runtime's messages). */
   const pendingRun = async () => {
-    const uri = "a.feature";
     const newId = IdGenerator.incrementing();
-    const document = {
-      ...new Parser(
-        new AstBuilder(newId),
-        new GherkinClassicTokenMatcher(),
-      ).parse("Feature: A\n  Scenario: a\n    Given a pending step\n"),
-      uri,
-    };
-    const feature = { document, pickles: [...compile(document, uri, newId)] };
+    const feature = gherkinOf(
+      "Feature: A\n  Scenario: a\n    Given a pending step\n",
+      "a.feature",
+    );
     const runner = createRunner({
       workerId: "1",
       support: buildSupportCode(

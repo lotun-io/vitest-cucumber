@@ -35,11 +35,15 @@ export const feature = ({
     describe: (name: string, body: () => void) => {
       describe(name, body);
     },
-    /** A scenario's or an example's test, with its Gherkin tags: the scenario at its Gherkin `line`. */
+    /**
+     * A scenario's or an example's test, with its Gherkin tags: the scenario at its Gherkin
+     * `line` (its place as an object, as a story test's call carries its own:
+     * `../storybook/vitest/cucumberTests.ts`, which needs its column too).
+     */
     scenarioTest: (
       name: string,
       { tags }: { tags: string[] },
-      line: number,
+      { line }: { line: number },
     ) => {
       // Destructured: Vitest reads a fixture test's first parameter for the fixtures it uses.
       featureTest(

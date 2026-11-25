@@ -5,7 +5,7 @@
 // Its import of Vitest (`import { test as _test, expect as _expect } from "vitest"`) is taken from
 // the feature module's `vitest` instead (Vitest's exports with `cucumberTests`'s `test`, which
 // collects each scenario's story test instead of declaring it: `../stories/featureRuntimeModule.ts`,
-// `../../../worker/storybook/vitest/tests.ts`), destructured into the addon's names (`const { test:
+// `../../../worker/storybook/vitest/cucumberTests.ts`), destructured into the addon's names (`const { test:
 // _test, expect: _expect } = __cucumberVitest`): the feature's own calls, written before the
 // addon's (`describe`, `storyTest`), are its tests, each running the story test collected for its
 // line. A destructured `_test` is also no test to Vitest's static collection (`vitest list`

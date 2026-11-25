@@ -1,23 +1,14 @@
-import {
-  AstBuilder,
-  compile,
-  GherkinClassicTokenMatcher,
-  Parser,
-} from "@cucumber/gherkin";
-import { IdGenerator } from "@cucumber/messages";
 import { beforeAll, describe, expect, test } from "vitest";
 import { defaultRunOptions } from "../../../../utils/runOptions.ts";
+import { gherkinOf } from "../../../__tests__/gherkinOf.ts";
 import { Given } from "../../../cucumber/recorders.ts";
 import { platform } from "../platform.ts";
 
 const uri = "features/preview.feature";
 
 /** The scenarios of a feature, as the platform runs them (by name). */
-const newId = IdGenerator.incrementing();
-const document = new Parser(
-  new AstBuilder(newId),
-  new GherkinClassicTokenMatcher(),
-).parse(`Feature: The preview
+const { document, pickles } = gherkinOf(
+  `Feature: The preview
   Scenario: Passing
     Given a step
 
@@ -26,8 +17,9 @@ const document = new Parser(
 
   Scenario: Ambiguous
     Given a step defined twice
-`);
-const pickles = compile({ ...document, uri }, uri, newId);
+`,
+  uri,
+);
 const scenario = (name: string) => {
   const pickle = pickles.find((each) => each.name === name);
   if (!pickle) {

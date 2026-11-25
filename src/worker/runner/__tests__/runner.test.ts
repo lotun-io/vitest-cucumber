@@ -1,15 +1,10 @@
-import {
-  AstBuilder,
-  compile,
-  GherkinClassicTokenMatcher,
-  Parser,
-} from "@cucumber/gherkin";
 import { IdGenerator, type Pickle } from "@cucumber/messages";
 import { describe, expect, test } from "vitest";
 import type { FeatureGherkin, RunOptions } from "../../../types/feature.ts";
 import type { Query } from "../../../types/query.ts";
 import type { Code, SupportCall } from "../../../types/supportCode.ts";
 import { defaultRunOptions } from "../../../utils/runOptions.ts";
+import { gherkinOf as gherkinAt } from "../../__tests__/gherkinOf.ts";
 import { createRuntimeEnvironment } from "../../browser/runtimeEnvironment.ts";
 import { world as currentWorld } from "../../cucumber/page.ts";
 import { failuresOf } from "../failures.ts";
@@ -24,17 +19,7 @@ const pageEnvironment = () => ({
 
 const uri = "features/a.feature";
 
-const gherkinOf = (source: string): FeatureGherkin => {
-  const newId = IdGenerator.incrementing();
-  const document = {
-    ...new Parser(
-      new AstBuilder(newId),
-      new GherkinClassicTokenMatcher(),
-    ).parse(source),
-    uri,
-  };
-  return { document, pickles: [...compile(document, uri, newId)] };
-};
+const gherkinOf = (source: string): FeatureGherkin => gherkinAt(source, uri);
 
 const at = { uri: "features/steps.ts", line: 1, column: 1 };
 const call = (method: string, ...args: unknown[]): SupportCall => ({

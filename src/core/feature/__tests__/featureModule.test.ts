@@ -77,12 +77,12 @@ test("each suite and test is a call on its Gherkin line, every other line empty;
     ),
   ).toEqual({
     3: 'describe("Cart", () => {',
-    9: 'scenarioTest("Adding an item", { tags: ["@cart","@smoke"] }, 9);',
+    9: 'scenarioTest("Adding an item", { tags: ["@cart","@smoke"] }, { line: 9 });',
     12: 'describe("Discounts", () => {',
     14: 'describe("A coupon", () => {',
-    19: 'scenarioTest("A coupon", { tags: ["@cart"] }, 19);',
-    20: 'scenarioTest("A coupon", { tags: ["@cart"] }, 20); });',
-    22: 'scenarioTest("A note", { tags: ["@cart"] }, 22); }); });',
+    19: 'scenarioTest("A coupon", { tags: ["@cart"] }, { line: 19 });',
+    20: 'scenarioTest("A coupon", { tags: ["@cart"] }, { line: 20 }); });',
+    22: 'scenarioTest("A note", { tags: ["@cart"] }, { line: 22 }); }); });',
   });
 });
 
@@ -114,7 +114,7 @@ test("an unnamed feature: no suite, its scenarios the file's", () => {
     plan: planFor("Feature:\n  Scenario: a\n    Given a step\n"),
   });
   expect(code.split("\n").slice(1)).toEqual([
-    'scenarioTest("a", { tags: [] }, 2);',
+    'scenarioTest("a", { tags: [] }, { line: 2 });',
     "",
     "",
   ]);
