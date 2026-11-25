@@ -31,10 +31,14 @@ export interface Annotation {
 export interface Run {
   success: boolean;
   query: Query;
-  /** A scenario's: whether cucumber would retry it (its worst status FAILED, attempts remaining). */
-  willBeRetried?: boolean;
-  /** A scenario's: the test case it ran (a retry runs it again). */
-  testCase?: AssembledTestCase;
+}
+
+/** A scenario's run (one attempt). */
+export interface ScenarioRun extends Run {
+  /** Whether cucumber would retry it (its worst status FAILED, attempts remaining). */
+  willBeRetried: boolean;
+  /** The test case it ran (a retry runs it again). */
+  testCase: AssembledTestCase;
 }
 
 /** A stack frame's position: a step's line in its feature file, for Vitest's code frame of it. */

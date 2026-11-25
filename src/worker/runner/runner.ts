@@ -1,7 +1,7 @@
 // The plugin's cucumber runs, as cucumber's executor runs them (a port of 13.3.0's
 // `lib/runtime/executor.ts`): a run is the BeforeAll hooks, one scenario (a pickle, as
 // `@cucumber/core` makes its test case: `./testCaseRunner.ts`), or the AfterAll hooks (in
-// reverse); a dry run as the options say. Its outcome is the runtime's `Run`: its success (cucumber's `shouldCauseFailure`: a dry
+// reverse); a dry run as the options say. Its outcome is the runtime's `Run`: its success (cucumber's `shouldCauseFailure`, `./statuses.ts`: a dry
 // run never fails, `PENDING` only with `strict`; a hook run, every hook passed), its messages (the
 // support code's, the feature's, the run's), each failure's real error on its message
 // (`./failures.ts`). A run hook gets cucumber's context, `{ parameters }` (the world parameters
@@ -21,7 +21,7 @@ import {
   type TestStepResult,
 } from "@cucumber/messages";
 import type { RunOptions } from "../../types/feature.ts";
-import type { Run } from "../../types/platform.ts";
+import type { Run, ScenarioRun } from "../../types/platform.ts";
 import type { RuntimeEnvironment } from "../../types/runtimeEnvironment.ts";
 import type { SupportCode } from "../../types/supportCode.ts";
 import { pluginError } from "../../utils/errors.ts";
@@ -30,27 +30,9 @@ import { noDuration, startStopwatch, timestamp } from "./clock.ts";
 import { withFailures } from "./failures.ts";
 import { formatSimpleError } from "./formatError.ts";
 import { createQuery } from "./query.ts";
+import { shouldCauseFailure } from "./statuses.ts";
 import { runTestCase } from "./testCaseRunner.ts";
 import { errorOf, runUserCode } from "./userCode.ts";
-
-/** Cucumber's `shouldCauseFailure`. */
-const shouldCauseFailure = (
-  status: TestStepResultStatus,
-  { dryRun, strict }: { dryRun: boolean; strict: boolean },
-) => {
-  if (dryRun) {
-    return false;
-  }
-  const failureStatuses: string[] = [
-    TestStepResultStatus.AMBIGUOUS,
-    TestStepResultStatus.FAILED,
-    TestStepResultStatus.UNDEFINED,
-  ];
-  if (strict) {
-    failureStatuses.push(TestStepResultStatus.PENDING);
-  }
-  return failureStatuses.includes(status);
-};
 
 export const createRunner = ({
   support,
@@ -111,18 +93,18 @@ export const createRunner = ({
             uncaught: environment.uncaught,
           }),
         );
-      const { error, failure } = await (environment.around
+      const ran = await (environment.around
         ? environment.around(label, call)
         : call());
       const duration = stop();
-      if (error !== undefined) {
+      if (ran.failure) {
         result = withFailures(
           {
             duration,
             status: TestStepResultStatus.FAILED,
-            ...formatSimpleError(error),
+            ...formatSimpleError(ran.error),
           },
-          failure ? [failure.value] : [],
+          [ran.failure.value],
         );
       } else {
         result = { duration, status: TestStepResultStatus.PASSED };
@@ -193,7 +175,7 @@ export const createRunner = ({
         moreAttemptsRemaining?: boolean;
         testCase?: TestCase;
       } = {},
-    ): Promise<Run> => {
+    ): Promise<ScenarioRun> => {
       const { query, emit } = startRun([
         { gherkinDocument: document },
         { pickle },
@@ -248,7 +230,7 @@ export const createRunner = ({
               [crash],
             ),
           });
-          return { success: false, query };
+          return { success: false, query, willBeRetried: false, testCase };
         }
         return {
           success: !shouldCauseFailure(ran.status, { dryRun, strict }),

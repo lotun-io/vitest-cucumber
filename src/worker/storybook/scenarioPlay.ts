@@ -2,7 +2,11 @@
 // story test is collected by that line and run as the feature file's scenario's
 // (`./vitest/tests.ts`).
 // Page-safe.
-import type { PlayedScenario } from "../../types/storybook.ts";
+
+/** The scenario a play plays: its line (its pickle's). */
+export interface PlayedScenario {
+  line: number;
+}
 
 /** Each scenario story's `play`, and the scenario it plays. */
 const scenarios = new WeakMap<object, PlayedScenario>();

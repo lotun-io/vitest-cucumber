@@ -21,15 +21,7 @@ import type {
   UndefinedParameterType,
 } from "@cucumber/messages";
 import type { Finished, Query } from "../../types/query.ts";
-
-const failing = new Set(["FAILED", "AMBIGUOUS", "UNDEFINED", "PENDING"]);
-
-/** Whether `status` fails its test. */
-export const isFailing = (status: string) => failing.has(status);
-
-/** Whether `status` fails its test without an error of its own: undefined, pending or ambiguous. */
-export const isUnexplained = (status: string) =>
-  status !== "FAILED" && failing.has(status);
+import { isUnexplained } from "./statuses.ts";
 
 /**
  * What a run's query takes from the support code's query (`support`): its step definitions, hooks

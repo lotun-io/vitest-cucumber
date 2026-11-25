@@ -28,10 +28,9 @@ import type { RunnerTask, SuiteCollector, TestAPI, TestContext } from "vitest";
 import * as vitestModule from "vitest";
 import type { ImportSupport } from "../../../types/feature.ts";
 import type { LoadRun } from "../../../types/platform.ts";
-import type { PlayedScenario } from "../../../types/storybook.ts";
 import { useWorkerFixture } from "../../feature/workerFixture.ts";
 import { scenarioTestOptions } from "../../platform/scenario/scenarioTestOptions.ts";
-import { scenarioOf } from "../scenarioPlay.ts";
+import { type PlayedScenario, scenarioOf } from "../scenarioPlay.ts";
 import { platform } from "./platform.ts";
 
 /** The addon's `testStory`: its options (only the story is read here), a test function. */

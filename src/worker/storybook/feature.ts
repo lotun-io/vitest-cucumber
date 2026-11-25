@@ -10,9 +10,9 @@
 // unmounted one's does (`Given the unmounted Primary story`), so its `Before` hooks and steps run
 // before the render, and the user's step mounts it (`story().mount(…)`): if none does, Storybook's
 // preview fails it (`NoStoryMountedError`).
-import type { FeatureModel, StoryContextLike } from "../../types/storybook.ts";
+import type { FeatureModel } from "../../types/storybook.ts";
 import { markScenario } from "./scenarioPlay.ts";
-import { runStory } from "./story.ts";
+import { runStory, type StoryContextLike } from "./story.ts";
 
 /** A stories file's story as a scenario's story's base: a function story's function its `render`. */
 const storyOf = (story: unknown): object => {

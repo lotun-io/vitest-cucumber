@@ -16,7 +16,7 @@ import type {
 import type { Query } from "../../../types/query.ts";
 import { internalErrorMessage, pluginError } from "../../../utils/errors.ts";
 import { failuresOf } from "../../runner/failures.ts";
-import { isFailing } from "../../runner/query.ts";
+import { isFailing } from "../../runner/statuses.ts";
 import { isError } from "./errorKinds.ts";
 import { errorAt, frameAt } from "./stacks.ts";
 

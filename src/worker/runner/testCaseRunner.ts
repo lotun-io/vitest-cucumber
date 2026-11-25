@@ -38,7 +38,7 @@ import { noDuration, startStopwatch, timestamp } from "./clock.ts";
 import { withFailures } from "./failures.ts";
 import { formatSimpleError } from "./formatError.ts";
 import { makeSuggestion } from "./suggestion.ts";
-import { errorOf, runUserCode } from "./userCode.ts";
+import { errorOf, runUserCode, type UserCodeOutcome } from "./userCode.ts";
 
 interface TestCaseRun {
   gherkinDocument: GherkinDocument;
@@ -102,79 +102,86 @@ const skipped = (): TestStepResult => ({
   duration: noDuration(),
 });
 
-/** Runs a definition (cucumber's step runner): its result, and its error if any. */
-const runDefinition = async ({
+/** A definition to run: its code's arguments (`invocationOf`), its World, its timeout's default. */
+interface DefinitionCall {
+  definition: Definition;
+  invocationOf: () => Invocation | Promise<Invocation>;
+  world: unknown;
+  defaultTimeout: number;
+  uncaught: RuntimeEnvironment["uncaught"];
+}
+
+/** Calls a definition's code with its arguments: what it did (`./userCode.ts`). */
+const callDefinition = async ({
   definition,
   invocationOf,
   world,
   defaultTimeout,
   uncaught,
-}: {
-  definition: Definition;
-  invocationOf: () => Promise<Invocation>;
-  world: unknown;
-  defaultTimeout: number;
-  uncaught: RuntimeEnvironment["uncaught"];
-}): Promise<{
-  result: TestStepResult;
-  error?: unknown;
-  failure?: { value: unknown };
-}> => {
-  const stop = startStopwatch();
-  let error: Error | string | undefined;
-  let value: unknown;
-  let failure: { value: unknown } | undefined;
-  let invocation: Invocation | undefined;
+}: DefinitionCall): Promise<UserCodeOutcome> => {
+  let invocation: Invocation;
   try {
     invocation = await invocationOf();
-  } catch (invocationError) {
+  } catch (thrown) {
     // Whatever a parameter type's transformer throws fails the step, `null` and `undefined` too (as
     // their text, as the step's own code throwing them: cucumber's check reads them as no error).
-    error = errorOf(invocationError);
-    failure = { value: invocationError };
+    return { error: errorOf(thrown), failure: { value: thrown } };
   }
-  if (invocation) {
-    const { args, valid, invalidCodeLengthMessage } = callOf(
-      definition,
-      invocation,
-      world,
-    );
-    if (valid) {
-      const outcome = await runUserCode({
-        args,
-        thisArg: world,
-        fn: definition.code,
-        timeout: definition.timeout ?? defaultTimeout,
-        uncaught,
-      });
-      error = outcome.error;
-      value = outcome.result;
-      failure = outcome.failure;
-    } else {
-      // Cucumber's message is text; the test's error, an Error of it.
-      const message = invalidCodeLengthMessage();
-      error = message;
-      failure = { value: new Error(message) };
-    }
+  const { args, valid, invalidCodeLengthMessage } = callOf(
+    definition,
+    invocation,
+    world,
+  );
+  if (!valid) {
+    // Cucumber's message is text; the test's error, an Error of it.
+    const message = invalidCodeLengthMessage();
+    return { error: message, failure: { value: new Error(message) } };
   }
+  return runUserCode({
+    args,
+    thisArg: world,
+    fn: definition.code,
+    timeout: definition.timeout ?? defaultTimeout,
+    uncaught,
+  });
+};
+
+/** A definition run: its result, and, failed, its error (cucumber's) with the real failure. */
+type DefinitionOutcome =
+  | { result: TestStepResult; failure?: undefined }
+  | {
+      result: TestStepResult;
+      error: Error | string;
+      failure: { value: unknown };
+    };
+
+/** Runs a definition (cucumber's step runner): its result, and its error if it failed. */
+const runDefinition = async (
+  call: DefinitionCall,
+): Promise<DefinitionOutcome> => {
+  const stop = startStopwatch();
+  const ran = await callDefinition(call);
   const duration = stop();
-  const hasError = error !== undefined;
-  const status =
-    value === "skipped"
-      ? TestStepResultStatus.SKIPPED
-      : value === "pending"
-        ? TestStepResultStatus.PENDING
-        : hasError
-          ? TestStepResultStatus.FAILED
-          : TestStepResultStatus.PASSED;
+  if (ran.failure) {
+    return {
+      result: {
+        duration,
+        status: TestStepResultStatus.FAILED,
+        ...formatSimpleError(ran.error),
+      },
+      ...ran,
+    };
+  }
   return {
     result: {
       duration,
-      status,
-      ...(error !== undefined && formatSimpleError(error)),
+      status:
+        ran.result === "skipped"
+          ? TestStepResultStatus.SKIPPED
+          : ran.result === "pending"
+            ? TestStepResultStatus.PENDING
+            : TestStepResultStatus.PASSED,
     },
-    ...(hasError && { error }),
-    ...(hasError && failure && { failure }),
   };
 };
 
@@ -252,7 +259,7 @@ export const runTestCase = async (
    */
   const invoke = async (
     definition: Definition,
-    invocationOf: () => Promise<Invocation>,
+    invocationOf: DefinitionCall["invocationOf"],
     label?: string,
   ) => {
     // Cucumber's `world` is the test case's while its definitions run (their arguments' too).
@@ -299,7 +306,7 @@ export const runTestCase = async (
     };
     const results: TestStepResult[] = [];
     for (const hook of hooks) {
-      const { result } = await invoke(hook, async () =>
+      const { result } = await invoke(hook, () =>
         hookInvocation(hookParameter),
       );
       results.push(result);
@@ -435,7 +442,7 @@ export const runTestCase = async (
             });
           }
           const definition = support.definitionOf(prepared.fn);
-          ({ result: testStepResult } = await invoke(definition, async () =>
+          ({ result: testStepResult } = await invoke(definition, () =>
             hookInvocation(hookParameter),
           ));
         }

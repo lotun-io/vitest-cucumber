@@ -3,9 +3,9 @@
 // annotations, its skip the test's. BeforeAll and AfterAll aren't Storybook's here: the worker fixture
 // runs them, as for feature files (`./tests.ts`), so the runner has none for the project's `beforeAll`.
 import { TestRunner } from "vitest";
-import type { PageRunner } from "../../../types/storybook.ts";
 import { pluginError } from "../../../utils/errors.ts";
 import { runScenarioTest } from "../../platform/scenario/scenarioTest.ts";
+import type { PageRunner } from "../story.ts";
 import { platform } from "./platform.ts";
 
 export const runner: PageRunner = {

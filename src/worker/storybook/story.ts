@@ -4,16 +4,38 @@
 // both platforms run a step's or hook's code as a step of the story (`aroundCall`, Storybook's
 // Interactions panel: the runtime's `around`), and the preview adds notes (`storyNote`). One instance
 // per page: every import resolves to this file.
-import type { LoadRun } from "../../types/platform.ts";
-import type {
-  PageRunner,
-  StoryContextLike,
-  StoryTarget,
-} from "../../types/storybook.ts";
+import type { LoadRun, ScenarioToRun } from "../../types/platform.ts";
+import type { FeatureModel } from "../../types/storybook.ts";
 import { pluginError } from "../../utils/errors.ts";
 import { storybookParameterTypes } from "../../utils/storybookParameterTypes.ts";
 import { createRuntimeEnvironment } from "../browser/runtimeEnvironment.ts";
 import { scenarioAt } from "../platform/scenario/scenarioAt.ts";
+
+/** Storybook's `mount`: renders the story (the renderer's arguments, e.g. React's element, or none). */
+export type StoryMount = (...args: unknown[]) => Promise<unknown>;
+
+/** A story's context, as the plugin reads it (Storybook's `StoryContext` has more). */
+export interface StoryContextLike {
+  /** Storybook's `step`: its `play` returns nothing (a step's result is kept outside it). */
+  step?: (label: string, play: () => Promise<void>) => Promise<void> | void;
+  /** Storybook's `mount`, in an unmounted scenario's play (`./feature.ts`). */
+  mount?: StoryMount;
+}
+
+/** What a story's `play` runs: the scenario, or Outline row, at `line` of a feature file. */
+export interface StoryTarget extends FeatureModel {
+  line: number;
+}
+
+/**
+ * A page's runner: runs a story's target (a scenario, or an Outline's row). Story tests run cucumber's
+ * BeforeAll and AfterAll on the worker fixture; the preview's runner runs them too
+ * (`./preview/runner.ts`'s `PreviewRunner`).
+ */
+export interface PageRunner {
+  /** Runs `scenario` (the story's target's, `../platform/scenario/scenarioAt.ts`). */
+  run(scenario: ScenarioToRun): Promise<void>;
+}
 
 let runner: PageRunner | undefined;
 let current: StoryContextLike | undefined;

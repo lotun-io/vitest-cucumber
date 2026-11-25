@@ -1,6 +1,6 @@
 // Whether a successful scenario run is a skipped test, and why. Cucumber's status of a scenario is its
 // worst step or hook result (`@cucumber/messages`' `getWorstTestStepResult`, cucumber's own), and a run
-// succeeds with some statuses that aren't `PASSED` (`shouldCauseFailure`: a dry run never fails,
+// succeeds with some statuses that aren't `PASSED` (`../../runner/statuses.ts`'s `shouldCauseFailure`: a dry run never fails,
 // `PENDING` only with `strict`):
 // - `SKIPPED` (a step or hook returned `skipped`, whatever passed around it; a dry run's defined
 //   steps): skipped;
@@ -15,7 +15,7 @@ import {
   TestStepResultStatus,
 } from "@cucumber/messages";
 import type { Query } from "../../../types/query.ts";
-import { isUnexplained } from "../../runner/query.ts";
+import { isUnexplained } from "../../runner/statuses.ts";
 import { formatStatusName } from "../summary/formatting.ts";
 
 /** A successful scenario run's skip, with its note (see the module comment), or none: it passed. */

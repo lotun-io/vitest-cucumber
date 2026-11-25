@@ -6,7 +6,7 @@
 // worker, browser mode's page. Page-safe.
 import { TestStepResultStatus } from "@cucumber/messages";
 import type { Query } from "../../../types/query.ts";
-import { isUnexplained } from "../../runner/query.ts";
+import { isUnexplained } from "../../runner/statuses.ts";
 import { composeScenarioSteps, composeSnippets } from "./compose.ts";
 import {
   formatForStatus,

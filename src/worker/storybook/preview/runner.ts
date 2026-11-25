@@ -12,11 +12,16 @@ import type {
   LoadRun,
   Platform,
 } from "../../../types/platform.ts";
-import type { PreviewRunner } from "../../../types/storybook.ts";
 import { pluginError } from "../../../utils/errors.ts";
-import { storyNote } from "../story.ts";
+import { type PageRunner, storyNote } from "../story.ts";
 import { platform } from "./platform.ts";
 import { cwd, importSupport, options, storybookSteps } from "./support.ts";
+
+/** Storybook's preview's runner: also cucumber's BeforeAll and AfterAll, its project `beforeAll`'s. */
+export interface PreviewRunner extends PageRunner {
+  beforeAll(): Promise<void>;
+  afterAll(): Promise<void>;
+}
 
 /**
  * A preview runner on `platform`, loading the support code for `run` through `importSupport` (none:

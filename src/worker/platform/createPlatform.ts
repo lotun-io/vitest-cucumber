@@ -24,6 +24,7 @@ import type {
   Run,
   RunWorker,
   ScenarioOutcome,
+  ScenarioRun,
   ScenarioToRun,
 } from "../../types/platform.ts";
 import type { SupportCall } from "../../types/supportCode.ts";
@@ -120,7 +121,7 @@ export const createPlatform = (host: Host): Platform => {
   const runScenario = async (
     { uri, name, document, pickle, attempt }: ScenarioToRun,
     testCase: AssembledTestCase | undefined,
-  ): Promise<{ outcome: ScenarioOutcome; run: Run }> => {
+  ): Promise<{ outcome: ScenarioOutcome; run: ScenarioRun }> => {
     const {
       runner: scenarioRunner,
       run: { cwd, options },
@@ -139,33 +140,27 @@ export const createPlatform = (host: Host): Platform => {
       };
     }
     const file = `${cwd}/${uri}`;
-    // An undefined, pending or ambiguous step (not in a dry run, which never fails): cucumber's
-    // summary; if building it fails, the plugin's own error says so.
-    let summary: string | undefined;
-    if (!options.dryRun && run.query.firstUnexplained()) {
-      try {
-        summary = summaryOf({
-          query: run.query,
-          colors: host.colors(),
-        });
-      } catch (error) {
-        return {
-          outcome: {
-            annotations,
-            error: {
-              value: host.throwable(summaryFailureOf(run, file, error), name),
-            },
-          },
-          run,
-        };
+    /**
+     * The failed run's errors. With an undefined, pending or ambiguous step (not in a dry run,
+     * which never fails), cucumber's summary too; if building it fails, the plugin's own error
+     * says so.
+     */
+    const failures = () => {
+      if (options.dryRun || !run.query.firstUnexplained()) {
+        return errorsOf(run, name, { file, summary: undefined });
       }
-    }
+      let summary: string | undefined;
+      try {
+        summary = summaryOf({ query: run.query, colors: host.colors() });
+      } catch (error) {
+        return summaryFailureOf(run, file, error);
+      }
+      return errorsOf(run, name, { file, summary });
+    };
     return {
       outcome: {
         annotations,
-        error: {
-          value: host.throwable(errorsOf(run, name, { file, summary }), name),
-        },
+        error: { value: host.throwable(failures(), name) },
       },
       run,
     };
@@ -179,7 +174,7 @@ export const createPlatform = (host: Host): Platform => {
     | {
         pickleId: string;
         willBeRetried: boolean;
-        testCase?: AssembledTestCase;
+        testCase: AssembledTestCase;
         error?: ScenarioOutcome["error"];
       }
     | undefined;
@@ -243,8 +238,8 @@ export const createPlatform = (host: Host): Platform => {
       );
       last = {
         pickleId: pickle.id,
-        willBeRetried: run.willBeRetried ?? false,
-        ...(run.testCase && { testCase: run.testCase }),
+        willBeRetried: run.willBeRetried,
+        testCase: run.testCase,
         ...(outcome.error && { error: outcome.error }),
       };
       return outcome;

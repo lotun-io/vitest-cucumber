@@ -33,6 +33,14 @@ const isThenable = (value: unknown): value is PromiseLike<unknown> =>
   "then" in value &&
   typeof value.then === "function";
 
+/**
+ * What a step's or hook's code did: its result, or its error (cucumber's, for the message) with
+ * the real failure (the test's error is built from it). Told apart by `failure`.
+ */
+export type UserCodeOutcome =
+  | { result: unknown; failure?: undefined }
+  | { error: Error | string; failure: { value: unknown } };
+
 export const runUserCode = async ({
   args,
   thisArg,
@@ -45,11 +53,7 @@ export const runUserCode = async ({
   fn: (...args: unknown[]) => unknown;
   timeout: number;
   uncaught: RuntimeEnvironment["uncaught"];
-}): Promise<{
-  error?: Error | string;
-  failure?: { value: unknown };
-  result?: unknown;
-}> => {
+}): Promise<UserCodeOutcome> => {
   const {
     promise: callbackPromise,
     resolve,

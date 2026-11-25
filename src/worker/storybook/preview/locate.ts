@@ -12,7 +12,6 @@ import type { Actions } from "../../../types/commands.ts";
 import type {
   LocateRequest,
   LocateResponse,
-  RawFrame,
 } from "../../../types/storybook.ts";
 import type { DefinitionLocation } from "../../../types/supportCode.ts";
 import { pluginErrorMessage } from "../../../utils/errors.ts";
@@ -24,6 +23,13 @@ const v8Frame = /^\s*at /;
 
 /** A frame's location: the script's URL, its line and column. */
 const locationOf = /^(.+):(\d+):(\d+)$/;
+
+/** A frame as the page's stack has it: the script's URL, its line and column (1-based). */
+export interface RawFrame {
+  url: string;
+  line: number;
+  column: number;
+}
 
 /** The location part of a stack `line`, in V8's, Firefox's or Safari's format. */
 const locationPart = (line: string) => {
