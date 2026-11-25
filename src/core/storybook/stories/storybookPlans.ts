@@ -202,6 +202,7 @@ export const createStorybookPlans = ({
       feature: file,
       plan,
       linked,
+      label,
       sameLabel: await sameLabelOf(slash(file), label),
       stepErrors: by.errors,
       storybookSteps: by.used,

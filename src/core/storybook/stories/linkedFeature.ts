@@ -4,26 +4,45 @@
 // as Storybook reads them (`./storiesFile.ts`: CSF 3 only, CSF factories not yet supported), and
 // its stories file's title taken: the one written in it, else Storybook's automatic one
 // (`./storiesTitle.ts`); neither (no title written, no `stories` pattern matching the file), the
-// feature has no title to be listed under. The feature's module (its scenarios as stories, its
-// stories file's meta, its title) is made from this; the errors are the feature file's.
+// feature has no title to be listed under. A feature file a Storybook project lists as stories
+// must run on a stories file, and have a label no other feature on it has (two would share their
+// title and ids in Storybook). The feature's module (its scenarios as stories, its stories
+// file's meta, its title) is made from this, or it's stopped by every error in its links, which
+// are the feature file's.
 import path from "node:path";
 import { slash } from "../../../utils/slash.ts";
-import type { FeatureLinks } from "./featureLinks.ts";
+import type { FeatureLinks, ScenarioLink } from "./featureLinks.ts";
 import { type StoriesOf, storiesOfFile } from "./storiesFile.ts";
 import type { AutoTitleOf } from "./storiesTitle.ts";
+
+/** A feature file linked to its stories file, or every error that stops it. */
+export type LinkedFeature =
+  | {
+      /** Its stories file, and its stories as Storybook reads them. */
+      storiesFile: string;
+      stories: StoriesOf;
+      /** Its stories file's title (the one written, else Storybook's automatic one). */
+      title: string;
+      /** Its scenarios, each on its story. */
+      links: ScenarioLink[];
+    }
+  | { errors: string[] };
 
 /**
  * A linked feature file (`uri`, its path from `root`; `linked`, its links: `./featureLinks.ts`'s,
  * with the Storybook steps' own errors, `stepErrors`), checked against its stories file's stories
- * as Storybook reads them (`storiesOf`): its stories file, if any (else it's not a Storybook
- * feature), its stories, its title (the stories file's own, else Storybook's automatic one,
- * `autoTitleOf`), the scenarios that run on them, and every error in its links.
+ * as Storybook reads them (`storiesOf`): its stories file, its stories, its title (the stories
+ * file's own, else Storybook's automatic one, `autoTitleOf`) and the scenarios that run on them;
+ * or every error in its links, these among them: it has no stories file, or another feature on
+ * its stories file has its `label` (`sameLabel`: those that do, linked so far).
  */
 export const linkedFeatureOf = async ({
   uri,
   root,
   linked,
   stepErrors,
+  label,
+  sameLabel,
   autoTitleOf,
   storiesOf = storiesOfFile,
 }: {
@@ -31,15 +50,40 @@ export const linkedFeatureOf = async ({
   root: string;
   linked: FeatureLinks;
   stepErrors: readonly string[];
+  /** The feature's label (`Feature: <name>`). */
+  label: string;
+  /** The other feature files on its stories file with its label (paths with `/`, by path). */
+  sameLabel: readonly string[];
   autoTitleOf: AutoTitleOf;
   storiesOf?: (file: string) => Promise<StoriesOf>;
-}) => {
+}): Promise<LinkedFeature> => {
   const errors = [...stepErrors, ...linked.errors];
-  const { storiesFile } = linked;
+  const { storiesFile, links } = linked;
   if (!storiesFile) {
-    return { links: linked.links, errors };
+    // Its links' errors say why it has none, if any do.
+    return {
+      errors:
+        errors.length > 0
+          ? errors
+          : [
+              `${uri} has no stories file: none is next to it (a stories file of its name), and none is named by a stories file step`,
+            ],
+    };
   }
   const storiesUri = slash(path.relative(root, storiesFile));
+  /** Its label taken on its stories file: the last of its errors. */
+  const taken =
+    sameLabel.length > 0
+      ? [
+          `${uri}: ${storiesUri} already has a "${label}" (${sameLabel
+            .map((other) => slash(path.relative(root, other)))
+            .join(", ")}): give one of them another name`,
+        ]
+      : [];
+  /** Stopped: its links' errors, `more` of its stories file's, its label's. */
+  const stopped = (...more: string[]): LinkedFeature => ({
+    errors: [...errors, ...more, ...taken],
+  });
   /** Where the feature names its stories file: its stories file step's line, if it has one. */
   const at = `${uri}${linked.storiesLine === undefined ? "" : `:${String(linked.storiesLine)}`}`;
   // A file that isn't a stories file (a step naming a component, a folder), or a broken one: the
@@ -56,39 +100,38 @@ export const linkedFeatureOf = async ({
       .replaceAll(`${root}${path.sep}`, "")
       .replaceAll(`${slash(root)}/`, "")
       .split("\n");
-    errors.push(
+    return stopped(
       `${at}: ${storiesUri} can't be read as a stories file (${reason})`,
     );
-    return { storiesFile, links: [], errors };
   }
   if (stories.factories) {
-    errors.push(
+    return stopped(
       `${storiesUri} uses CSF factories, which the plugin doesn't support yet: ${uri}'s scenarios need its stories in CSF 3`,
     );
-    return { storiesFile, links: [], errors };
   }
   // The title its scenarios are listed under: the stories file's.
   const title = stories.title ?? (await autoTitleOf(slash(storiesFile)));
-  if (title === undefined) {
-    errors.push(
-      `${at}: ${storiesUri} has no title: none is written in its meta, and no pattern of Storybook's "stories" matches it (give its meta a "title", or list the file in "stories")`,
-    );
-  }
   const known = new Set(stories.exports);
-  for (const { exportName, storyLine, line } of linked.links) {
-    if (exportName !== undefined && !known.has(exportName)) {
-      errors.push(
-        `${uri}:${String(storyLine ?? line)}: ${storiesUri} has no story "${exportName}" (its stories: ${stories.exports.join(", ") || "none"})`,
-      );
-    }
-  }
-  return {
-    storiesFile,
-    stories,
-    title,
-    links: linked.links.filter(
-      ({ exportName }) => exportName === undefined || known.has(exportName),
+  /** What its stories file lacks: a title, each story a scenario names. */
+  const missing = [
+    ...(title === undefined
+      ? [
+          `${at}: ${storiesUri} has no title: none is written in its meta, and no pattern of Storybook's "stories" matches it (give its meta a "title", or list the file in "stories")`,
+        ]
+      : []),
+    ...links.flatMap(({ exportName, storyLine, line }) =>
+      exportName !== undefined && !known.has(exportName)
+        ? [
+            `${uri}:${String(storyLine ?? line)}: ${storiesUri} has no story "${exportName}" (its stories: ${stories.exports.join(", ") || "none"})`,
+          ]
+        : [],
     ),
-    errors,
-  };
+  ];
+  if (
+    title === undefined ||
+    errors.length + missing.length + taken.length > 0
+  ) {
+    return stopped(...missing);
+  }
+  return { storiesFile, stories, title, links };
 };

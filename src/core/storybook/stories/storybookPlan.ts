@@ -3,13 +3,11 @@
 // Storybook steps) and its stories module written (`./featureStories.ts`), or, its links failing,
 // what stops it (the plugin's error, every one listed). A hook writes the module its plan gives
 // (`./featureStoriesModule.ts`).
-import path from "node:path";
 import { pluginError } from "../../../utils/errors.ts";
-import { slash } from "../../../utils/slash.ts";
 import type { FailedPlan, VitestPlan } from "../../feature/plans.ts";
 import type { FeatureLinks } from "./featureLinks.ts";
 import { featureModuleOf } from "./featureRuntimeModule.ts";
-import { featureLabelOf, featureStoriesOf } from "./featureStories.ts";
+import { featureStoriesOf } from "./featureStories.ts";
 import { linkedFeatureOf } from "./linkedFeature.ts";
 import type { StoriesOf } from "./storiesFile.ts";
 import type { AutoTitleOf } from "./storiesTitle.ts";
@@ -19,14 +17,14 @@ import type { StorybookPlan } from "./storybookPlans.ts";
  * Feature file `feature` (its Vitest `plan`; its links `linked`, with the Storybook steps' own
  * errors `stepErrors`) for the project at `root`: its links checked against its stories file's
  * stories (`storiesOf`), its title its stories file's (Storybook's automatic one: `autoTitleOf`),
- * its stories module written.
- * A feature file a Storybook project lists as stories must link to a stories file, and have a label
- * no other feature on it has (`sameLabel`: those that do, linked so far).
+ * its stories module written. One that can't be linked (`./linkedFeature.ts`: no stories file,
+ * its `label` another feature's on it, `sameLabel`, …) is stopped by its links' errors.
  */
 export const storybookPlanFrom = async ({
   feature,
   plan,
   linked: links,
+  label,
   sameLabel,
   stepErrors,
   storybookSteps,
@@ -37,6 +35,8 @@ export const storybookPlanFrom = async ({
   feature: string;
   plan: VitestPlan;
   linked: FeatureLinks;
+  /** Its label (`Feature: <name>`). */
+  label: string;
   /** The other feature files on its stories file with its label (paths with `/`, by path). */
   sameLabel: readonly string[];
   stepErrors: readonly string[];
@@ -54,35 +54,16 @@ export const storybookPlanFrom = async ({
     root,
     linked: links,
     stepErrors,
+    label,
+    sameLabel,
     storiesOf,
     autoTitleOf,
   });
-  const errors = [...linked.errors];
-  if (linked.storiesFile && sameLabel.length > 0) {
-    const label = featureLabelOf(gherkin.document, feature);
-    const storiesUri = slash(path.relative(root, linked.storiesFile));
-    const theirs = sameLabel
-      .map((other) => slash(path.relative(root, other)))
-      .join(", ");
-    errors.push(
-      `${uri}: ${storiesUri} already has a "${label}" (${theirs}): give one of them another name`,
-    );
-  }
-  if (!linked.storiesFile && errors.length === 0) {
-    errors.push(
-      `${uri} has no stories file: none is next to it (a stories file of its name), and none is named by a stories file step`,
-    );
-  }
-  if (
-    !linked.storiesFile ||
-    !linked.stories ||
-    linked.title === undefined ||
-    errors.length > 0
-  ) {
+  if ("errors" in linked) {
     return {
       // Each error names the feature file.
       error: pluginError(
-        `feature file can't be linked to stories:\n${errors.map((message) => `  - ${message}`).join("\n")}`,
+        `feature file can't be linked to stories:\n${linked.errors.map((message) => `  - ${message}`).join("\n")}`,
         { quiet: true },
       ),
     };
