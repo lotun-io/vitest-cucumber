@@ -14,7 +14,7 @@ packages:
 catalog:
   "@cucumber/cucumber": ^13.3.0
   "@cucumber/gherkin": ^42.0.1
-  "@cucumber/messages": ^34.2.1
+  "@cucumber/messages": ^35.0.0
   "@types/node": ^26.6.10
   "@types/react": ^19.3.3
   "@types/react-dom": ^19.3.0

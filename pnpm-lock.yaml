@@ -13,8 +13,8 @@ catalogs:
       specifier: ^42.0.1
       version: 42.0.1
     '@cucumber/messages':
-      specifier: ^34.2.1
-      version: 34.2.1
+      specifier: ^35.0.0
+      version: 35.0.0
     '@types/node':
       specifier: ^26.6.10
       version: 26.6.10
@@ -65,7 +65,7 @@ importers:
     dependencies:
       '@cucumber/core':
         specifier: 0.10.0
-        version: 0.10.0(@cucumber/cucumber-expressions@20.2.0)(@cucumber/messages@34.2.1)(@cucumber/query@16.4.0(@cucumber/messages@34.2.1))(@cucumber/tag-expressions@11.2.0)
+        version: 0.10.0(@cucumber/cucumber-expressions@20.2.0)(@cucumber/messages@35.0.0)(@cucumber/query@16.4.0(@cucumber/messages@35.0.0))(@cucumber/tag-expressions@11.2.0)
       '@cucumber/cucumber-expressions':
         specifier: ^20.2.0
         version: 20.2.0
@@ -74,10 +74,10 @@ importers:
         version: 42.0.1
       '@cucumber/messages':
         specifier: 'catalog:'
-        version: 34.2.1
+        version: 35.0.0
       '@cucumber/query':
         specifier: ^16.4.0
-        version: 16.4.0(@cucumber/messages@34.2.1)
+        version: 16.4.0(@cucumber/messages@35.0.0)
       '@cucumber/tag-expressions':
         specifier: ^11.2.0
         version: 11.2.0
@@ -468,6 +468,9 @@ packages:
 
   '@cucumber/messages@34.2.1':
     resolution: {integrity: sha512-aj2iCAG9ZOpMVcMxcgShifv5fbR96b7SMgdWcPXXh2QbFp7OEcAnQ5MC5YfWUDSDasmw7FU5NJEsOrXdTQOU1A==}
+
+  '@cucumber/messages@35.0.0':
+    resolution: {integrity: sha512-lubB5srgXxXwz9uVIJXdk4dm+CdKj7qfrGNHqFvlBtt4wrUb9413KBOJUpdUWTasJmQe9pYAa2rYNIl3yfW4Ag==}
 
   '@cucumber/pretty-formatter@4.1.0':
     resolution: {integrity: sha512-cbdb494+X3nHxvP34sbyia7CeVIkqs0K3+LWpsF8szCSUVYOxhmbP66H/Yd7f6yr2BhKLmkDokyEX24VAyOstA==}
@@ -2315,6 +2318,9 @@ packages:
   cacheable@2.5.0:
     resolution: {integrity: sha512-60cyAOytib/OzBw1JNSoSV/boK1AtHryDIjvVBk7XbN4ugfkM3+Sry7fEjNgPMGgOjuaZPAp8ruZ0Cxafwyq9g==}
 
+  caniuse-lite@1.0.30001827:
+    resolution: {integrity: sha512-YWEDr46gSO81M8w6uPbaIy4++IXsirx2asUqvllNiD4BPf75ibxclUjWEqp8ObCenRv+UM2n5Y8xuRPT8V8FrQ==}
+
   caniuse-lite@1.0.30001828:
     resolution: {integrity: sha512-7MWeT+3DlrpuDybTWHl4Zb1Z80Z1fLLnOXuBjDXebzDVcqnEWUlV8JcbASg8B8BhcW8QT2UiR1KAtzYFIZHZYA==}
 
@@ -2655,8 +2661,8 @@ packages:
       oxc-resolver:
         optional: true
 
-  electron-to-chromium@1.5.494:
-    resolution: {integrity: sha512-Tph7ohL4Xc0ft3DXElYEIVTmPI3H0MtPCTdgtz5AwWGZG6q+vMiT3IzJ3RJX/HJQ8pYzeimQyvi6SsBTOS0nyQ==}
+  electron-to-chromium@1.5.492:
+    resolution: {integrity: sha512-4uMs7omhajKiud0GqALLTazS/zyvHLTLmDWVTR+e6BnyJo5bSNrph/JoRWEFJJmY75ct9hCiSGsbFF9fLe5gDw==}
 
   emoji-regex@8.0.0:
     resolution: {integrity: sha512-MSjYzcWNOA0ewAHpz0MxpYFvwg6yjy1NG3xteoqz644VCo/RPgnr1/GGt+ic3iJTzQ8Eu3TdM14SawnVUmGE6A==}
@@ -4900,11 +4906,11 @@ snapshots:
 
   '@cucumber/compatibility-kit@31.0.0': {}
 
-  '@cucumber/core@0.10.0(@cucumber/cucumber-expressions@20.2.0)(@cucumber/messages@34.2.1)(@cucumber/query@16.4.0(@cucumber/messages@34.2.1))(@cucumber/tag-expressions@11.2.0)':
+  '@cucumber/core@0.10.0(@cucumber/cucumber-expressions@20.2.0)(@cucumber/messages@35.0.0)(@cucumber/query@16.4.0(@cucumber/messages@35.0.0))(@cucumber/tag-expressions@11.2.0)':
     dependencies:
       '@cucumber/cucumber-expressions': 20.2.0
-      '@cucumber/messages': 34.2.1
-      '@cucumber/query': 16.4.0(@cucumber/messages@34.2.1)
+      '@cucumber/messages': 35.0.0
+      '@cucumber/query': 16.4.0(@cucumber/messages@35.0.0)
       '@cucumber/tag-expressions': 11.2.0
 
   '@cucumber/cucumber-expressions@20.1.0':
@@ -4998,6 +5004,8 @@ snapshots:
 
   '@cucumber/messages@34.2.1': {}
 
+  '@cucumber/messages@35.0.0': {}
+
   '@cucumber/pretty-formatter@4.1.0(@cucumber/messages@34.2.1)':
     dependencies:
       '@cucumber/messages': 34.2.1
@@ -5013,6 +5021,12 @@ snapshots:
   '@cucumber/query@16.4.0(@cucumber/messages@34.2.1)':
     dependencies:
       '@cucumber/messages': 34.2.1
+      '@teppeis/multimaps': 3.0.0
+      lodash.sortby: 4.7.0
+
+  '@cucumber/query@16.4.0(@cucumber/messages@35.0.0)':
+    dependencies:
+      '@cucumber/messages': 35.0.0
       '@teppeis/multimaps': 3.0.0
       lodash.sortby: 4.7.0
 
@@ -6565,8 +6579,8 @@ snapshots:
   browserslist@4.29.6:
     dependencies:
       baseline-browser-mapping: 2.11.39
-      caniuse-lite: 1.0.30001828
-      electron-to-chromium: 1.5.494
+      caniuse-lite: 1.0.30001827
+      electron-to-chromium: 1.5.492
       node-releases: 2.0.65
       update-browserslist-db: 1.4.0(browserslist@4.29.6)
 
@@ -6585,6 +6599,8 @@ snapshots:
       hookified: 1.15.1
       keyv: 5.6.0
       qified: 0.10.1
+
+  caniuse-lite@1.0.30001827: {}
 
   caniuse-lite@1.0.30001828: {}
 
@@ -6912,7 +6928,7 @@ snapshots:
     optionalDependencies:
       oxc-resolver: 11.21.2
 
-  electron-to-chromium@1.5.494: {}
+  electron-to-chromium@1.5.492: {}
 
   emoji-regex@8.0.0: {}
 
