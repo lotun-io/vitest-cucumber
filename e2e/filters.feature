@@ -114,8 +114,8 @@ Feature: Vitest picks the scenarios
       | browser   |
       | storybook |
 
-  # A story test is named after its story, the scenario's name (or an Outline row's), with no suites
-  # around it: a pattern on that name picks it in every mode.
+  # A test is named after its scenario (or an Outline row), in every mode: a pattern on that name
+  # picks it.
   Scenario Outline: Vitest's test name pattern matches a scenario's name (<mode>)
     When I run vitest in <mode> mode with options:
       """
@@ -145,6 +145,7 @@ Feature: Vitest picks the scenarios
       | example 2 | passed |
 
     Examples:
-      | mode    |
-      | node    |
-      | browser |
+      | mode      |
+      | node      |
+      | browser   |
+      | storybook |

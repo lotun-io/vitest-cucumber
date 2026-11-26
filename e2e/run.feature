@@ -43,9 +43,10 @@ Feature: Running feature files
       | double 2 | passed |
 
     Examples:
-      | mode    |
-      | node    |
-      | browser |
+      | mode      |
+      | node      |
+      | browser   |
+      | storybook |
 
   # A name left empty: an unnamed feature has no suite (Vitest prints its file), a rule, scenario or
   # outline is named by its keyword as written, an example of an unnamed outline by its language's

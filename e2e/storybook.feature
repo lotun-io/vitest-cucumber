@@ -10,7 +10,8 @@ Feature: Storybook
   are an Outline's rows, each on its own story (its `args`), `Account` a Markdown feature, `Story`
   a step reading its story, a story's own `play` not run, an unmounted story a step mounts, `Unnamed`
   a feature whose names are all empty, `Tags` Storybook's own tags written as Gherkin tags (`@!dev`:
-  not in the sidebar; `@!test`: not a story test; `@dev` after a rule's `@!dev`: listed again). Each story is listed in Storybook's sidebar as Vitest's tree
+  not in the sidebar; `@!test`: not a story test; `@dev` after a rule's `@!dev`: listed again). Each story is listed in
+  Storybook's sidebar as Vitest's tree
   has its test: its title the feature's, then its rule's, then its outline's (an example's) or its
   own (a scenario's: the sidebar shows the story alone), its id the feature's title's. Every case
   but the ones breaking the page (those: `storybookErrors.feature`), in one project: its story tests

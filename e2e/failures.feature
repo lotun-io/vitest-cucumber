@@ -268,8 +268,7 @@ Feature: Failures
       | storybook |
 
   # Vitest names a failed test by its file's Gherkin line and its suites: an Outline's examples, of
-  # the same name, are told apart by their lines. Not in Storybook: a story test is the stories
-  # file's, named after its story only.
+  # the same name, are told apart by their lines.
   Scenario Outline: A failing Outline's examples are told apart by their lines (<mode>)
     Given a file named "features/steps.ts" with:
       """
@@ -304,9 +303,10 @@ Feature: Failures
       """
 
     Examples:
-      | mode    |
-      | node    |
-      | browser |
+      | mode      |
+      | node      |
+      | browser   |
+      | storybook |
 
   # A timed-out step's promise rejecting later, while its scenario still runs (an After hook): not
   # its error (cucumber's timeout is), not an uncaught one either (cucumber's race handles it).

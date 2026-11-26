@@ -36,8 +36,8 @@ Given(
   },
 );
 
-/** The plugin's options, in the default config. */
+/** The plugin's options, in the default config of the scenario's mode (a Storybook project stays one). */
 Given("the plugin options:", async function (this: E2EWorld, options: string) {
   this.pluginOptions = JSON.parse(options);
-  await writeDefaultConfig.call(this, "node");
+  await writeDefaultConfig.call(this, this.mode);
 });

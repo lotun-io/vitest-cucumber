@@ -109,6 +109,9 @@ export const startDev = async (dir: string, from = dir) => {
       "--quiet",
       "-p",
       String(port),
+      // Its port or none: taken since it was found free (another worker's), Storybook would move
+      // to the next one without a word, and this server's URL would be another's.
+      "--exact-port",
       "--host",
       "127.0.0.1",
       // Started from another folder (`from`: a monorepo's root): its config folder named.

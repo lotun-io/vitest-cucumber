@@ -1,7 +1,7 @@
 // The compatibility kit's feature files: one per sample of the installed kit, written to
 // `compatibility/<sample>.feature` (as e2e's are `e2e/*.feature`) by `pnpm compatibility:generate`
 // (this module, run by Node), and committed: run it after a kit update, or a change to `./known.ts`
-// (a unit test checks every sample has its file: `./__tests__/features.test.ts`). Each is a Scenario
+// (a unit test checks every sample's file is the one written here: `./__tests__/features.test.ts`). Each is a Scenario
 // Outline with a row per mode, run by e2e's harness (`../steps/compatibility.ts`); a known
 // difference's mode its own `@knownFailure` example, a sample left out `@leftOut` (`./known.ts`).
 // Generated: edit `./known.ts` or this file, not them.
@@ -22,7 +22,7 @@ const examples = (rows: readonly Mode[], header: string) =>
   ].join("\n");
 
 /** A sample's feature file. */
-const featureOf = (sample: string) => {
+export const featureOf = (sample: string) => {
   const reason = leftOut[sample];
   const known = knownFailures[sample] ?? {};
   const expected = modes.filter((mode) => !known[mode]);

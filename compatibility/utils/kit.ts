@@ -336,7 +336,6 @@ export const compare = (
 
 /** Keys left out of a message (cucumber-js's compatibility check leaves them out too). */
 const ignoredKeys = new Set([
-  "id",
   "timestamp",
   "duration",
   "workerId",
@@ -352,7 +351,46 @@ const ignoredKeys = new Set([
 const asArrowSnippet = (code: string) =>
   code.replace(/', function \(([^)]*)\) \{\n/, "', ($1) => {\n");
 
-/** A message's value, as compared: ids, references, times and frames left out (see `ignoredKeys`). */
+/**
+ * Whether `key` holds an id or ids (`id`, `pickleId`, `astNodeIds`, …): each implementation's own
+ * values, compared as numbers (see `withIdsNumbered`). Not `workerId`, each runtime's own.
+ */
+const isId = (key: string) => key !== "workerId" && /^id$|Ids?$/.test(key);
+
+/**
+ * A stream with each id as the number of its first appearance (`#1`, `#2`, …), where it's given
+ * and wherever a message refers to it: two streams whose messages are linked alike read alike,
+ * whatever ids each implementation gives. A message's keys are read in their sorted order (each
+ * implementation writes them in its own).
+ */
+const withIdsNumbered = (envelopes: readonly object[]) => {
+  const numbers = new Map<string, string>();
+  const numberOf = (id: string) => {
+    const known = numbers.get(id);
+    if (known) {
+      return known;
+    }
+    const number = `#${String(numbers.size + 1)}`;
+    numbers.set(id, number);
+    return number;
+  };
+  const numbered = (value: unknown, key = ""): unknown => {
+    if (Array.isArray(value)) {
+      return value.map((item) => numbered(item, key));
+    }
+    if (value !== null && typeof value === "object") {
+      return Object.fromEntries(
+        Object.entries(value)
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([name, item]) => [name, numbered(item, name)]),
+      );
+    }
+    return typeof value === "string" && isId(key) ? numberOf(value) : value;
+  };
+  return envelopes.map((envelope) => numbered(envelope));
+};
+
+/** A message's value, as compared: times and frames left out (see `ignoredKeys`). */
 const normalized = (value: unknown, key = "", inPage = false): unknown => {
   if (typeof value === "string") {
     return value.replaceAll("\\", "/");
@@ -366,7 +404,7 @@ const normalized = (value: unknown, key = "", inPage = false): unknown => {
       Object.entries(value)
         .sort(([a], [b]) => a.localeCompare(b))
         .flatMap(([name, item]) => {
-          if (ignoredKeys.has(name) || /Ids?$/.test(name)) {
+          if (ignoredKeys.has(name)) {
             return [];
           }
           // A result's message is its error, formatted with its stack (a step's, a BeforeAll's
@@ -397,11 +435,14 @@ const normalized = (value: unknown, key = "", inPage = false): unknown => {
   return value;
 };
 
-/** A stream's messages as compared: `meta` left out (each implementation's own), each normalized. */
+/**
+ * A stream's messages as compared: `meta` left out (each implementation's own), its ids numbered
+ * (see `withIdsNumbered`), each normalized.
+ */
 const comparable = (envelopes: readonly object[], inPage: boolean) =>
-  envelopes
-    .filter((envelope) => !("meta" in envelope))
-    .map((envelope) => JSON.stringify(normalized(envelope, "", inPage)));
+  withIdsNumbered(envelopes.filter((envelope) => !("meta" in envelope))).map(
+    (envelope) => JSON.stringify(normalized(envelope, "", inPage)),
+  );
 
 /**
  * Cucumber's stream with each test case where the plugin's has it: just before its first
@@ -490,7 +531,7 @@ const inTestCase = (envelope: object) =>
 
 /**
  * The differences between native cucumber's messages and the plugin's, message by message, after
- * normalizing both (see `normalized`), cucumber's test cases where the plugin sends them (see
+ * numbering each's ids (see `withIdsNumbered`) and normalizing both (see `normalized`), cucumber's test cases where the plugin sends them (see
  * `testCasesAsStreamed`), both's in their feature files' order (see `testCasesByFeature`): none if
  * the plugin's stream is cucumber's.
  */
