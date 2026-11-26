@@ -9,7 +9,8 @@ Feature: Storybook
   pending, ambiguous); `Attachments` attach, `Hooks` run Before and After hooks (one failing), `Args`
   are an Outline's rows, each on its own story (its `args`), `Account` a Markdown feature, `Story`
   a step reading its story, a story's own `play` not run, an unmounted story a step mounts, `Unnamed`
-  a feature whose names are all empty. Each story is listed in Storybook's sidebar as Vitest's tree
+  a feature whose names are all empty, `Tags` Storybook's own tags written as Gherkin tags (`@!dev`:
+  not in the sidebar; `@!test`: not a story test; `@dev` after a rule's `@!dev`: listed again). Each story is listed in Storybook's sidebar as Vitest's tree
   has its test: its title the feature's, then its rule's, then its outline's (an example's) or its
   own (a scenario's: the sidebar shows the story alone), its id the feature's title's. Every case
   but the ones breaking the page (those: `storybookErrors.feature`), in one project: its story tests
@@ -184,6 +185,19 @@ Feature: Storybook
       // The stories file of `Unnamed.feature`: its meta, every scenario's.
       const meta = {
         title: "Unnamed",
+        component: Page,
+      } satisfies Meta<typeof Page>;
+
+      export default meta;
+      """
+    And a file named "src/Tags.stories.ts" with:
+      """
+      import type { Meta } from "@storybook/react-vite";
+      import { Page } from "./Page";
+
+      // The stories file of `Tags.feature`: its meta, every scenario's.
+      const meta = {
+        title: "Tags",
         component: Page,
       } satisfies Meta<typeof Page>;
 
@@ -376,6 +390,32 @@ Feature: Storybook
           Scenario:
             Given I see the "Log in" button
       """
+    And a file named "src/Tags.feature" with:
+      """
+      Feature: Tags
+        Storybook's own tags, written as Gherkin tags: `@!dev` keeps a scenario's story out of
+        Storybook's sidebar, `@!test` out of story tests, and a `@dev` after its rule's `@!dev` lists
+        it again. The e2e suite (`e2e/storybook.feature`) compares Vitest's tests and Storybook's
+        index with what's expected.
+
+        Scenario: Everywhere
+          Given I see the "Log in" button
+
+        @!dev
+        Scenario: Only in story tests
+          Given I see the "Log in" button
+
+        @!test
+        Scenario: Only in Storybook
+          Given I see the "Log in" button
+
+        @!dev
+        Rule: Hidden
+
+          @dev
+          Scenario: Listed all the same
+            Given I see the "Log in" button
+      """
     And a file named "features/world.ts" with:
       """
       import { setWorldConstructor, World } from "@cucumber/cucumber";
@@ -558,6 +598,10 @@ Feature: Storybook
       | Scenario Outline > Example                                                    | passed  |
       | Scenario Outline > Example                                                    | passed  |
       | Rule > Scenario                                                               | passed  |
+      | Tags > Everywhere                                                             | passed  |
+      | Tags > Only in story tests                                                    | passed  |
+      | Tags > Only in Storybook                                                      | skipped |
+      | Tags > Hidden > Listed all the same                                           | passed  |
     And the test "Failures > Failing" fails with:
       """
       Unable to find an accessible element with the role "button" and name "Nope"
@@ -643,6 +687,7 @@ Feature: Storybook
       | unnamed-feature-unnamed--scenario-2                             | PASS   | When I click the "Log in" button                                            |                 |
       | unnamed-feature-unnamed--scenario-3                             | PASS   | When I click the "Sign up" button                                           |                 |
       | unnamed-feature-unnamed--scenario-4                             | PASS   | Given I see the "Log in" button                                             |                 |
+      | tags-feature-tags--only-in-storybook                            | PASS   | Given I see the "Log in" button                                             |                 |
     And its index lists:
       | STORY                                                      | TITLE                                                                                   | NAME                     |
       | cucumber-login-feature-login--log-in                       | Cucumber/Login/Feature: Login/Log in                                                    | Log in                   |
@@ -652,3 +697,11 @@ Feature: Storybook
       | unnamed-feature-unnamed--scenario                          | Unnamed/Feature: Unnamed/Scenario                                                       | Scenario                 |
       | unnamed-feature-unnamed--scenario-2                        | Unnamed/Feature: Unnamed/Scenario Outline                                               | Example                  |
       | unnamed-feature-unnamed--scenario-4                        | Unnamed/Feature: Unnamed/Rule/Scenario                                                  | Scenario                 |
+    # Storybook's own tags, as its index has them: a story with `dev` is listed in the sidebar, one
+    # with `test` is run by the Vitest addon.
+    And its index tags:
+      | STORY                                  | DEV | TEST |
+      | tags-feature-tags--everywhere          | yes | yes  |
+      | tags-feature-tags--only-in-story-tests | no  | yes  |
+      | tags-feature-tags--only-in-storybook   | yes | no   |
+      | tags-feature-tags--listed-all-the-same | yes | yes  |

@@ -101,15 +101,15 @@ Then(
   },
 );
 
-/** An index entry's title and name (Storybook's `index.json`). */
+/** An index entry's title, name and tags (Storybook's `index.json`). */
 interface IndexEntry {
   title: string;
   name: string;
+  tags?: string[];
 }
 
-// Storybook's index (the dev server's, if the scenario started one, else the static build's): one
-// row per story, its id (`STORY`), its `TITLE` (its place in the sidebar) and its `NAME`.
-Then("its index lists:", async function (this: E2EWorld, table: DataTable) {
+/** Storybook's index (the dev server's, if the scenario started one, else the static build's): its entries, by id. */
+async function indexEntries(this: E2EWorld) {
   const text = this.storybookDev
     ? await (await fetch(`${this.storybookDev.url}/index.json`)).text()
     : await readFile(
@@ -118,10 +118,32 @@ Then("its index lists:", async function (this: E2EWorld, table: DataTable) {
       );
   const { entries }: { entries: Record<string, IndexEntry | undefined> } =
     JSON.parse(text);
+  return entries;
+}
+
+// Storybook's index: one row per story, its id (`STORY`), its `TITLE` (its place in the sidebar)
+// and its `NAME`.
+Then("its index lists:", async function (this: E2EWorld, table: DataTable) {
+  const entries = await indexEntries.call(this);
   expect(
     table.hashes().map(({ STORY = "" }) => {
       const entry = entries[STORY];
       return { STORY, TITLE: entry?.title, NAME: entry?.name };
     }),
+  ).toEqual(table.hashes());
+});
+
+// Storybook's index: one row per story, its id (`STORY`) and whether it has Storybook's own `DEV`
+// tag (it's listed in the sidebar) and `TEST` tag (the Vitest addon runs it): `yes` or `no`.
+Then("its index tags:", async function (this: E2EWorld, table: DataTable) {
+  const entries = await indexEntries.call(this);
+  const has = (story: string, tag: string) =>
+    entries[story]?.tags?.includes(tag) ? "yes" : "no";
+  expect(
+    table.hashes().map(({ STORY = "" }) => ({
+      STORY,
+      DEV: has(STORY, "dev"),
+      TEST: has(STORY, "test"),
+    })),
   ).toEqual(table.hashes());
 });

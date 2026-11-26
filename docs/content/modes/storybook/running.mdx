@@ -98,6 +98,74 @@ storybookTest({ configDir, tags: { include: ["@smoke"] } }),
 
 A scenario the addon's `tags` leave out is a skipped test in Vitest.
 
+## Storybook tags
+
+Storybook has two tags of its own that say where a story is: `dev` lists it in the sidebar, `test`
+has the Vitest addon run it. Every story has both, and a tag that starts with `!` takes one away.
+In a feature file you write them as Gherkin tags, and the plugin gives them to Storybook without the
+`@`:
+
+| In a feature file | Storybook gets |
+| --- | --- |
+| `@dev` | `dev` |
+| `@!dev` | `!dev` |
+| `@test` | `test` |
+| `@!test` | `!test` |
+
+- **Only these four are converted.** Any other Gherkin tag is a Storybook tag as it's written
+  (`@smoke`), and a Vitest tag too.
+- **They aren't Vitest tags** in a Storybook project: a scenario's test has its other Gherkin tags,
+  and `--tagsFilter` can't select by these four.
+- **In node and browser mode** they're Gherkin tags like any other.
+
+### Only in Storybook's UI
+
+`@!test`: the scenario is listed in Storybook (`storybook dev`, a static build), and opening it
+there plays it. In Vitest it's a skipped test.
+
+```gherkin filename="src/stories/Greeting.feature"
+Feature: Greeting
+
+  @!test
+  Scenario: A greeting still being designed
+    Given the Ada story
+    Then I see "Hello, Ada!"
+```
+
+### Only in Vitest
+
+`@!dev`: Vitest runs the scenario as a story test, and Storybook's sidebar doesn't list it.
+
+```gherkin filename="src/stories/Greeting.feature"
+Feature: Greeting
+
+  @!dev
+  Scenario: A name with a thousand characters
+    Given the LongName story
+    Then the greeting fits its box
+```
+
+### On a feature or a rule
+
+The tags work wherever Gherkin tags do (a feature, a rule, a scenario, an `Examples` block), and
+the closest one wins. Tag a feature `@!dev` to keep all of it out of the sidebar, then one of its
+scenarios `@dev` to list that one:
+
+```gherkin filename="src/stories/Checkout.feature"
+@!dev
+Feature: Checkout edge cases
+
+  Scenario: An empty cart
+    Given the Empty story
+
+  @dev
+  Scenario: The usual order
+    Given the Filled story
+```
+
+A scenario's tag also wins over the tags of the story it runs on and of the stories file's meta:
+Storybook gets it after those.
+
 ## Vitest and Storybook's UI
 
 The same scenarios, in two hosts. What differs:

@@ -61,13 +61,17 @@ const failingSuite = [`describe("feature", () => {`, `  ${thrown}`, "});"];
 test("a stories module: its code, in story tests then the feature's tests as calls, each at its Gherkin line by its map; with an error: the host's failing lines, then a meta and no story", () => {
   const made = {
     uri: "a.feature",
-    content: "Feature: A\n\n  @smoke\n  Scenario: One\n    Given a step\n",
+    content:
+      "Feature: A\n\n  @smoke @!dev\n  Scenario: One\n    Given a step\n",
     tags: [],
     featureTree: {
       name: "A",
       line: 1,
       column: 1,
-      children: [{ name: "One", line: 4, column: 3, tags: ["@smoke"] }],
+      // `@!dev` is its story's (Storybook's own tag), not its test's.
+      children: [
+        { name: "One", line: 4, column: 3, tags: ["@smoke", "@!dev"] },
+      ],
     },
     gherkin: { document: { comments: [] }, pickles: [] },
     link: { key: "" },

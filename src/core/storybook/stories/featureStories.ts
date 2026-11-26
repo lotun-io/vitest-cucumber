@@ -23,6 +23,7 @@ import { featureBase } from "../../feature/featureFile.ts";
 import { placesOf } from "../../feature/featureTree.ts";
 import type { ScenarioLink } from "./featureLinks.ts";
 import type { StoriesOf } from "./storiesFile.ts";
+import { storyTagsOf } from "./storybookTags.ts";
 
 /** The script extensions a stories file may have. */
 export const storiesExtensions = [
@@ -89,7 +90,8 @@ export interface ScenarioStory extends ScenarioLink {
   /** Its title: its test's place in Vitest's tree, below the feature's. */
   title: string;
   /**
-   * Its tags: the story's own, the pickle's, then `!autodocs` and `!manifest` (the meta's come with
+   * Its tags: the story's own, the pickle's (Storybook's own among them without their `@`:
+   * `./storybookTags.ts`), then `!autodocs` and `!manifest` (the meta's come with
    * the meta). Last, so they hold whatever the story it runs on is tagged: a scenario's story has
    * no docs page, and Storybook's manifests read a manifest entry's file as a stories file, which a
    * feature file isn't (a failure there loses every component's manifest).
@@ -150,7 +152,7 @@ export const featureStoriesOf = ({
         ...(link.exportName === undefined
           ? []
           : (stories.tags[link.exportName] ?? [])),
-        ...link.tags,
+        ...storyTagsOf(link.tags),
         "!autodocs",
         "!manifest",
       ],

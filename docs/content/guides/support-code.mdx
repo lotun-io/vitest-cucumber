@@ -70,7 +70,16 @@ the arguments Cucumber gives it. This is the plugin's own addition: Cucumber its
 such a function.
 
 ```ts filename="features/steps/cart.ts"
-import { After, Before, Given, When, type DataTable } from "@cucumber/cucumber";
+import {
+  After,
+  AfterStep,
+  Before,
+  BeforeStep,
+  Given,
+  Status,
+  When,
+  type DataTable,
+} from "@cucumber/cucumber";
 import type { CartWorld } from "../support/world.ts";
 
 Given("a cart with {string}", (world: CartWorld, item: string) => {
@@ -87,6 +96,17 @@ Before((world: CartWorld, { pickle }) => {
 
 After({ tags: "@with-apples" }, (world: CartWorld) => {
   world.items = [];
+});
+
+// A step hook: the World, then Cucumber's own argument (the step, and after it its result)
+BeforeStep((world: CartWorld, { pickleStep }) => {
+  world.log(`step: ${pickleStep.text}`);
+});
+
+AfterStep((world: CartWorld, { pickleStep, result }) => {
+  if (result.status === Status.FAILED) {
+    world.log(`"${pickleStep.text}" failed with ${world.items.length} items`);
+  }
 });
 ```
 

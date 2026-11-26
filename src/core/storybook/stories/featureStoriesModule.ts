@@ -11,6 +11,7 @@ import { importSupportCode } from "../../support/importSupportCode.ts";
 import { failingSuiteCode, throwCode } from "../../utils/errorCode.ts";
 import { featureModuleOf } from "./featureRuntimeModule.ts";
 import type { StorybookPlan } from "./storybookPlans.ts";
+import { testTagsOf } from "./storybookTags.ts";
 
 /**
  * The code of feature file `file`'s stories module in story tests, one of two blocks. A feature
@@ -31,7 +32,8 @@ import type { StorybookPlan } from "./storybookPlans.ts";
  * `storyTests` gives the page its support code to load (the support files' import written here,
  * in the test file's own module: whoever follows a test file's imports finds them) and gives back
  * the calls (`../../../worker/storybook/vitest/tests.ts`): a suite's `describe`, a scenario's
- * `storyTest`, whose test is the addon's story test of the scenario at that line (the addon's
+ * `storyTest` (with its Gherkin tags but Storybook's own, its story's: `./storybookTags.ts`),
+ * whose test is the addon's story test of the scenario at that line (the addon's
  * transform, which runs next, declares one per story after these). Its map (`magic-string`'s)
  * gives each call its Gherkin line and column and nothing else: where Vitest places every suite
  * and test as it lists them without running (`vitest list`). Each call also carries that place,
@@ -61,7 +63,7 @@ export const storiesModule = ({
       describe: (suite) =>
         `describe(${JSON.stringify(suite.name)}, ${place(suite)}, () => {`,
       test: (test) =>
-        `storyTest(${JSON.stringify(test.name)}, { tags: ${JSON.stringify(test.tags)} }, ${place(test)});`,
+        `storyTest(${JSON.stringify(test.name)}, { tags: ${JSON.stringify(testTagsOf(test.tags))} }, ${place(test)});`,
     },
   });
   code.prepend(

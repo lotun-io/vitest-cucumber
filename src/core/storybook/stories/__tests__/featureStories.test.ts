@@ -80,6 +80,23 @@ test("the meta is the stories file's (its parameters spread with it), its id and
   expect(code).not.toContain("parameters");
 });
 
+test("a scenario's story's tags: its Gherkin tags, Storybook's own among them without the `@` (a feature's before its own), then what a scenario's story never has", () => {
+  const { code } = storiesOf(`@!dev @smoke
+Feature: Login
+
+  Scenario: Hidden
+    Given a step
+
+  @dev @!test
+  Scenario: Shown, not tested
+    Given a step
+`);
+  expect(code).toContain('  tags: ["!dev","@smoke","!autodocs","!manifest"],');
+  expect(code).toContain(
+    '  tags: ["!dev","@smoke","dev","!test","!autodocs","!manifest"],',
+  );
+});
+
 test("each story's title its place in Vitest's tree, its name its test's (a scenario's the same text as its title's last part)", () => {
   const { scenarios, titles } = storiesOf(`Feature: Login
 

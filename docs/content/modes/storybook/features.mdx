@@ -47,7 +47,9 @@ Each scenario's story:
 - **uses the stories file's meta**: its decorators, loaders, parameters and tags, as any story of
   that file;
 - is **named after the scenario** (an Outline row after its row), with the story's tags and the
-  scenario's Gherkin tags (with their `@`), and not in autodocs pages;
+  scenario's Gherkin tags (with their `@`; Storybook's own, `@!dev` and `@!test`,
+  [without it](/modes/storybook/running#storybook-tags)), and not in
+  autodocs pages;
 - is listed under **the stories file's title, then the feature**: `Example/Greeting/Feature: Greeting`
   (the title written in the stories file, or Storybook's automatic one if it writes none; then the
   feature's keyword and name; a feature without a name, its file's name without the extension:
