@@ -64,6 +64,15 @@ const timesOf = async (dir: string) => {
   );
 };
 
+/** When each scenario last saved or deleted a file. */
+const saved = new WeakMap<E2EWorld, number>();
+
+/**
+ * How long after a save a reload it causes may still come: the page reloads ~0.1 s after one that
+ * reloads it (84 ms, measured 2026-11-26 on the support code's module), waited for six times over.
+ */
+const settle = 500;
+
 // A story's own page (the preview's, as Storybook's UI frames it), kept open for the scenario: its
 // reloads counted from here, and the project's files' times as they are now.
 When(
@@ -88,6 +97,7 @@ When(
   async function (this: E2EWorld, name: string, content: string) {
     this.fileTimes ??= await timesOf(this.dir);
     await writeFile(this.file(name), content);
+    saved.set(this, Date.now());
   },
 );
 
@@ -110,6 +120,7 @@ When(
       this.file(name),
       text.replace(from, toDouble ?? toSingle ?? ""),
     );
+    saved.set(this, Date.now());
   },
 );
 
@@ -118,6 +129,7 @@ When(
   async function (this: E2EWorld, name: string) {
     this.fileTimes ??= await timesOf(this.dir);
     await rm(this.file(name));
+    saved.set(this, Date.now());
   },
 );
 
@@ -154,7 +166,12 @@ Then(
   },
 );
 
-Then("its page didn't reload", function (this: E2EWorld) {
+// Not before a reload the last save causes would have come (`settle`).
+Then("its page didn't reload", async function (this: E2EWorld) {
+  const wait = (saved.get(this) ?? 0) + settle - Date.now();
+  if (wait > 0) {
+    await new Promise((resolve) => setTimeout(resolve, wait));
+  }
   expect(pageOf(this).loads.count).toBe(0);
 });
 
