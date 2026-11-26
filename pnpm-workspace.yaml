@@ -13,7 +13,7 @@ packages:
 # tested on, but Vitest's: exact here (the dev patch is for 5.1.2), `^5.1.2` in `package.json`.
 catalog:
   "@cucumber/cucumber": ^13.3.0
-  "@cucumber/gherkin": ^42.0.1
+  "@cucumber/gherkin": ^43.0.0
   "@cucumber/messages": ^34.2.1
   "@types/node": ^26.6.10
   "@types/react": ^19.3.3
