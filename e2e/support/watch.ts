@@ -2,7 +2,7 @@
 import type { CliOptions, TestModule } from "vitest/node";
 import { checkPluginModules } from "./config.ts";
 import { runResult, startSession } from "./run.ts";
-import { featureStoriesFiles } from "./storybookProject.ts";
+import { runAs } from "./storybookProject.ts";
 import type { E2EWorld } from "./world.ts";
 
 /**
@@ -14,10 +14,7 @@ export async function watchVitest(
   { filters, options = {} }: { filters?: string[]; options?: CliOptions } = {},
 ) {
   // A Storybook project's runs: its feature files as stories (see `featureStoriesFiles`).
-  const asFeatureRun =
-    this.mode === "storybook"
-      ? await featureStoriesFiles.call(this)
-      : undefined;
+  const asRun = await runAs.call(this);
   // Each test run's end, and its first test's start.
   let runEnded = Promise.withResolvers<undefined>();
   const ended = () => runEnded.promise;
@@ -58,7 +55,7 @@ export async function watchVitest(
     );
     output.clear();
     runEnded = Promise.withResolvers();
-    const result = asFeatureRun ? await asFeatureRun(run) : run;
+    const result = await asRun(run);
     this.result = {
       ...result,
       exitCode: result.tests.some(({ state }) => state === "failed") ? 1 : 0,

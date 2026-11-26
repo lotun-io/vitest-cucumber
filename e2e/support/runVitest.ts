@@ -14,7 +14,7 @@ import {
   startSession,
   StartupError,
 } from "./run.ts";
-import { featureStoriesFiles } from "./storybookProject.ts";
+import { runAs } from "./storybookProject.ts";
 import type { E2EWorld, RunResult } from "./world.ts";
 
 /** Runs Vitest once, with Vitest's file `filters` and command line `options`. */
@@ -23,10 +23,7 @@ export async function runVitest(
   options: { filters?: string[]; options?: CliOptions; fresh?: boolean } = {},
 ) {
   // A Storybook project's run: its feature files as stories (its run read as theirs).
-  const asFeatureRun =
-    this.mode === "storybook"
-      ? await featureStoriesFiles.call(this)
-      : undefined;
+  const asRun = await runAs.call(this);
   const entry =
     !options.fresh && !options.filters?.length && !options.options
       ? await keptFor.call(this)
@@ -38,7 +35,7 @@ export async function runVitest(
       ...options,
       messages: this.messages,
     }));
-  this.result = asFeatureRun ? await asFeatureRun(result) : result;
+  this.result = await asRun(result);
 }
 
 /**

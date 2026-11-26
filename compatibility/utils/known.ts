@@ -8,10 +8,9 @@ export type Mode = "node" | "browser" | "storybook";
 
 export const modes: readonly Mode[] = ["node", "browser", "storybook"];
 
-/** Samples left out, with why: cucumber-js leaves out the first six too (its `cck_spec.ts`). */
+/** Samples left out, with why: cucumber-js leaves out the first five too (its `cck_spec.ts`). */
 export const leftOut: Record<string, string> = {
   "all-statuses": "cucumber-js doesn't run it",
-  empty: "cucumber-js doesn't run it",
   "global-hooks-attachments":
     "cucumber-js doesn't run it (BeforeAll/AfterAll can't attach in cucumber 13.3)",
   "pending-exception":

@@ -8,8 +8,9 @@ import { Writable } from "node:stream";
 import { inspect } from "node:util";
 import { createLogger } from "vite";
 import type { CliOptions, TestSpecification, Vitest } from "vitest/node";
-import { startVitest } from "vitest/node";
-import { collectingReporter } from "./messages.ts";
+import { createVitest, startVitest } from "vitest/node";
+import { checkPluginModules } from "./config.ts";
+import { collectingReporter, collectMessages } from "./messages.ts";
 import { relative } from "./paths.ts";
 import type { E2EWorld, RunResult } from "./world.ts";
 
@@ -81,6 +82,20 @@ export const showExit = (output: ReturnType<typeof capture>) => {
   }) as typeof process.exit;
   return () => {
     process.exit = exit;
+  };
+};
+
+/**
+ * While a nested Vitest runs in this process: the process' exit code set aside (Vitest reports a
+ * run's result as it) and a `process.exit` shown (`showExit`). Returns the restore.
+ */
+export const guardProcess = (output: ReturnType<typeof capture>) => {
+  const { exitCode } = process;
+  process.exitCode = undefined;
+  const restoreExit = showExit(output);
+  return () => {
+    restoreExit();
+    process.exitCode = exitCode;
   };
 };
 
@@ -180,14 +195,8 @@ export async function startSession(
   }: { filters?: string[]; options?: CliOptions; messages?: Envelope[] },
 ) {
   const output = capture();
-  // Vitest reports its result as the process' exit code: this process' (see `end`).
-  const { exitCode } = process;
-  process.exitCode = undefined;
-  const restoreExit = showExit(output);
-  const end = () => {
-    restoreExit();
-    process.exitCode = exitCode;
-  };
+  // Vitest reports its result as the process' exit code: this process' until `end`.
+  const end = guardProcess(output);
   try {
     const vitest = await startVitest(
       // Vitest finds `file:line` filters from the working directory.
@@ -222,3 +231,59 @@ export async function startSession(
     throw new StartupError(output.text(), error);
   }
 }
+
+/** A Vitest open in a project, and what it printed since its output was last cleared. */
+export interface OpenVitest {
+  vitest: Vitest;
+  output: ReturnType<typeof capture>;
+}
+
+/**
+ * Opens Vitest in the project `dir` without running or watching (as `startSession`'s, but for its
+ * runs: they're its caller's, `runTestFiles`): a kept one (`./kept.ts`), a scenario's own
+ * (`./openVitest.ts`).
+ */
+export const openVitestIn = async (dir: string): Promise<OpenVitest> => {
+  const output = capture();
+  const vitest = await createVitest(
+    { root: dir, watch: false, silent: false, cache: false },
+    { customLogger: viteLogger(output) },
+    { stdout: output.stream, stderr: output.stream },
+  );
+  await vitest.standalone();
+  return { vitest, output };
+};
+
+/** An open Vitest's test files, as its projects have them now. */
+export const testFilesOf = (vitest: Vitest) => {
+  vitest.clearSpecificationsCache();
+  return vitest.globTestSpecifications();
+};
+
+/**
+ * Runs the test files `specifications` in an open Vitest (its project `dir`): the run's result, its
+ * output the run's own, its messages into `messages` if given (`./messages.ts`).
+ */
+export const runTestFiles = async (
+  { vitest, output }: OpenVitest,
+  dir: string,
+  specifications: TestSpecification[],
+  messages?: Envelope[],
+): Promise<RunResult> => {
+  output.clear();
+  const end = guardProcess(output);
+  const stopCollecting = messages && collectMessages(vitest, messages);
+  try {
+    await vitest.runTestSpecifications(specifications);
+    checkPluginModules(vitest);
+    return runResult(
+      vitest,
+      dir,
+      { exitCode: Number(process.exitCode ?? 0), output: output.text() },
+      specifications,
+    );
+  } finally {
+    stopCollecting?.();
+    end();
+  }
+};

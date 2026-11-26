@@ -122,3 +122,16 @@ export async function featureStoriesFiles(this: E2EWorld) {
     })),
   });
 }
+
+/**
+ * How the scenario's runs are read, asked before its first one: a Storybook project's as its
+ * feature files' (`featureStoriesFiles`, which writes what the run needs first), any other's as
+ * they are.
+ */
+export async function runAs(
+  this: E2EWorld,
+): Promise<(result: RunResult) => Promise<RunResult>> {
+  return this.mode === "storybook"
+    ? featureStoriesFiles.call(this)
+    : (result) => Promise.resolve(result);
+}

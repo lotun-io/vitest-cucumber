@@ -126,3 +126,46 @@ Feature: Storybook's dev server
     Then its page shows "the helper says two"
     And its page reloaded
     And no file but "lib/helper.ts" has a new time
+
+  # Storybook names a file from the folder it runs in (a story's `parameters.fileName`, an index
+  # entry's `importPath`): started from a monorepo's root, `./<project>/src/…`. The features map
+  # has each stories file's features under that name: a docs block asks with its page's own. Here
+  # the story asks with its own file's name (its feature file's), as its stories file's.
+  Scenario: Started from the folder above (a monorepo's root): a stories file's features are found by Storybook's name for it
+    Given a file named "src/Card.stories.ts" with:
+      """
+      import { featuresOf, onFeaturesChange } from "@lotun/vitest-cucumber/storybook";
+      import { createElement, useSyncExternalStore } from "react";
+
+      const Card = ({ label, storiesFile }: { label: string; storiesFile: string }) => {
+        const features = useSyncExternalStore(onFeaturesChange, () =>
+          featuresOf(storiesFile),
+        );
+        return createElement(
+          "div",
+          null,
+          createElement("h1", null, label),
+          createElement("p", null, `asked for ${storiesFile}`),
+          createElement("pre", null, features.map(({ source }) => source).join("\n")),
+        );
+      };
+
+      export default { title: "Card", component: Card };
+      export const Primary = {
+        args: { label: "Label one" },
+        render: (
+          args: { label: string },
+          { parameters }: { parameters: { fileName: string } },
+        ) =>
+          createElement(Card, {
+            ...args,
+            storiesFile: parameters.fileName.replace(/\.feature$/, ".stories.ts"),
+          }),
+      };
+      """
+    When I start its Storybook dev server from the folder above
+    And I open its story "card-feature-card--primary"
+    Then its page shows "asked for ./storybookDev_"
+    And its page shows "/src/Card.stories.ts"
+    And its page shows "Scenario: Also primary"
+    And its page shows "Feature: Card"

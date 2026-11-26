@@ -78,8 +78,8 @@ const freePort = () =>
   });
 
 /**
- * Starts Storybook's dev server for the project (`storybook dev`): its URL once its index answers
- * (60 s at most), and how to stop it (its process group).
+ * Starts Storybook's dev server for the project (`storybook dev`), in its folder or from another
+ * (`from`): its URL once its index answers (60 s at most), and how to stop it (its process group).
  */
 /**
  * The process groups of the `storybook dev` servers this worker started and hasn't stopped: killed
@@ -97,7 +97,7 @@ process.on("exit", () => {
   }
 });
 
-export const startDev = async (dir: string) => {
+export const startDev = async (dir: string, from = dir) => {
   const port = await freePort();
   const url = `http://127.0.0.1:${String(port)}`;
   let output = "";
@@ -111,10 +111,14 @@ export const startDev = async (dir: string) => {
       String(port),
       "--host",
       "127.0.0.1",
+      // Started from another folder (`from`: a monorepo's root): its config folder named.
+      ...(from === dir
+        ? []
+        : ["--config-dir", path.join(path.relative(from, dir), ".storybook")]),
     ]),
     // Its own process group, stopped whole (on Windows: its process tree, by `taskkill`).
     {
-      cwd: dir,
+      cwd: from,
       env: shellEnv(),
       detached: process.platform !== "win32",
       windowsHide: true,

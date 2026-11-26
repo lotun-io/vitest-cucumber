@@ -25,17 +25,15 @@ import {
 } from "node:fs/promises";
 import path from "node:path";
 import type { Vitest } from "vitest/node";
-import { createVitest } from "vitest/node";
-import { checkPluginModules, writeConfig } from "./config.ts";
-import { collectMessages } from "./messages.ts";
+import { writeConfig } from "./config.ts";
 import { normalize, relative, slash } from "./paths.ts";
 import { CONFIG, defaultConfig, defaultStorybookConfig } from "./project.ts";
 import {
-  capture,
   collectGarbage,
-  runResult,
-  showExit,
-  viteLogger,
+  type OpenVitest,
+  openVitestIn,
+  runTestFiles,
+  testFilesOf,
 } from "./run.ts";
 import { storybookPackage } from "./storybookProject.ts";
 import type { E2EWorld, RunResult } from "./world.ts";
@@ -53,13 +51,11 @@ const workerName = process.env.VITEST_POOL_ID ?? `pid${process.pid}`;
  * each run (`invalidateFile`); the rest, Node keeps as it loaded it (e.g. a `cucumber.mjs`, imported
  * once).
  */
-interface Kept {
+interface Kept extends OpenVitest {
   key: string;
   dir: string;
   /** Its files outside `features/`, by name: its key's. */
   files: Map<string, string>;
-  vitest: Vitest;
-  output: ReturnType<typeof capture>;
 }
 
 /**
@@ -213,23 +209,16 @@ export async function keptFor(this: E2EWorld): Promise<Kept | undefined> {
     await mkdir(path.dirname(path.join(dir, name)), { recursive: true });
     await writeFile(path.join(dir, name), content);
   }
-  const output = capture();
   const { exitCode } = process;
-  let vitest: Vitest;
+  let open: OpenVitest;
   try {
-    vitest = await createVitest(
-      // As `startSession`'s; not watching: its runs are the scenarios'.
-      { root: dir, watch: false, silent: false, cache: false },
-      { customLogger: viteLogger(output) },
-      { stdout: output.stream, stderr: output.stream },
-    );
-    await vitest.standalone();
+    open = await openVitestIn(dir);
   } catch {
     return undefined;
   } finally {
     process.exitCode = exitCode;
   }
-  const entry = { key, dir, files, vitest, output };
+  const entry = { key, dir, files, ...open };
   kept.set(slot, entry);
   return entry;
 }
@@ -294,29 +283,8 @@ export async function runKept(
       changed(vitest, file);
     }
   }
-  vitest.clearSpecificationsCache();
-  const specifications = await vitest.globTestSpecifications();
-  if (specifications.length === 0) {
-    return undefined;
-  }
-  output.clear();
-  // Vitest sets the run's result as the process' exit code: this process' (see `startSession`).
-  const { exitCode } = process;
-  process.exitCode = undefined;
-  const restoreExit = showExit(output);
-  const stopCollecting = messages && collectMessages(vitest, messages);
-  try {
-    await vitest.runTestSpecifications(specifications);
-    checkPluginModules(vitest);
-    return runResult(
-      vitest,
-      dir,
-      { exitCode: Number(process.exitCode ?? 0), output: output.text() },
-      specifications,
-    );
-  } finally {
-    stopCollecting?.();
-    restoreExit();
-    process.exitCode = exitCode;
-  }
+  const specifications = await testFilesOf(vitest);
+  return specifications.length === 0
+    ? undefined
+    : runTestFiles({ vitest, output }, dir, specifications, messages);
 }

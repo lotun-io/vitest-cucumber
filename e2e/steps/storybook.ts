@@ -63,6 +63,17 @@ When(
   },
 );
 
+// As from a monorepo's root: `storybook dev` started in the folder above the project, its config
+// folder named (`--config-dir`). Storybook names each file from where it runs (`./<project>/src/…`).
+When(
+  "I start its Storybook dev server from the folder above",
+  { timeout: 120_000 },
+  async function (this: E2EWorld) {
+    await featureStoriesFiles.call(this);
+    this.storybookDev = await startDev(this.dir, path.dirname(this.dir));
+  },
+);
+
 // The preview the scenario built or started (`storybook dev`): one row per text: a story's id (`STORY`), its `STATUS` (PASS or FAIL), a text its panel `SHOWS`, and
 // one it `HIDES` (none if empty).
 Then(
