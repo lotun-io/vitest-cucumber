@@ -51,19 +51,19 @@ file's docs page and stories. Here two features run on `Header.stories.ts`:
             { kind: "story", name: "Logged In" },
             { kind: "story", name: "Logged Out" },
             {
-              kind: "component",
-              name: "Feature: Header",
-              children: [
-                { kind: "story", name: "Logged in" },
-                { kind: "story", name: "Logged out" },
-              ],
-            },
-            {
-              kind: "component",
+              kind: "group",
               name: "Feature: Session",
               children: [
                 { kind: "story", name: "Logging in" },
                 { kind: "story", name: "The user's name" },
+              ],
+            },
+            {
+              kind: "group",
+              name: "Feature: Header",
+              children: [
+                { kind: "story", name: "Logged in" },
+                { kind: "story", name: "Logged out" },
               ],
             },
           ],

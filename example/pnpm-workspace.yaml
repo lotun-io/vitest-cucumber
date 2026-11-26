@@ -7,7 +7,7 @@ packages:
 # Dependencies more than one example has, one version each (`"catalog:"` in their `package.json`).
 catalog:
   "@cucumber/cucumber": ^13.3.0
-  "@lotun/vitest-cucumber": 1.0.0-beta.5
+  "@lotun/vitest-cucumber": 1.0.0-beta.6
   "@tsconfig/node26": ^26.0.2
   "@vitest/browser-playwright": ^5.1.1
   typescript: ~7.0.2

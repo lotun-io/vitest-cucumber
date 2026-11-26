@@ -134,13 +134,19 @@ the name `<Meta>` gives it:
           name: "Login",
           children: [
             {
-              kind: "component",
+              kind: "group",
               name: "Feature: Login",
               children: [
                 { kind: "docs", name: "Behavior" },
                 { kind: "story", name: "Log in" },
-                { kind: "story", name: "Sign up then log out with Log in" },
-                { kind: "story", name: "Sign up then log out with Sign up" },
+                {
+                  kind: "component",
+                  name: "Sign up then log out with <first>",
+                  children: [
+                    { kind: "story", name: "Sign up then log out with Log in" },
+                    { kind: "story", name: "Sign up then log out with Sign up" },
+                  ],
+                },
               ],
             },
           ],
