@@ -107,10 +107,17 @@ async function keptFiles(this: E2EWorld) {
 }
 
 /**
+ * A path as Storybook's addon writes it (`pathe`'s `resolve`: `/` between its parts, an upper-case
+ * drive letter), which its cache folder's hash is of: on Windows not Node's (`D:\…`).
+ */
+const asAddonWrites = (file: string) =>
+  slash(file).replace(/^[a-z]:/, (drive) => drive.toUpperCase());
+
+/**
  * Removes the dependency caches of the project in `dir`, a folder with a `node_modules` of its
  * own: Vite's (`node_modules/.vite`), and its story tests', which Storybook's addon keeps in this
  * process's own `node_modules` (the repository's), by the config folder's path (the addon's own
- * two functions give the folder: `storybook/internal`, as it reads it).
+ * two functions give the folder: `storybook/internal`, as it reads it; the path as it writes it).
  */
 const removeCaches = async (dir: string) => {
   await rm(path.join(dir, "node_modules", ".vite"), removeOptions);
@@ -120,7 +127,7 @@ const removeCaches = async (dir: string) => {
   await rm(
     resolvePathInStorybookCache(
       "sb-vitest",
-      oneWayHash(path.join(dir, ".storybook")),
+      oneWayHash(asAddonWrites(path.join(dir, ".storybook"))),
     ),
     removeOptions,
   );
