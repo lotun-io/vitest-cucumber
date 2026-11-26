@@ -115,52 +115,52 @@ const runNative = async (cwd: string, retry: number | undefined) => {
 
 Given(
   "the compatibility kit's sample {string}",
-  async function (this: E2EWorld, sample: string) {
+  async (world: E2EWorld, sample: string) => {
     const { features, steps } = sampleFiles(sample);
     for (const { name, content } of features) {
-      await this.write(`features/${name}`, content);
+      await world.write(`features/${name}`, content);
     }
     for (const { name, node } of steps) {
-      await this.write(`features/steps/${name}`, node);
+      await world.write(`features/steps/${name}`, node);
     }
-    runs.set(this, { sample, pageSteps: steps });
+    runs.set(world, { sample, pageSteps: steps });
   },
 );
 
 When(
   "I run it with cucumber, and with vitest in {word} mode",
   { timeout: 120_000 },
-  async function (this: E2EWorld, mode: string) {
-    const run = runOf(this);
+  async (world: E2EWorld, mode: string) => {
+    const run = runOf(world);
     const retry = retryOf(run.sample);
     const native =
-      nativeRuns.get(run.sample) ?? (await runNative(this.dir, retry));
+      nativeRuns.get(run.sample) ?? (await runNative(world.dir, retry));
     nativeRuns.set(run.sample, native);
     // Each row's project has native cucumber's outputs, its run's or the sample's first row's.
-    await writeFile(path.join(this.dir, "native.txt"), native.output);
-    await writeFile(path.join(this.dir, "native.ndjson"), native.ndjson);
+    await writeFile(path.join(world.dir, "native.txt"), native.output);
+    await writeFile(path.join(world.dir, "native.ndjson"), native.ndjson);
     run.native = { exitCode: native.exitCode, ndjson: native.ndjson };
     run.mode = mode;
     // The plugin: the sample's steps, cucumber's copy in node mode, the page's in the others.
     if (mode !== "node") {
       for (const { name, page } of run.pageSteps) {
-        await this.write(`features/steps/${name}`, page);
+        await world.write(`features/steps/${name}`, page);
       }
     }
-    await writeDefaultConfig.call(this, mode as Mode);
+    await writeDefaultConfig.call(world, mode as Mode);
     // Its messages too, as the plugin's stream has them (`e2e/support/messages.ts`).
-    this.messages = [];
-    await runVitest.call(this, retry ? { options: { retry } } : {});
-    run.messages = this.messages;
+    world.messages = [];
+    await runVitest.call(world, retry ? { options: { retry } } : {});
+    run.messages = world.messages;
     await writeFile(
-      path.join(this.dir, "plugin.ndjson"),
+      path.join(world.dir, "plugin.ndjson"),
       run.messages.map((envelope) => `${JSON.stringify(envelope)}\n`).join(""),
     );
   },
 );
 
-Then("vitest reports what cucumber does", async function (this: E2EWorld) {
-  const { sample, mode, native } = ranOf(this);
+Then("vitest reports what cucumber does", async (world: E2EWorld) => {
+  const { sample, mode, native } = ranOf(world);
   const scenarios = nativeResults(native.ndjson);
   expect(scenarios.length, "native cucumber ran no scenario").toBeGreaterThan(
     0,
@@ -169,8 +169,8 @@ Then("vitest reports what cucumber does", async function (this: E2EWorld) {
     `${sample} (${String(mode)} mode)`,
     { exitCode: native.exitCode, scenarios },
     {
-      exitCode: this.lastRun.exitCode,
-      scenarios: this.lastRun.tests.map((test) => ({
+      exitCode: world.lastRun.exitCode,
+      scenarios: world.lastRun.tests.map((test) => ({
         uri: test.module,
         name: test.ownName,
         state: test.state === "pending" ? "skipped" : test.state,
@@ -180,12 +180,12 @@ Then("vitest reports what cucumber does", async function (this: E2EWorld) {
       })),
     },
   );
-  await writeFile(path.join(this.dir, "report.md"), report);
-  expect(differences, `${report}\n${this.lastRun.output}`).toEqual([]);
+  await writeFile(path.join(world.dir, "report.md"), report);
+  expect(differences, `${report}\n${world.lastRun.output}`).toEqual([]);
 });
 
-Then("its messages are cucumber's", async function (this: E2EWorld) {
-  const { native, mode, messages = [] } = ranOf(this);
+Then("its messages are cucumber's", async (world: E2EWorld) => {
+  const { native, mode, messages = [] } = ranOf(world);
   const nativeMessages = native.ndjson
     .split("\n")
     .filter(Boolean)
@@ -194,13 +194,13 @@ Then("its messages are cucumber's", async function (this: E2EWorld) {
     inPage: mode !== "node",
   });
   await writeFile(
-    path.join(this.dir, "messages.md"),
+    path.join(world.dir, "messages.md"),
     differences.length === 0
       ? "Same messages.\n"
       : `${differences.join("\n\n")}\n`,
   );
   expect(
     differences.slice(0, 5),
-    `${String(differences.length)} differences (messages.md, plugin.ndjson, native.ndjson in ${this.dir})`,
+    `${String(differences.length)} differences (messages.md, plugin.ndjson, native.ndjson in ${world.dir})`,
   ).toEqual([]);
 });

@@ -26,6 +26,13 @@ import {
 import path from "node:path";
 import type { Vitest } from "vitest/node";
 import { writeConfig } from "./config.ts";
+import {
+  linkOnce,
+  linkStorybookModules,
+  packagesOf,
+  storybookModules,
+  writePackages,
+} from "./packages.ts";
 import { normalize, relative, slash } from "./paths.ts";
 import { CONFIG, defaultConfig, defaultStorybookConfig } from "./project.ts";
 import {
@@ -35,7 +42,6 @@ import {
   runTestFiles,
   testFilesOf,
 } from "./run.ts";
-import { storybookPackage } from "./storybookProject.ts";
 import type { E2EWorld, RunResult } from "./world.ts";
 
 /**
@@ -101,49 +107,125 @@ async function keptFiles(this: E2EWorld) {
 }
 
 /**
- * Makes `dir` a slot's folder for a new Vitest in `mode`: everything removed but its `node_modules`
- * (its dependency caches) when that is the mode's kind (Storybook's: a link to `storybook/`'s; any
- * other's: a folder with the plugin linked in it).
+ * Removes the dependency caches of the project in `dir`, a folder with a `node_modules` of its
+ * own: Vite's (`node_modules/.vite`), and its story tests', which Storybook's addon keeps in this
+ * process's own `node_modules` (the repository's), by the config folder's path (the addon's own
+ * two functions give the folder: `storybook/internal`, as it reads it).
  */
-const prepareDir = async (dir: string, mode: string) => {
+const removeCaches = async (dir: string) => {
+  await rm(path.join(dir, "node_modules", ".vite"), removeOptions);
+  const { resolvePathInStorybookCache } =
+    await import("storybook/internal/common");
+  const { oneWayHash } = await import("storybook/internal/telemetry");
+  await rm(
+    resolvePathInStorybookCache(
+      "sb-vitest",
+      oneWayHash(path.join(dir, ".storybook")),
+    ),
+    removeOptions,
+  );
+};
+
+const removeOptions = { recursive: true, force: true };
+
+/**
+ * Makes `dir` a slot's folder for a new Vitest in `mode`: everything removed but its `node_modules`
+ * (its dependency caches) when that is the folder's kind. A Storybook project's is a link to
+ * `storybook/`'s; any other's a folder with the plugin linked in it; a Storybook project with
+ * packages of the scenario's own (`packaged`: a folder of its own, see `runDirFor`), a folder
+ * with each thing of `storybook/`'s linked in it, so the scenario's packages can be next to them
+ * (never written into `storybook/`'s). A folder's packages of an earlier scenario are taken out
+ * (what is neither a link nor a cache).
+ */
+const prepareDir = async (dir: string, mode: string, packaged = false) => {
   await mkdir(dir, { recursive: true });
   const modules = path.join(dir, "node_modules");
   const storybook = mode === "storybook";
+  const link = storybook && !packaged;
   const linked = await lstat(modules).then(
     (stats) => stats.isSymbolicLink(),
     () => undefined,
   );
   for (const entry of await readdir(dir)) {
-    if (entry !== "node_modules" || linked !== storybook) {
+    if (entry !== "node_modules" || linked !== link) {
       await rm(path.join(dir, entry), { recursive: true, force: true });
     }
   }
-  if (linked === storybook) {
+  if (link) {
+    if (!linked) {
+      await symlink(storybookModules, modules, "dir");
+    }
     return;
   }
+  await mkdir(modules, { recursive: true });
+  let removed = false;
+  for (const entry of await readdir(modules, { withFileTypes: true })) {
+    // The cache (`.vite`), the links and the plugin's folder stay.
+    if (
+      !entry.name.startsWith(".") &&
+      !entry.isSymbolicLink() &&
+      entry.name !== "@lotun"
+    ) {
+      await rm(path.join(modules, entry.name), {
+        recursive: true,
+        force: true,
+      });
+      removed = true;
+    }
+  }
+  if (removed) {
+    // The caches list the packages pre-bundled, a removed one among them (Vite then fails
+    // reading it: no lockfile here says the packages changed).
+    await removeCaches(dir);
+  }
   if (storybook) {
-    // A Storybook project's `node_modules`: `storybook/`'s (Storybook, React, the plugin).
-    await symlink(path.join(storybookPackage, "node_modules"), modules, "dir");
+    await linkStorybookModules(modules);
   } else {
-    const plugin = path.join(modules, "@lotun/vitest-cucumber");
-    await mkdir(path.dirname(plugin), { recursive: true });
-    await symlink(path.resolve(), plugin, "dir");
+    await linkOnce(
+      path.resolve(),
+      path.join(modules, "@lotun/vitest-cucumber"),
+    );
   }
 };
 
 /**
  * A run folder of this worker for a one-off run in `mode` (a new Vitest's: `./runVitest.ts`),
- * with the scenario's project `scenarioDir` copied in (all but its `node_modules`). One per mode,
- * reused, its `node_modules` kept: the dependency caches stay warm, as a kept slot's (`prepareDir`).
+ * with the scenario's project `scenarioDir` copied in (all but its `node_modules`) and its own
+ * packages written into the folder's (`files`: the scenario's, `inPackages`). One per mode, and
+ * one more for a Storybook project with packages (its `node_modules` another kind: `prepareDir`),
+ * reused, its `node_modules` kept: the dependency caches stay warm, as a kept slot's. `cold`,
+ * or with packages of its own: those caches removed first, as a first run's are; not a
+ * Storybook project's without packages, whose caches are `storybook/`'s, every worker's.
  */
-export const runDirFor = async (scenarioDir: string, mode: string) => {
-  const dir = path.resolve("tmp", "e2e", "run", `${workerName}-${mode}`);
-  await prepareDir(dir, mode);
+export const runDirFor = async (
+  scenarioDir: string,
+  mode: string,
+  { files, cold = false }: { files: Map<string, string>; cold?: boolean },
+) => {
+  const packages = packagesOf(files);
+  const packaged = packages.length > 0;
+  const dir = path.resolve(
+    "tmp",
+    "e2e",
+    "run",
+    `${workerName}-${mode}${packaged && mode === "storybook" ? "-packages" : ""}`,
+  );
+  await prepareDir(dir, mode, packaged);
   const modules = path.join(scenarioDir, "node_modules");
   await cp(scenarioDir, dir, {
     recursive: true,
     filter: (source) => source !== modules,
   });
+  await writePackages(dir, packages);
+  if (cold && mode === "storybook" && !packaged) {
+    throw new Error(
+      "A Storybook project's dependency caches are storybook/'s, every worker's: not removed (a scenario with a package of its own has its own)",
+    );
+  }
+  // With packages of its own, always: a cache of an earlier run has them as they were then.
+  if (cold || packaged) {
+    await removeCaches(dir);
+  }
   return dir;
 };
 

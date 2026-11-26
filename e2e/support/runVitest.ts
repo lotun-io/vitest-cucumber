@@ -31,10 +31,16 @@ export async function runVitest(
   // No feature file to run in a kept Vitest: a new Vitest reports it, as Vitest's command line does.
   const result =
     (entry && (await runKept(entry, this.dir, this.messages))) ||
-    (await runOnce(await runDirFor(this.dir, this.mode), {
-      ...options,
-      messages: this.messages,
-    }));
+    (await runOnce(
+      await runDirFor(this.dir, this.mode, {
+        files: this.files,
+        cold: this.coldCaches,
+      }),
+      {
+        ...options,
+        messages: this.messages,
+      },
+    ));
   this.result = await asRun(result);
 }
 

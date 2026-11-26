@@ -113,6 +113,9 @@ AfterStep((world: CartWorld, { pickleStep, result }) => {
 - **The name is the sign.** The parameter must be named `world`. Any other function is called as
   Cucumber calls it: a `function`, an arrow function with another first parameter
   (`(item, done) => …` still gets Cucumber's callback), one that destructures it (`({ items }) => …`).
+- **Minified code loses the name.** The plugin keeps it through Storybook's static build
+  (`storybook build`), so your own steps work there. A package of steps that was published already
+  minified has no name left: publish it unminified, or write its steps as `function`s.
 - **The rest is Cucumber's.** After the World come the step's arguments, its data table or doc
   string, and Cucumber's callback if the function takes one more. The number of arguments is
   checked as Cucumber checks it, the World counted.

@@ -165,15 +165,15 @@ Feature: The page
       BeforeAll(() => {
         ready = true;
       });
-      Before(function (this: World & { greeting?: string }) {
-        this.greeting = "hello";
-        this.log("from Before");
+      Before((world: World & { greeting?: string }) => {
+        world.greeting = "hello";
+        world.log("from Before");
       });
-      Given("a step", function (this: World & { greeting?: string }) {
-        if (!ready || this.greeting !== "hello") {
-          throw new Error(`ready: ${String(ready)}, greeting: ${String(this.greeting)}`);
+      Given("a step", (world: World & { greeting?: string }) => {
+        if (!ready || world.greeting !== "hello") {
+          throw new Error(`ready: ${String(ready)}, greeting: ${String(world.greeting)}`);
         }
-        this.log("from the step");
+        world.log("from the step");
       });
       """
     And a file named "features/a.feature" with:
@@ -199,8 +199,8 @@ Feature: The page
       """
       import { Given, World } from "@cucumber/cucumber";
 
-      Given("a step that attaches bytes", function (this: World) {
-        this.attach(new Uint8Array([98, 121, 116, 101, 115]) as never, "application/octet-stream");
+      Given("a step that attaches bytes", (world: World) => {
+        world.attach(new Uint8Array([98, 121, 116, 101, 115]) as never, "application/octet-stream");
       });
       """
     And a file named "features/a.feature" with:

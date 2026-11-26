@@ -12,7 +12,7 @@ Feature: Failures
       });
       Given("a step that exceeds its timeout", { timeout: 100 }, () => new Promise(() => {}));
       // Never calls back: only its uncaught error ends it.
-      Given("a callback step that throws later", { timeout: 2000 }, function (_done: () => void) {
+      Given("a callback step that throws later", { timeout: 2000 }, (_done: () => void) => {
         setTimeout(() => {
           throw new Error("Thrown later intentionally");
         }, 10);

@@ -10,27 +10,29 @@ packages:
 
 # Dependencies more than one package has, one version each (`"catalog:"` in their `package.json`;
 # `pnpm publish` writes the version). The plugin's peers too, the range they're developed and
-# tested on, but Vitest's: exact here (the dev patch is for 5.1.1), `^5.1.1` in `package.json`.
+# tested on, but Vitest's: exact here (the dev patch is for 5.1.2), `^5.1.2` in `package.json`.
 catalog:
   "@cucumber/cucumber": ^13.3.0
   "@cucumber/gherkin": ^42.0.1
   "@cucumber/messages": ^34.2.1
-  "@types/node": ^26.6.7
-  "@types/react": ^19.3.1
+  "@types/node": ^26.6.10
+  "@types/react": ^19.3.3
   "@types/react-dom": ^19.3.0
-  "@vitest/browser-playwright": 5.1.1
+  "@vitest/browser-playwright": 5.1.2
+  "@vitest/coverage-v8": 5.1.2
+  "@vitest/utils": ^5.1.2
   react: ^19.3.1
   react-dom: ^19.3.1
-  storybook: ^10.6.8
+  storybook: ^10.6.9
   typescript: ^6.0.3
   vite: ^8.3.8
-  vitest: 5.1.1
+  vitest: 5.1.2
 
 allowBuilds:
   esbuild: true
 
 patchedDependencies:
-  vitest@5.1.1: patches/vitest@5.1.1.patch
+  vitest@5.1.2: patches/vitest@5.1.2.patch
 
 # Storybook 10.6.5 registers its TypeScript loader with Node's deprecated `module.register()`
 # (DEP0205, printed once per process loading a Storybook config): hidden in the scripts pnpm runs.

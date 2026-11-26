@@ -246,7 +246,7 @@ describe("a broken feature file (here a story its stories file doesn't have)", (
   });
 });
 
-test("`viteFinal` adds the project's plugins to the config's: in the addon's Vitest runs (`VITEST` set) story tests' (`../../storybookPlugin.ts`), in Storybook's own process the preview's", async () => {
+test("`viteFinal` adds the project's plugins to the config's: in the addon's Vitest runs (`VITEST` set) story tests' (`../../storybookPlugin.ts`), in Storybook's own process the preview's, and a build's marks", async () => {
   const existing = { name: "existing" };
   vi.stubEnv("VITEST", "true");
   const tests = await viteFinal({ plugins: [existing] }, options);
@@ -263,6 +263,7 @@ test("`viteFinal` adds the project's plugins to the config's: in the addon's Vit
   ]);
   expect(names(preview.plugins)).toEqual([
     "existing",
+    "vitest-cucumber:storybook-first-parameter-marks",
     "vitest-cucumber:storybook-preview",
   ]);
 });
@@ -331,6 +332,27 @@ describe("each Storybook page's own modules", () => {
     );
     expect(await load.call({}, placeholder)).toBeUndefined();
   });
+});
+
+test("the preview's packages are pre-bundled at startup: the runtime's, cucumber never, the support files for Vite's scanner by their whole paths", async () => {
+  vi.stubEnv("VITEST", "");
+  const { plugins } = await viteFinal({}, options);
+  vi.unstubAllEnvs();
+  const config = (plugins?.at(-1) as Plugin).config as () => {
+    optimizeDeps: { include: string[]; exclude: string[]; entries: string[] };
+  };
+  const { optimizeDeps } = config();
+  // Storybook's Vite root is its own: the globs from the project's root (the config folder's parent).
+  expect(optimizeDeps.entries).toEqual([
+    `${path.dirname(configDir).replaceAll("\\", "/")}/steps/*.ts`,
+  ]);
+  expect(optimizeDeps.exclude).toEqual([
+    "@lotun/vitest-cucumber",
+    "@cucumber/cucumber",
+  ]);
+  expect(optimizeDeps.include).toContain(
+    "@lotun/vitest-cucumber > @cucumber/core",
+  );
 });
 
 describe("`storybook dev`: the dev server's watcher", () => {

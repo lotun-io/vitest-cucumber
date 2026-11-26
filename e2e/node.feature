@@ -9,8 +9,8 @@ Feature: Node mode
       """
       import { Given, World } from "@cucumber/cucumber";
 
-      Given("a step that attaches a Buffer", function (this: World) {
-        this.attach(Buffer.from("bytes"), "application/octet-stream");
+      Given("a step that attaches a Buffer", (world: World) => {
+        world.attach(Buffer.from("bytes"), "application/octet-stream");
       });
       """
     And a file named "features/a.feature" with:
@@ -33,15 +33,15 @@ Feature: Node mode
       import { Given, World } from "@cucumber/cucumber";
       import { Readable } from "node:stream";
 
-      Given("a step that awaits a stream's attachment", async function (this: World) {
-        await this.attach(Readable.from([Buffer.from("str"), Buffer.from("eam")]), {
+      Given("a step that awaits a stream's attachment", async (world: World) => {
+        await world.attach(Readable.from([Buffer.from("str"), Buffer.from("eam")]), {
           mediaType: "text/plain",
           fileName: "awaited.txt",
         });
       });
 
-      Given("a step that attaches a stream with a callback", function (this: World, done: () => void) {
-        this.attach(Readable.from([Buffer.from("str"), Buffer.from("eam")]), "text/plain", done);
+      Given("a step that attaches a stream with a callback", (world: World, done: () => void) => {
+        world.attach(Readable.from([Buffer.from("str"), Buffer.from("eam")]), "text/plain", done);
       });
       """
     And a file named "features/a.feature" with:
@@ -65,12 +65,12 @@ Feature: Node mode
       import { Given, World } from "@cucumber/cucumber";
       import { Readable } from "node:stream";
 
-      Given("a step that attaches a Buffer", function (this: World) {
-        this.attach(Buffer.from("bytes"));
+      Given("a step that attaches a Buffer", (world: World) => {
+        world.attach(Buffer.from("bytes"));
       });
 
-      Given("a step that attaches a stream", function (this: World) {
-        return this.attach(Readable.from(["stream"]));
+      Given("a step that attaches a stream", (world: World) => {
+        return world.attach(Readable.from(["stream"]));
       });
       """
     And a file named "features/a.feature" with:

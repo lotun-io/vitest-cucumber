@@ -1,61 +1,15 @@
 import { parseSync } from "vite";
-import { expect, test } from "vitest";
+import { describe, expect, test } from "vitest";
 import type { Code } from "../../../types/supportCode.ts";
+import {
+  firstParameterKey,
+  firstParameterStatement,
+} from "../../../utils/firstParameterMark.ts";
 import { takesFirst } from "../thisFirst.ts";
+import { cucumbers, worldFirst } from "./firstParameterFunctions.ts";
 
 /** The function `text` evaluates to: its own text is as written here, comments and all. */
 const codeOf = (text: string) => new Function(`return (${text})`)() as Code;
-
-/** Functions that take the World first. */
-const worldFirst = [
-  "world => {}",
-  "(world) => {}",
-  "(world, count) => {}",
-  "async world => {}",
-  "async (world, count) => {}",
-  "async(world)=>{}",
-  // Default values, the first parameter's and a later one's.
-  "(world = {}) => {}",
-  "(world, count = 1) => {}",
-  '(world, url = "http://example.test") => {}',
-  // A type annotation Node stripped: blank space in its place.
-  "(world      , count        ) => {}",
-  // Over several lines, with comments.
-  "(\n  world,\n  count,\n) => {}",
-  "(\n  // The scenario's cart.\n  world,\n  count,\n) => {}",
-  "(\n  // One line,\n  // then another.\n  world,\n) => {}",
-  "(/* the cart */ world, count) => {}",
-  "async (/* the cart */ /* still */ world) => {}",
-  // A comment over several lines, and JavaScript's way to give a parameter its type.
-  "(\n  /*\n   * The scenario's cart,\n   * one per scenario.\n   */\n  world,\n  count,\n) => {}",
-  "(/** @type {Cart} */ world, /** @type {number} */ count) => {}",
-  "(\n  /**\n   * @type {Cart}\n   */\n  world,\n) => {}",
-  "(\n  // A line,\n  /* then a block */\n  world,\n) => {}",
-];
-
-/** Functions called as cucumber calls them. */
-const cucumbers = [
-  "() => {}",
-  "(count, world) => {}",
-  "(cart) => {}",
-  "(worldwide) => {}",
-  "({ world }) => {}",
-  "([world]) => {}",
-  "(...world) => {}",
-  "(/* world */ cart) => {}",
-  "async => {}",
-  // A `function` has its `this`.
-  "function (world) {}",
-  "function (world, count) {}",
-  "function world() {}",
-  "async function (world) {}",
-  "function* (world) {}",
-  // Functions whose text isn't an expression of its own.
-  "({ world(count) {} }).world",
-  "({ async world(count) {} }).world",
-  "class world {}",
-  "((world) => {}).bind(null)",
-];
 
 test("an arrow function whose first parameter is named `world`", () => {
   for (const text of worldFirst) {
@@ -73,6 +27,93 @@ test("a test run hook's: `context`", () => {
   expect(takesFirst(codeOf("(context) => {}"), "context")).toBe(true);
   expect(takesFirst(codeOf("(world) => {}"), "context")).toBe(false);
   expect(takesFirst(codeOf("(context) => {}"), "world")).toBe(false);
+});
+
+describe("a minified build's statement, the parameter renamed", () => {
+  /** The statement for `name`, its key in `quote`s. */
+  const stated = (name: "world" | "context", quote = '"') =>
+    `globalThis[${quote}${firstParameterKey(name)}${quote}]`;
+
+  test("first in the body, whatever quotes the minifier gave its key", () => {
+    for (const quote of ['"', "'", "`"]) {
+      expect(
+        takesFirst(
+          codeOf(`(e, t) => { ${stated("world", quote)}; return t; }`),
+          "world",
+        ),
+        quote,
+      ).toBe(true);
+    }
+    expect(takesFirst(codeOf(`async e=>{${stated("world")}}`), "world")).toBe(
+      true,
+    );
+  });
+
+  test("as a build writes it", () => {
+    expect(
+      takesFirst(
+        codeOf(`(e) => { ${firstParameterStatement("world")} }`),
+        "world",
+      ),
+    ).toBe(true);
+  });
+
+  test("joined to what follows it: a sequence, a return", () => {
+    expect(takesFirst(codeOf(`(e,t)=>(${stated("world")},e+t)`), "world")).toBe(
+      true,
+    );
+    expect(
+      takesFirst(codeOf(`e=>{return ${stated("world")},e}`), "world"),
+    ).toBe(true);
+  });
+
+  test("after the body's directives", () => {
+    expect(
+      takesFirst(
+        codeOf(`e=>{"use server";${stated("world")};return e}`),
+        "world",
+      ),
+    ).toBe(true);
+  });
+
+  test("names the parameter: a test run hook's `context`", () => {
+    const hook = codeOf(`e=>{${stated("context")}}`);
+    expect(takesFirst(hook, "context")).toBe(true);
+    expect(takesFirst(hook, "world")).toBe(false);
+  });
+
+  test("a function written in the body has its own: not the outer one's", () => {
+    const outer = codeOf(`e=>t=>{${stated("world")};return [e,t]}`) as (
+      count: number,
+    ) => Code;
+    expect(takesFirst(outer, "world")).toBe(false);
+    expect(takesFirst(outer(1), "world")).toBe(true);
+    expect(
+      takesFirst(
+        codeOf(`e=>{const t=n=>{${stated("world")}};return t}`),
+        "world",
+      ),
+    ).toBe(false);
+  });
+
+  test("only an arrow function's", () => {
+    expect(
+      takesFirst(
+        codeOf(`function (e) { return (t) => { ${stated("world")} }; }`),
+        "world",
+      ),
+    ).toBe(false);
+    expect(
+      takesFirst(
+        codeOf(`({ step(e) { return (t) => { ${stated("world")} }; } }).step`),
+        "world",
+      ),
+    ).toBe(false);
+  });
+
+  test("without it, a renamed parameter is cucumber's own call", () => {
+    expect(takesFirst(codeOf("(e, t) => {}"), "world")).toBe(false);
+  });
 });
 
 test("as a parser reads the same functions (Vite's)", () => {

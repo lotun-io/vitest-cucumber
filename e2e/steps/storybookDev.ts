@@ -78,60 +78,57 @@ const settle = 500;
 When(
   "I open its story {string}",
   { timeout },
-  async function (this: E2EWorld, story: string) {
+  async (world: E2EWorld, story: string) => {
     const page = await (await chromium()).newPage();
     const loads = { count: 0 };
     await page.goto(
-      `${devOf(this).url}/iframe.html?id=${story}&viewMode=story`,
+      `${devOf(world).url}/iframe.html?id=${story}&viewMode=story`,
     );
     page.on("load", () => {
       loads.count += 1;
     });
-    this.storybookPage = { page, loads };
-    this.fileTimes = await timesOf(this.dir);
+    world.storybookPage = { page, loads };
+    world.fileTimes = await timesOf(world.dir);
   },
 );
 
 When(
   "I save the file {string} with:",
-  async function (this: E2EWorld, name: string, content: string) {
-    this.fileTimes ??= await timesOf(this.dir);
-    await writeFile(this.file(name), content);
-    saved.set(this, Date.now());
+  async (world: E2EWorld, name: string, content: string) => {
+    world.fileTimes ??= await timesOf(world.dir);
+    await writeFile(world.file(name), content);
+    saved.set(world, Date.now());
   },
 );
 
 // Each of a `'…'` or `"…"` text: the file's text with the first replaced by the second.
 When(
   /^I save the file "([^"]+)" replacing (?:"([^"]*)"|'([^']*)') with (?:"([^"]*)"|'([^']*)')$/,
-  async function (
-    this: E2EWorld,
+  async (
+    world: E2EWorld,
     name: string,
     fromDouble: string | undefined,
     fromSingle: string | undefined,
     toDouble: string | undefined,
     toSingle: string | undefined,
-  ) {
+  ) => {
     const from = fromDouble ?? fromSingle ?? "";
-    const text = await readFile(this.file(name), "utf8");
+    const text = await readFile(world.file(name), "utf8");
     expect(text, name).toContain(from);
-    this.fileTimes ??= await timesOf(this.dir);
+    world.fileTimes ??= await timesOf(world.dir);
     await writeFile(
-      this.file(name),
+      world.file(name),
       text.replace(from, toDouble ?? toSingle ?? ""),
     );
-    saved.set(this, Date.now());
+    saved.set(world, Date.now());
   },
 );
 
-When(
-  "I delete the file {string}",
-  async function (this: E2EWorld, name: string) {
-    this.fileTimes ??= await timesOf(this.dir);
-    await rm(this.file(name));
-    saved.set(this, Date.now());
-  },
-);
+When("I delete the file {string}", async (world: E2EWorld, name: string) => {
+  world.fileTimes ??= await timesOf(world.dir);
+  await rm(world.file(name));
+  saved.set(world, Date.now());
+});
 
 /** The open page's text (none while it's loading). */
 const textOf = (world: E2EWorld) =>
@@ -143,10 +140,10 @@ const textOf = (world: E2EWorld) =>
 Then(
   "its page shows {string}",
   { timeout },
-  async function (this: E2EWorld, text: string) {
+  async (world: E2EWorld, text: string) => {
     expect(
       await eventually(
-        () => textOf(this),
+        () => textOf(world),
         (shown) => shown.includes(text),
       ),
     ).toContain(text);
@@ -156,10 +153,10 @@ Then(
 Then(
   "its page no longer shows {string}",
   { timeout },
-  async function (this: E2EWorld, text: string) {
+  async (world: E2EWorld, text: string) => {
     expect(
       await eventually(
-        () => textOf(this),
+        () => textOf(world),
         (shown) => !shown.includes(text),
       ),
     ).not.toContain(text);
@@ -167,16 +164,16 @@ Then(
 );
 
 // Not before a reload the last save causes would have come (`settle`).
-Then("its page didn't reload", async function (this: E2EWorld) {
-  const wait = (saved.get(this) ?? 0) + settle - Date.now();
+Then("its page didn't reload", async (world: E2EWorld) => {
+  const wait = (saved.get(world) ?? 0) + settle - Date.now();
   if (wait > 0) {
     await new Promise((resolve) => setTimeout(resolve, wait));
   }
-  expect(pageOf(this).loads.count).toBe(0);
+  expect(pageOf(world).loads.count).toBe(0);
 });
 
-Then("its page reloaded", function (this: E2EWorld) {
-  expect(pageOf(this).loads.count).toBeGreaterThan(0);
+Then("its page reloaded", (world: E2EWorld) => {
+  expect(pageOf(world).loads.count).toBeGreaterThan(0);
 });
 
 /** The ids of Storybook's index's entries (none while it can't be made). */
@@ -194,10 +191,10 @@ const indexOf = async (world: E2EWorld) => {
 Then(
   "its index has the story {string}",
   { timeout },
-  async function (this: E2EWorld, story: string) {
+  async (world: E2EWorld, story: string) => {
     expect(
       await eventually(
-        () => indexOf(this),
+        () => indexOf(world),
         (ids) => ids.includes(story),
       ),
     ).toContain(story);
@@ -207,10 +204,10 @@ Then(
 Then(
   "its index has no story {string}",
   { timeout },
-  async function (this: E2EWorld, story: string) {
+  async (world: E2EWorld, story: string) => {
     expect(
       await eventually(
-        () => indexOf(this),
+        () => indexOf(world),
         (ids) => !ids.includes(story),
       ),
     ).not.toContain(story);
@@ -221,10 +218,10 @@ Then(
 // time, or new.
 Then(
   "no file but {string} has a new time",
-  async function (this: E2EWorld, name: string) {
-    const before = this.fileTimes ?? new Map<string, number>();
-    const now = await timesOf(this.dir);
-    this.fileTimes = now;
+  async (world: E2EWorld, name: string) => {
+    const before = world.fileTimes ?? new Map<string, number>();
+    const now = await timesOf(world.dir);
+    world.fileTimes = now;
     expect(
       [...now].flatMap(([file, time]) =>
         time === before.get(file) ? [] : [file],

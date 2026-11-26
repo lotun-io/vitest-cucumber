@@ -436,55 +436,57 @@ Feature: Storybook
       """
       // The story is already rendered by Storybook (unless it's unmounted): steps drive it through its
       // context. The Storybook steps link a scenario to a story (the plugin's parameter types: they do
-      // nothing here).
+      // nothing here). Arrow functions taking the World, as the docs write them: a static build
+      // minifies them, their `world` parameter renamed. One's code is a helper's
+      // (`../helpers/text.ts`, a file the plugin's `import` doesn't list).
       import { Given, Then, When } from "@cucumber/cucumber";
       import { expect } from "storybook/test";
+      import { seeingText } from "../helpers/text.ts";
       import type { StoryWorld } from "./world.ts";
 
       Given("the {storybook:story} story", (_story: string) => {});
       Given("the unmounted {storybook:storyUnmounted} story", (_story: string) => {});
 
-      When("I mount the story", async function (this: StoryWorld) {
-        await this.story.mount();
+      When("I mount the story", async (world: StoryWorld) => {
+        await world.story.mount();
       });
 
-      Then("I see no button", async function (this: StoryWorld) {
-        await expect(this.story.canvas.queryByRole("button")).toBeNull();
+      Then("I see no button", async (world: StoryWorld) => {
+        await expect(world.story.canvas.queryByRole("button")).toBeNull();
       });
 
-      Then("the story is named {string}", function (this: StoryWorld, name: string) {
-        expect(this.story.name).toBe(name);
+      Then("the story is named {string}", (world: StoryWorld, name: string) => {
+        expect(world.story.name).toBe(name);
       });
 
       Then("the story's own play didn't run", () => {
         expect(Reflect.get(globalThis, "ownPlayRan")).toBe(false);
       });
 
-      When(
-        "I click the {string} button",
-        async function (this: StoryWorld, name: string) {
-          const { canvas, userEvent } = this.story;
-          await userEvent.click(canvas.getByRole("button", { name }));
-        },
-      );
+      When("I click the {string} button", async (world: StoryWorld, name: string) => {
+        const { canvas, userEvent } = world.story;
+        await userEvent.click(canvas.getByRole("button", { name }));
+      });
 
-      Then(
-        "I see the {string} button",
-        async function (this: StoryWorld, name: string) {
-          await expect(
-            this.story.canvas.getByRole("button", { name }),
-          ).toBeInTheDocument();
-        },
-      );
+      Then("I see the {string} button", async (world: StoryWorld, name: string) => {
+        await expect(
+          world.story.canvas.getByRole("button", { name }),
+        ).toBeInTheDocument();
+      });
 
-      Then(
-        "I see the text {string}",
-        async function (this: StoryWorld, text: string) {
-          await expect(
-            this.story.canvas.getByText(text, { exact: false }),
-          ).toBeInTheDocument();
-        },
-      );
+      Then("I see the text {string}", seeingText);
+      """
+    And a file named "helpers/text.ts" with:
+      """
+      // A step's code, away from the support files (the plugin's `import` lists `features/` only).
+      import { expect } from "storybook/test";
+      import type { StoryWorld } from "../features/world.ts";
+
+      export const seeingText = async (world: StoryWorld, text: string) => {
+        await expect(
+          world.story.canvas.getByText(text, { exact: false }),
+        ).toBeInTheDocument();
+      };
       """
     And a file named "features/checks.ts" with:
       """
@@ -494,20 +496,20 @@ Feature: Storybook
       import type { StoryWorld } from "./world.ts";
 
       // A page's BeforeAll runs before its first scenario: its world parameters say so.
-      BeforeAll(function (this) {
-        this.parameters.beforeAll = true;
+      BeforeAll((context) => {
+        context.parameters.beforeAll = true;
       });
 
       Given("a pending step", () => "pending");
 
       Given("a skipped step", () => "skipped");
 
-      Given("a logging step", function (this: StoryWorld) {
-        this.log("hello from the step");
+      Given("a logging step", (world: StoryWorld) => {
+        world.log("hello from the step");
       });
 
-      Then("the BeforeAll hook ran first", function (this: StoryWorld) {
-        expect(this.parameters.beforeAll).toBe(true);
+      Then("the BeforeAll hook ran first", (world: StoryWorld) => {
+        expect(world.parameters.beforeAll).toBe(true);
       });
 
       // Two definitions of one step: it's ambiguous.
@@ -521,32 +523,29 @@ Feature: Storybook
       import { expect } from "storybook/test";
       import type { StoryWorld } from "./world.ts";
 
-      Before({ tags: "@hooks" }, function (this: StoryWorld) {
-        this.log("before hook");
+      Before({ tags: "@hooks" }, (world: StoryWorld) => {
+        world.log("before hook");
       });
 
-      After({ tags: "@hooks" }, function (this: StoryWorld) {
-        this.log("after hook");
+      After({ tags: "@hooks" }, (world: StoryWorld) => {
+        world.log("after hook");
       });
 
       Before({ tags: "@failingBefore" }, () => {
         throw new Error("Before hook failed on purpose");
       });
 
-      Then(
-        "I see the greeting of the story's name",
-        async function (this: StoryWorld) {
-          const { args, canvas } = this.story;
-          await expect(
-            canvas.getByText(`Hello, ${String(args.name)}`),
-          ).toBeInTheDocument();
-        },
-      );
+      Then("I see the greeting of the story's name", async (world: StoryWorld) => {
+        const { args, canvas } = world.story;
+        await expect(
+          canvas.getByText(`Hello, ${String(args.name)}`),
+        ).toBeInTheDocument();
+      });
       """
     And a file named "features/attachments.ts" with:
       """
       // The attachments' own step (`../src/Attachments.feature`): what `e2e/attachments.feature`'s step
-      // attaches in node and browser mode.
+      // attaches in node and browser mode. A `function`, its World its `this`: cucumber's own way.
       import { Given } from "@cucumber/cucumber";
       import type { StoryWorld } from "./world.ts";
 

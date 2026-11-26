@@ -31,11 +31,11 @@ Feature: The support code's API
         transformer: async (text: string) => Number.parseInt(text, 10),
       });
 
-      Given("a {color} box of {size}", function (this: TestWorld, color: Color, size: number) {
+      Given("a {color} box of {size}", (world: TestWorld, color: Color, size: number) => {
         expect(color).toBeInstanceOf(Color);
         expect(color.name).toBe("warm red");
         expect(size).toBe(20);
-        expect(this).toBeInstanceOf(TestWorld);
+        expect(world).toBeInstanceOf(TestWorld);
       });
       """
     And a file named "features/types.feature" with:
@@ -70,16 +70,16 @@ Feature: The support code's API
       }
       setWorldConstructor(Counter);
 
-      Before(function (this: Counter) {
-        expect(this.count).toBe(0);
-        this.add(1);
+      Before((world: Counter) => {
+        expect(world.count).toBe(0);
+        world.add(1);
       });
-      Given("I add {int}", function (this: Counter, amount: number) {
-        this.add(amount);
+      Given("I add {int}", (world: Counter, amount: number) => {
+        world.add(amount);
       });
-      Then("the count is {int}", function (this: Counter, expected: number) {
-        expect(this).toBeInstanceOf(Counter);
-        expect(this.count).toBe(expected);
+      Then("the count is {int}", (world: Counter, expected: number) => {
+        expect(world).toBeInstanceOf(Counter);
+        expect(world.count).toBe(expected);
       });
       """
     And a file named "features/world.feature" with:
@@ -678,6 +678,147 @@ Feature: The support code's API
     Examples:
       | mode      |
       | node      |
+      | browser   |
+      | storybook |
+
+  # Steps that come from packages: a support file imports them, nothing else names them. In node
+  # mode Node loads a package, its `@cucumber/cucumber` the plugin's as any support file's, an
+  # `import` or a `require`. In a page Vite pre-bundles a package with what it imports: cucumber
+  # is kept out of every pre-bundle, so the package's import of it stays one, which the page's
+  # `@cucumber/cucumber` answers (with it inside, the page fails as it loads: cucumber's own code
+  # is Node's). The packages' steps are the scenario's own: an arrow function taking the World,
+  # a `function`, the World class one of them exports.
+  Scenario Outline: Steps from packages the support code imports (<mode>)
+    Given a file named "node_modules/steps-lib/package.json" with:
+      """
+      {
+        "name": "steps-lib",
+        "version": "1.0.0",
+        "type": "module",
+        "exports": "./index.js",
+        "peerDependencies": { "@cucumber/cucumber": "*" }
+      }
+      """
+    And a file named "node_modules/steps-lib/index.js" with:
+      """
+      import { DataTable, When, World } from "@cucumber/cucumber";
+
+      export class Cart extends World {
+        items = [];
+      }
+
+      When("the package adds {string}", (world, item) => {
+        world.items.push(item);
+      });
+
+      When("the package adds each of:", (world, table) => {
+        if (!(table instanceof DataTable)) {
+          throw new Error("not cucumber's DataTable");
+        }
+        world.items.push(...table.raw().flat());
+      });
+      """
+    And a file named "node_modules/steps-cjs/package.json" with:
+      """
+      {
+        "name": "steps-cjs",
+        "version": "1.0.0",
+        "main": "./index.js",
+        "peerDependencies": { "@cucumber/cucumber": "*" }
+      }
+      """
+    And a file named "node_modules/steps-cjs/index.js" with:
+      """
+      const { Then } = require("@cucumber/cucumber");
+
+      Then("the CommonJS package counts {int} items", function (count) {
+        if (this.items.length !== count) {
+          throw new Error(`${this.items.length} items, not ${count}`);
+        }
+      });
+      """
+    And a file named "features/steps.ts" with:
+      """
+      import { setWorldConstructor, Then, World } from "@cucumber/cucumber";
+      import "steps-cjs";
+      import { Cart } from "steps-lib";
+      import { expect } from "vitest";
+
+      setWorldConstructor(Cart);
+
+      Then("the world is the package's, and cucumber's", (world: World) => {
+        expect(world).toBeInstanceOf(Cart);
+        expect(world).toBeInstanceOf(World);
+      });
+      """
+    And a file named "features/a.feature" with:
+      """
+      Feature: A
+        Scenario: packaged
+          When the package adds "apple"
+          And the package adds each of:
+            | kiwi |
+            | lime |
+          Then the CommonJS package counts 3 items
+          And the world is the package's, and cucumber's
+      """
+    When I run vitest in <mode> mode
+    Then it passes
+    And it runs the scenarios:
+      | NAME     | STATUS |
+      | packaged | passed |
+
+    Examples:
+      | mode      |
+      | node      |
+      | browser   |
+      | storybook |
+
+  # What a support file imports is pre-bundled as Vitest starts. Vite's scanner reads the test
+  # files to find the packages to pre-bundle, and can't read a feature file: the plugin names it
+  # the support files. Found only as a page first imports it, a package is pre-bundled then and
+  # Vite reloads the page in the middle of the run ("optimized dependencies changed. reloading",
+  # Vitest's "Vite unexpectedly reloaded a test", a story test's "Failed to fetch dynamically
+  # imported module"). Seen with no dependency cache, as a first run has (CI's): a later run
+  # finds the package in the cache.
+  Scenario Outline: A package the support code imports is pre-bundled before the tests run (<mode>)
+    Given no dependency cache
+    And a file named "node_modules/shout/package.json" with:
+      """
+      { "name": "shout", "version": "1.0.0", "main": "./index.js" }
+      """
+    And a file named "node_modules/shout/index.js" with:
+      """
+      module.exports = { shout: (text) => text.toUpperCase() };
+      """
+    And a file named "features/steps.ts" with:
+      """
+      import { Then } from "@cucumber/cucumber";
+      import shout from "shout";
+      import { expect } from "vitest";
+
+      Then("{string} shouted is {string}", (text: string, loud: string) => {
+        expect(shout.shout(text)).toBe(loud);
+      });
+      """
+    And a file named "features/a.feature" with:
+      """
+      Feature: A
+        Scenario: shouting
+          Then "pear" shouted is "PEAR"
+      """
+    When I run vitest in <mode> mode
+    Then it passes
+    And it runs the scenarios:
+      | NAME     | STATUS |
+      | shouting | passed |
+    And the output doesn't contain:
+      """
+      reload
+      """
+
+    Examples:
+      | mode      |
       | browser   |
       | storybook |
 

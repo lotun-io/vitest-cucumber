@@ -21,11 +21,16 @@ export const resolvePageCucumber = (source: string) =>
       : undefined;
 
 /**
- * The plugin itself is never pre-bundled: the page loads its modules by path (the runtime, the
- * stand-in), and a pre-bundled copy of an entry the support code imports by name
+ * What is never pre-bundled. The plugin itself: the page loads its modules by path (the runtime,
+ * the stand-in), and a pre-bundled copy of an entry the support code imports by name
  * (`@lotun/vitest-cucumber/storybook`) would be a second copy of their state (the running story).
+ * And cucumber: Vite leaves what is excluded an import in every other package's pre-bundle, so a
+ * package of steps the support code imports (pre-bundled, as any package) imports cucumber as a
+ * support file does, and gets the page's (`resolvePageCucumber`: the plugin's hooks aren't asked
+ * inside a pre-bundle). Pre-bundled with it, the package would be cucumber's own code, which is
+ * Node's: the page fails as it loads.
  */
-export const pageExcluded = ["@lotun/vitest-cucumber"];
+export const pageExcluded = ["@lotun/vitest-cucumber", "@cucumber/cucumber"];
 
 /** The packages every page's runtime imports, pre-bundled (Storybook's preview's too). */
 export const runtimeDependencies = [

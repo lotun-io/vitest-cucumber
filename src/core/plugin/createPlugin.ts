@@ -208,6 +208,8 @@ export const createPlugin = (
     root: () => root,
     /** The feature files' plans (see `../feature/plans.ts`). */
     featurePlans: plans,
+    /** The support files' globs (the `import` option), from the project's root. */
+    supportGlobs: configuration.import,
     /**
      * For a plugin built on this one (Storybook's: `../storybookPlugin.ts`): each file a watching
      * Vitest reports goes to its plans' `onFileChange` (`answer`, which tells the feature plans

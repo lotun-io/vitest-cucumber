@@ -347,15 +347,15 @@ Feature: Plugin options
       import { BeforeAll, Given, Then } from "@cucumber/cucumber";
       import { expect } from "vitest";
 
-      BeforeAll(function () {
-        expect(this.parameters).toEqual({ baseUrl: "http://a", nested: { n: 1 } });
-        this.parameters.fromBeforeAll = true;
+      BeforeAll((context) => {
+        expect(context.parameters).toEqual({ baseUrl: "http://a", nested: { n: 1 } });
+        context.parameters.fromBeforeAll = true;
       });
-      Given("I change the parameters", function () {
-        this.parameters.nested.n = 2;
+      Given("I change the parameters", (world) => {
+        world.parameters.nested.n = 2;
       });
-      Then("the parameters are the configured ones", function () {
-        expect(this.parameters).toEqual({
+      Then("the parameters are the configured ones", (world) => {
+        expect(world.parameters).toEqual({
           baseUrl: "http://a",
           nested: { n: 1 },
           fromBeforeAll: true,
@@ -396,14 +396,14 @@ Feature: Plugin options
       import { BeforeAll, Given, Then } from "@cucumber/cucumber";
       import { expect } from "vitest";
 
-      BeforeAll(function () {
-        this.parameters.fromBeforeAll = true;
+      BeforeAll((context) => {
+        context.parameters.fromBeforeAll = true;
       });
-      Given("I change the parameters", function () {
-        this.parameters.n = 2;
+      Given("I change the parameters", (world) => {
+        world.parameters.n = 2;
       });
-      Then("the parameters are the BeforeAll hook's", function () {
-        expect(this.parameters).toEqual({ n: 1, fromBeforeAll: true });
+      Then("the parameters are the BeforeAll hook's", (world) => {
+        expect(world.parameters).toEqual({ n: 1, fromBeforeAll: true });
       });
       """
     And a file named "features/a.feature" with:
@@ -489,16 +489,16 @@ Feature: Plugin options
       import { BeforeAll, Then } from "@cucumber/cucumber";
       import { expect } from "vitest";
 
-      BeforeAll(function () {
-        this.parameters.cache = new Map([["k", 1]]);
-        this.parameters.at = new Date(0);
-        this.parameters.limit = 10n;
+      BeforeAll((context) => {
+        context.parameters.cache = new Map([["k", 1]]);
+        context.parameters.at = new Date(0);
+        context.parameters.limit = 10n;
       });
-      Then("the parameters keep their types", function () {
-        expect(this.parameters.cache).toBeInstanceOf(Map);
-        expect(this.parameters.cache.get("k")).toBe(1);
-        expect(this.parameters.at).toBeInstanceOf(Date);
-        expect(this.parameters.limit).toBe(10n);
+      Then("the parameters keep their types", (world) => {
+        expect(world.parameters.cache).toBeInstanceOf(Map);
+        expect(world.parameters.cache.get("k")).toBe(1);
+        expect(world.parameters.at).toBeInstanceOf(Date);
+        expect(world.parameters.limit).toBe(10n);
       });
       """
     And a file named "features/a.feature" with:

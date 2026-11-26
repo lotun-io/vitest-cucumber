@@ -64,6 +64,23 @@ describe("a Storybook project's plugins in story tests (the preset's viteFinal g
     );
   });
 
+  test("what a page imports is pre-bundled at startup: the plugin's own packages, cucumber never, the support files for Vite's scanner", () => {
+    const config = pluginsOf().byName.get("vitest-cucumber:browser")
+      ?.config as (config: object) => {
+      optimizeDeps: { include: string[]; exclude: string[]; entries: string[] };
+    };
+    const { optimizeDeps } = config({});
+    // The `import` option's globs, as written: from the root, as Vite reads its entries.
+    expect(optimizeDeps.entries).toEqual(["steps/*.ts"]);
+    expect(optimizeDeps.exclude).toEqual([
+      "@lotun/vitest-cucumber",
+      "@cucumber/cucumber",
+    ]);
+    expect(optimizeDeps.include).toContain(
+      "@lotun/vitest-cucumber > @cucumber/core",
+    );
+  });
+
   test("browser mode's hooks, without its feature transform; the stories module; the story tests' imports", () => {
     const { plugins, byName } = pluginsOf();
     expect(plugins.map(({ name }) => name)).toEqual([

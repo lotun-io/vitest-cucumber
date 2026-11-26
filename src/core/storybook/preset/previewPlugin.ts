@@ -7,12 +7,14 @@
 // `../stories/featureStories.ts`). In `storybook dev`: definition locations (`./locate.ts`), and the
 // dev server's watcher (`./devWatch.ts`: the features made again as a file changes their stories module).
 // A feature that can't be used has its error on its plan, and its module gives it (`../../feature/plans.ts`).
+import path from "node:path";
 import type { Plugin } from "vitest/config";
 import type {
   LocateRequest,
   LocateResponse,
 } from "../../../types/storybook.ts";
 import { locatedEvent, locateEvent } from "../../../utils/previewLocate.ts";
+import { slash } from "../../../utils/slash.ts";
 import {
   pageExcluded,
   resolvePageCucumber,
@@ -47,9 +49,19 @@ export const storybookPreviewPlugin = (options: PresetOptions): Plugin => {
     name: "vitest-cucumber:storybook-preview",
     enforce: "pre",
     // The runtime's packages, pre-bundled at startup (as browser mode's: `../../browserPlugin.ts`; the
-    // preview throws the original errors and sends no messages: no Vitest serialization).
+    // preview throws the original errors and sends no messages: no Vitest serialization), and the
+    // support files for Vite's scanner, which Storybook gives the stories (a feature file among
+    // them, which it can't read): whole paths, Storybook's Vite root being its own to choose.
     config: () => ({
-      optimizeDeps: { include: runtimeDependencies, exclude: pageExcluded },
+      optimizeDeps: {
+        include: runtimeDependencies,
+        exclude: pageExcluded,
+        entries: project.supportGlobs.map((glob) =>
+          path.isAbsolute(glob)
+            ? slash(glob)
+            : path.posix.join(slash(root), slash(glob)),
+        ),
+      },
     }),
     // `storybook dev`: the page's definition calls located with the served modules' source maps,
     // as main locates browser mode's (`./locate.ts`).

@@ -9,7 +9,7 @@
   "devDependencies": {
     "@cucumber/cucumber": "catalog:",
     "@lotun/vitest-cucumber": "catalog:",
-    "@vitest/browser": "^5.1.1",
+    "@vitest/browser": "catalog:",
     "@vitest/browser-playwright": "catalog:",
     "playwright": "catalog:",
     "typescript": "catalog:",

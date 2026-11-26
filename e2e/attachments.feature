@@ -13,14 +13,14 @@ Feature: Attachments
       """
       import { Given, World } from "@cucumber/cucumber";
 
-      Given("a step that attaches", function (this: World) {
-        this.log("a log line");
-        this.attach("some text", "text/plain");
-        this.attach(JSON.stringify({ ok: true }), "application/json");
-        this.attach("iVBORw0KGgo=", "base64:image/png");
-        this.attach("named", { mediaType: "text/plain", fileName: "report.txt" });
-        this.attach("iVBORw0KGgo=", { mediaType: "base64:image/png", fileName: "pixel.png" });
-        this.link("https://example.com/report");
+      Given("a step that attaches", (world: World) => {
+        world.log("a log line");
+        world.attach("some text", "text/plain");
+        world.attach(JSON.stringify({ ok: true }), "application/json");
+        world.attach("iVBORw0KGgo=", "base64:image/png");
+        world.attach("named", { mediaType: "text/plain", fileName: "report.txt" });
+        world.attach("iVBORw0KGgo=", { mediaType: "base64:image/png", fileName: "pixel.png" });
+        world.link("https://example.com/report");
       });
       """
     And a file named "features/a.feature" with:
@@ -52,14 +52,14 @@ Feature: Attachments
       """
       import { After, Before, Given, World } from "@cucumber/cucumber";
 
-      Before(async function (this: World) {
-        await this.log("from Before");
+      Before(async (world: World) => {
+        await world.log("from Before");
       });
-      After(async function (this: World) {
-        await this.log("from After");
+      After(async (world: World) => {
+        await world.log("from After");
       });
-      Given("a step", async function (this: World) {
-        await this.log("from the step");
+      Given("a step", async (world: World) => {
+        await world.log("from the step");
       });
       """
     And a file named "features/a.feature" with:
@@ -89,12 +89,12 @@ Feature: Attachments
       """
       import { Given, World } from "@cucumber/cucumber";
 
-      Given("a step that logs and fails", function (this: World) {
-        this.log("logged before failing");
+      Given("a step that logs and fails", (world: World) => {
+        world.log("logged before failing");
         throw new Error("Step failed");
       });
-      Given("a step that logs and is pending", function (this: World) {
-        this.log("logged while pending");
+      Given("a step that logs and is pending", (world: World) => {
+        world.log("logged while pending");
         return "pending";
       });
       """
@@ -141,8 +141,8 @@ Feature: Attachments
       """
       import { Given, World } from "@cucumber/cucumber";
 
-      Given("a step that attaches an object", function (this: World) {
-        this.attach({ not: "data" } as never, "application/json");
+      Given("a step that attaches an object", (world: World) => {
+        world.attach({ not: "data" } as never, "application/json");
       });
       """
     And a file named "features/a.feature" with:
@@ -170,11 +170,11 @@ Feature: Attachments
       """
       import { Given, World } from "@cucumber/cucumber";
 
-      Given("a step that catches its attachment's error", async function (this: World) {
+      Given("a step that catches its attachment's error", async (world: World) => {
         try {
-          await this.attach({ not: "data" } as never, "application/json");
+          await world.attach({ not: "data" } as never, "application/json");
         } catch {
-          this.log("caught");
+          world.log("caught");
         }
       });
       """
@@ -204,9 +204,9 @@ Feature: Attachments
       import { Given, World } from "@cucumber/cucumber";
 
       let attempt = 0;
-      Given("a flaky step that logs", function (this: World) {
+      Given("a flaky step that logs", (world: World) => {
         attempt++;
-        this.log(`attempt ${attempt}`);
+        world.log(`attempt ${attempt}`);
         if (attempt === 1) {
           throw new Error("Flaky");
         }
@@ -247,11 +247,11 @@ Feature: Attachments
 
       let nextStarted = false;
 
-      Given("a step that times out and logs later", { timeout: 50 }, function () {
+      Given("a step that times out and logs later", { timeout: 50 }, (world) => {
         const poll = setInterval(() => {
           if (nextStarted) {
             clearInterval(poll);
-            this.log("late log");
+            world.log("late log");
           }
         }, 10);
         return new Promise(() => {});

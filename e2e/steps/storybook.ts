@@ -9,7 +9,10 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { expect } from "vitest";
 import { writeDefaultConfig } from "../support/project.ts";
-import { featureStoriesFiles } from "../support/storybookProject.ts";
+import {
+  featureStoriesFiles,
+  withOwnPackages,
+} from "../support/storybookProject.ts";
 import {
   build,
   chromium,
@@ -20,24 +23,21 @@ import {
 import type { E2EWorld } from "../support/world.ts";
 
 // The default config's `storybook` mode: the scenario's project a Storybook project.
-Given("a Storybook project", function (this: E2EWorld) {
-  return writeDefaultConfig.call(this, "storybook");
+Given("a Storybook project", (world: E2EWorld) => {
+  return writeDefaultConfig.call(world, "storybook");
 });
 
 /** Builds the project's preview (`storybook build`): its result. */
 async function buildStorybook(this: E2EWorld) {
   await featureStoriesFiles.call(this);
+  await withOwnPackages.call(this);
   return build(this.dir);
 }
 
-When(
-  "I build its Storybook",
-  { timeout: 120_000 },
-  async function (this: E2EWorld) {
-    const { exitCode, output } = await buildStorybook.call(this);
-    expect(exitCode, output).toBe(0);
-  },
-);
+When("I build its Storybook", { timeout: 120_000 }, async (world: E2EWorld) => {
+  const { exitCode, output } = await buildStorybook.call(world);
+  expect(exitCode, output).toBe(0);
+});
 
 // A build Storybook stops (a broken stories file, or feature file: its index fails), its output with
 // each line of `text` (Storybook's printer wraps a message's lines, each in its frame: `│`, `|` on
@@ -45,8 +45,8 @@ When(
 Then(
   "building its Storybook fails with:",
   { timeout: 120_000 },
-  async function (this: E2EWorld, text: string) {
-    const { exitCode, output } = await buildStorybook.call(this);
+  async (world: E2EWorld, text: string) => {
+    const { exitCode, output } = await buildStorybook.call(world);
     expect(exitCode, output).not.toBe(0);
     for (const line of text.split("\n")) {
       expect(output).toContain(line);
@@ -57,9 +57,10 @@ Then(
 When(
   "I start its Storybook dev server",
   { timeout: 120_000 },
-  async function (this: E2EWorld) {
-    await featureStoriesFiles.call(this);
-    this.storybookDev = await startDev(this.dir);
+  async (world: E2EWorld) => {
+    await featureStoriesFiles.call(world);
+    await withOwnPackages.call(world);
+    world.storybookDev = await startDev(world.dir);
   },
 );
 
@@ -68,9 +69,10 @@ When(
 When(
   "I start its Storybook dev server from the folder above",
   { timeout: 120_000 },
-  async function (this: E2EWorld) {
-    await featureStoriesFiles.call(this);
-    this.storybookDev = await startDev(this.dir, path.dirname(this.dir));
+  async (world: E2EWorld) => {
+    await featureStoriesFiles.call(world);
+    await withOwnPackages.call(world);
+    world.storybookDev = await startDev(world.dir, path.dirname(world.dir));
   },
 );
 
@@ -79,16 +81,16 @@ When(
 Then(
   "its stories show:",
   { timeout: 120_000 },
-  async function (this: E2EWorld, table: DataTable) {
+  async (world: E2EWorld, table: DataTable) => {
     const stories = new Map<string, Record<string, string>[]>();
     for (const row of table.hashes()) {
       const story = row.STORY ?? "";
       stories.set(story, [...(stories.get(story) ?? []), row]);
     }
     // The dev server's, if the scenario started one, else the static build's.
-    const { url, server } = this.storybookDev
-      ? { url: this.storybookDev.url, server: undefined }
-      : await serve(path.join(this.dir, "storybook-static"));
+    const { url, server } = world.storybookDev
+      ? { url: world.storybookDev.url, server: undefined }
+      : await serve(path.join(world.dir, "storybook-static"));
     const page = await (
       await chromium()
     ).newPage({
@@ -134,8 +136,8 @@ async function indexEntries(this: E2EWorld) {
 
 // Storybook's index: one row per story, its id (`STORY`), its `TITLE` (its place in the sidebar)
 // and its `NAME`.
-Then("its index lists:", async function (this: E2EWorld, table: DataTable) {
-  const entries = await indexEntries.call(this);
+Then("its index lists:", async (world: E2EWorld, table: DataTable) => {
+  const entries = await indexEntries.call(world);
   expect(
     table.hashes().map(({ STORY = "" }) => {
       const entry = entries[STORY];
@@ -146,8 +148,8 @@ Then("its index lists:", async function (this: E2EWorld, table: DataTable) {
 
 // Storybook's index: one row per story, its id (`STORY`) and whether it has Storybook's own `DEV`
 // tag (it's listed in the sidebar) and `TEST` tag (the Vitest addon runs it): `yes` or `no`.
-Then("its index tags:", async function (this: E2EWorld, table: DataTable) {
-  const entries = await indexEntries.call(this);
+Then("its index tags:", async (world: E2EWorld, table: DataTable) => {
+  const entries = await indexEntries.call(world);
   const has = (story: string, tag: string) =>
     entries[story]?.tags?.includes(tag) ? "yes" : "no";
   expect(

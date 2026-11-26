@@ -10,7 +10,7 @@ Feature: Vitest workers
 
       BeforeAll(() => console.log("BeforeAll hook ran"));
       AfterAll(() => console.log("AfterAll hook ran"));
-      Given("a passing step", function () {
+      Given("a passing step", () => {
         // As cucumber's parallel mode gives them: `import.meta.env` in a page, `process.env` in Node.
         const env = import.meta.env.CUCUMBER_WORKER_ID ? import.meta.env : process.env;
         if (env.CUCUMBER_PARALLEL !== "true") {

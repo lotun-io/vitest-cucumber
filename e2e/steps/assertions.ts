@@ -54,12 +54,12 @@ const expectedScenarios = (table: DataTable) =>
     .hashes()
     .map(({ NAME, STATUS }) => ({ name: NAME, status: stateOf(STATUS) }));
 
-Then("it passes", function (this: E2EWorld) {
-  expect(this.lastRun.exitCode, this.lastRun.output).toBe(0);
+Then("it passes", (world: E2EWorld) => {
+  expect(world.lastRun.exitCode, world.lastRun.output).toBe(0);
 });
 
-Then("it fails", function (this: E2EWorld) {
-  expect(this.lastRun.exitCode, this.lastRun.output).not.toBe(0);
+Then("it fails", (world: E2EWorld) => {
+  expect(world.lastRun.exitCode, world.lastRun.output).not.toBe(0);
 });
 
 for (const [step, state] of [
@@ -67,13 +67,13 @@ for (const [step, state] of [
   ["the feature file {string} fails", "failed"],
   ["the feature file {string} is skipped", "skipped"],
 ]) {
-  Then(step, function (this: E2EWorld, file: string) {
-    expect(this.lastRun.modules.get(file), this.lastRun.output).toBe(state);
+  Then(step, (world: E2EWorld, file: string) => {
+    expect(world.lastRun.modules.get(file), world.lastRun.output).toBe(state);
   });
 }
 
-Then("it runs the scenarios:", function (this: E2EWorld, table: DataTable) {
-  expect(scenarios(this.lastRun), this.lastRun.output).toEqual(
+Then("it runs the scenarios:", (world: E2EWorld, table: DataTable) => {
+  expect(scenarios(world.lastRun), world.lastRun.output).toEqual(
     expectedScenarios(table),
   );
 });
@@ -81,36 +81,36 @@ Then("it runs the scenarios:", function (this: E2EWorld, table: DataTable) {
 // Several projects run at the same time: their scenarios come in any order.
 Then(
   "it runs the scenarios, in any order:",
-  function (this: E2EWorld, table: DataTable) {
+  (world: E2EWorld, table: DataTable) => {
     const byName = (a: { name: string }, b: { name: string }) =>
       a.name.localeCompare(b.name);
-    expect(scenarios(this.lastRun).sort(byName), this.lastRun.output).toEqual(
+    expect(scenarios(world.lastRun).sort(byName), world.lastRun.output).toEqual(
       expectedScenarios(table).sort(byName),
     );
   },
 );
 
-Then("it runs no scenarios", function (this: E2EWorld) {
-  expect(scenarios(this.lastRun), this.lastRun.output).toEqual([]);
+Then("it runs no scenarios", (world: E2EWorld) => {
+  expect(scenarios(world.lastRun), world.lastRun.output).toEqual([]);
 });
 
 // Its text, without its colors (a page's diffs are colored whatever the terminal: Vitest's).
-Then("the output contains:", function (this: E2EWorld, text: string) {
-  expect(stripVTControlCharacters(this.lastRun.output)).toContain(text);
+Then("the output contains:", (world: E2EWorld, text: string) => {
+  expect(stripVTControlCharacters(world.lastRun.output)).toContain(text);
 });
 
-Then("the output doesn't contain:", function (this: E2EWorld, text: string) {
-  expect(stripVTControlCharacters(this.lastRun.output)).not.toContain(text);
+Then("the output doesn't contain:", (world: E2EWorld, text: string) => {
+  expect(stripVTControlCharacters(world.lastRun.output)).not.toContain(text);
 });
 
 // A file the run wrote, in the directory it ran in: e.g. a cucumber formatter's
 // (`format: [["message", "messages.ndjson"]]`).
 Then(
   "the file {string} contains:",
-  async function (this: E2EWorld, name: string, text: string) {
-    expect(await readFile(path.join(this.lastRun.dir, name), "utf8")).toContain(
-      text,
-    );
+  async (world: E2EWorld, name: string, text: string) => {
+    expect(
+      await readFile(path.join(world.lastRun.dir, name), "utf8"),
+    ).toContain(text);
   },
 );
 
@@ -118,28 +118,25 @@ Then(
 // the platform's separator (`\` on Windows), where the plugin's and Vitest's have `/`.
 Then(
   "the file {string} contains, with the platform's separators:",
-  async function (this: E2EWorld, name: string, text: string) {
-    expect(await readFile(path.join(this.lastRun.dir, name), "utf8")).toContain(
-      text.replaceAll("/", path.sep),
-    );
+  async (world: E2EWorld, name: string, text: string) => {
+    expect(
+      await readFile(path.join(world.lastRun.dir, name), "utf8"),
+    ).toContain(text.replaceAll("/", path.sep));
   },
 );
 
-Then(
-  "the file {string} doesn't exist",
-  function (this: E2EWorld, name: string) {
-    expect(existsSync(path.join(this.lastRun.dir, name))).toBe(false);
-  },
-);
+Then("the file {string} doesn't exist", (world: E2EWorld, name: string) => {
+  expect(existsSync(path.join(world.lastRun.dir, name))).toBe(false);
+});
 
 // Vitest's coverage of a file, as its json reporter writes it (`coverage/coverage-final.json`): each
 // line a statement starts at, its hits (its statements' most).
 Then(
   "the coverage of {string} is:",
-  async function (this: E2EWorld, name: string, table: DataTable) {
+  async (world: E2EWorld, name: string, table: DataTable) => {
     const report = JSON.parse(
       await readFile(
-        path.join(this.lastRun.dir, "coverage/coverage-final.json"),
+        path.join(world.lastRun.dir, "coverage/coverage-final.json"),
         "utf8",
       ),
     ) as Record<
@@ -149,7 +146,7 @@ Then(
         s: Record<string, number>;
       }
     >;
-    const file = report[path.join(this.lastRun.dir, name)];
+    const file = report[path.join(world.lastRun.dir, name)];
     if (!file) {
       throw new Error(
         `No coverage of ${name}:\n${Object.keys(report).join("\n")}`,
@@ -176,9 +173,9 @@ Then(
 
 Then(
   "the scenario {string} fails with:",
-  function (this: E2EWorld, name: string, message: string) {
-    const test = scenarioNamed(this.lastRun, name);
-    expect(test?.state, this.lastRun.output).toBe("failed");
+  (world: E2EWorld, name: string, message: string) => {
+    const test = scenarioNamed(world.lastRun, name);
+    expect(test?.state, world.lastRun.output).toBe("failed");
     expect(test?.errors.join("\n")).toContain(message);
   },
 );
@@ -188,8 +185,8 @@ Then(
 // feature file), then the user's frames in `file` the plain test's, none of cucumber's.
 Then(
   "each scenario's frames in {string} are its plain test's:",
-  function (this: E2EWorld, file: string, table: DataTable) {
-    const { dir, output, tests } = this.lastRun;
+  (world: E2EWorld, file: string, table: DataTable) => {
+    const { dir, output, tests } = world.lastRun;
     const framesOf = (name: string) => {
       const test = tests.find((test) => test.name === name);
       expect(test?.state, `${name}:\n${output}`).toBe("failed");
@@ -228,33 +225,33 @@ const occurrences = (output: string, text: string) =>
 // The scenarios' hooks log it: `console.log("<name> hook ran")`.
 Then(
   "the {word} hooks run {int} time(s)",
-  function (this: E2EWorld, name: string, times: number) {
+  (world: E2EWorld, name: string, times: number) => {
     expect(
-      occurrences(this.lastRun.output, `${name} hook ran`),
-      this.lastRun.output,
+      occurrences(world.lastRun.output, `${name} hook ran`),
+      world.lastRun.output,
     ).toBe(times);
   },
 );
 
 Then(
   "the scenario {string} is attempted {int} time(s)",
-  function (this: E2EWorld, name: string, times: number) {
-    const test = scenarioNamed(this.lastRun, name);
-    expect(test?.retryCount, this.lastRun.output).toBe(times - 1);
+  (world: E2EWorld, name: string, times: number) => {
+    const test = scenarioNamed(world.lastRun, name);
+    expect(test?.retryCount, world.lastRun.output).toBe(times - 1);
   },
 );
 
 // In any order: Vitest runs the feature files in parallel.
 // With a `NOTE` column, each skipped test's note too (`ctx.skip(note)`; empty: none).
 // What the last `vitest list` found, in its order: each test's full name and its `file:line:column`.
-Then("it lists the tests:", function (this: E2EWorld, table: DataTable) {
-  if (!this.listed) {
+Then("it lists the tests:", (world: E2EWorld, table: DataTable) => {
+  if (!world.listed) {
     throw new Error(
       "Nothing listed: add a `When I list its tests in <mode> mode` step",
     );
   }
-  expect(this.listed.errors, this.listed.output).toEqual([]);
-  expect(this.listed.tests, this.listed.output).toEqual(
+  expect(world.listed.errors, world.listed.output).toEqual([]);
+  expect(world.listed.tests, world.listed.output).toEqual(
     table.hashes().map(({ NAME, LOCATION }) => ({
       name: NAME,
       location: LOCATION,
@@ -262,20 +259,20 @@ Then("it lists the tests:", function (this: E2EWorld, table: DataTable) {
   );
 });
 
-Then("Vitest reports the tests:", function (this: E2EWorld, table: DataTable) {
+Then("Vitest reports the tests:", (world: E2EWorld, table: DataTable) => {
   const byName = (tests: { name: string }[]) =>
     tests.toSorted((a, b) => a.name.localeCompare(b.name));
   const rows = table.hashes();
   const withNotes = rows.some((row) => "NOTE" in row);
   expect(
     byName(
-      this.lastRun.tests.map(({ name, state, note }) => ({
+      world.lastRun.tests.map(({ name, state, note }) => ({
         name,
         state,
         ...(withNotes && { note }),
       })),
     ),
-    this.lastRun.output,
+    world.lastRun.output,
   ).toEqual(
     byName(
       rows.map(({ NAME, STATE, NOTE }) => ({
@@ -297,9 +294,9 @@ const annotationsOf = (table: DataTable) =>
 
 Then(
   "the test {string} has the annotations:",
-  function (this: E2EWorld, name: string, table: DataTable) {
-    const test = testNamed(this.lastRun, name);
-    expect(test?.annotations, this.lastRun.output).toEqual(
+  (world: E2EWorld, name: string, table: DataTable) => {
+    const test = testNamed(world.lastRun, name);
+    expect(test?.annotations, world.lastRun.output).toEqual(
       annotationsOf(table),
     );
   },
@@ -308,11 +305,11 @@ Then(
 // Every test of that name (e.g. one per browser instance), at least one.
 Then(
   "each test {string} has the annotations:",
-  function (this: E2EWorld, name: string, table: DataTable) {
-    const tests = this.lastRun.tests.filter((test) => test.name === name);
-    expect(tests.length, this.lastRun.output).toBeGreaterThan(0);
+  (world: E2EWorld, name: string, table: DataTable) => {
+    const tests = world.lastRun.tests.filter((test) => test.name === name);
+    expect(tests.length, world.lastRun.output).toBeGreaterThan(0);
     for (const test of tests) {
-      expect(test.annotations, this.lastRun.output).toEqual(
+      expect(test.annotations, world.lastRun.output).toEqual(
         annotationsOf(table),
       );
     }
@@ -323,9 +320,9 @@ Then(
 // `toHaveBeenCalledWith` does).
 Then(
   "the test {string} fails with:",
-  function (this: E2EWorld, name: string, message: string) {
-    const test = testNamed(this.lastRun, name);
-    expect(test?.state, this.lastRun.output).toBe("failed");
+  (world: E2EWorld, name: string, message: string) => {
+    const test = testNamed(world.lastRun, name);
+    expect(test?.state, world.lastRun.output).toBe("failed");
     expect(stripVTControlCharacters(test?.errors.join("\n") ?? "")).toContain(
       message,
     );
@@ -337,36 +334,36 @@ const hasColors = (text: string) => stripVTControlCharacters(text) !== text;
 
 Then(
   "the test {string} has colors in its error as Vitest's output has",
-  function (this: E2EWorld, name: string) {
-    const error = testNamed(this.lastRun, name)?.errors.join("\n") ?? "";
-    expect(error, this.lastRun.output).not.toBe("");
-    expect(hasColors(error), error).toBe(hasColors(this.lastRun.output));
+  (world: E2EWorld, name: string) => {
+    const error = testNamed(world.lastRun, name)?.errors.join("\n") ?? "";
+    expect(error, world.lastRun.output).not.toBe("");
+    expect(hasColors(error), error).toBe(hasColors(world.lastRun.output));
   },
 );
 
 // The scenarios' steps log it: `console.log(`worker id: ${id}`)`.
 Then(
   "the scenarios log {int} different worker id(s)",
-  function (this: E2EWorld, count: number) {
-    const ids = [...this.lastRun.output.matchAll(/worker id: (\S*)/g)].map(
+  (world: E2EWorld, count: number) => {
+    const ids = [...world.lastRun.output.matchAll(/worker id: (\S*)/g)].map(
       ([, id]) => id,
     );
-    expect(ids, this.lastRun.output).not.toEqual([]);
+    expect(ids, world.lastRun.output).not.toEqual([]);
     // Numbers, as cucumber's.
-    expect(ids, this.lastRun.output).toEqual(
+    expect(ids, world.lastRun.output).toEqual(
       ids.map(() => expect.stringMatching(/^\d+$/)),
     );
-    expect(new Set(ids).size, this.lastRun.output).toBe(count);
+    expect(new Set(ids).size, world.lastRun.output).toBe(count);
   },
 );
 
 // The cucumber the scenarios' projects get: this repository's.
 Then(
   "the output contains the installed cucumber's version, after {string}",
-  function (this: E2EWorld, prefix: string) {
+  (world: E2EWorld, prefix: string) => {
     const { version } = createRequire(import.meta.url)(
       "@cucumber/cucumber/package.json",
     ) as { version: string };
-    expect(this.lastRun.output).toContain(`${prefix}${version}`);
+    expect(world.lastRun.output).toContain(`${prefix}${version}`);
   },
 );

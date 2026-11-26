@@ -221,21 +221,21 @@ Feature: Hooks
         events: string[] = [];
       }
       setWorldConstructor(Events);
-      BeforeStep(function (this: Events) {
-        this.events.push("before");
+      BeforeStep((world: Events) => {
+        world.events.push("before");
       });
-      AfterStep(function (this: Events, { result }) {
-        this.events.push(`after ${result.status}`);
+      AfterStep((world: Events, { result }) => {
+        world.events.push(`after ${result.status}`);
       });
-      BeforeStep({ tags: "@tagged" }, function (this: Events) {
-        this.events.push("tagged");
+      BeforeStep({ tags: "@tagged" }, (world: Events) => {
+        world.events.push("tagged");
       });
-      Given("a recording step", function (this: Events) {
-        this.events.push("step");
+      Given("a recording step", (world: Events) => {
+        world.events.push("step");
       });
-      Given("the events are {string}", function (this: Events, expected: string) {
-        if (this.events.join(", ") !== expected) {
-          throw new Error(`events: ${this.events.join(", ")}`);
+      Given("the events are {string}", (world: Events, expected: string) => {
+        if (world.events.join(", ") !== expected) {
+          throw new Error(`events: ${world.events.join(", ")}`);
         }
       });
       """

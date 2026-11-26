@@ -56,6 +56,8 @@ const createProject = (options: PresetOptions) => {
     plans,
     /** The feature files' Storybook plans, on `plans`. */
     storybookPlans,
+    /** The support files' globs (the `import` option), from the root. */
+    supportGlobs: configuration.import,
     /** `storybook dev`: `listener` is called as the linked features change (`featuresMap`'s). */
     onLinkedFeaturesChanged: (listener: () => void | Promise<void>) => {
       linkedFeaturesChanged = listener;

@@ -124,16 +124,27 @@ export class E2EWorld extends World {
   /** The files the steps wrote before the run, by name (relative to `dir`): their content. */
   files = new Map<string, string>();
 
+  /** The scenario's runs start with no dependency cache, as a first run does (`../steps/files.ts`). */
+  coldCaches = false;
+
   file(name: string): string {
     return path.join(this.dir, name);
   }
 
-  /** Writes the file `name` of the scenario's project. */
+  /**
+   * Writes the file `name` of the scenario's project. One in `node_modules` (a package of the
+   * scenario's own, e.g. steps its support code imports) is only kept: the folder its run's
+   * Vitest starts in gets it (`runDirFor`, `./kept.ts`: a run's alone, `When I run vitest`), never
+   * the scenario's `node_modules`, which in a Storybook project is a link to `storybook/`'s.
+   */
   async write(name: string, content: string) {
+    this.files.set(normalize(name), content);
+    if (normalize(name).split("/")[0] === "node_modules") {
+      return;
+    }
     const file = this.file(name);
     await mkdir(path.dirname(file), { recursive: true });
     await writeFile(file, content);
-    this.files.set(normalize(name), content);
   }
 
   get lastRun(): RunResult {
@@ -146,27 +157,27 @@ export class E2EWorld extends World {
 
 setWorldConstructor(E2EWorld);
 
-Before(async function (this: E2EWorld, { pickle }) {
+Before(async (world: E2EWorld, { pickle }) => {
   const feature = path.basename(pickle.uri, ".feature");
   const line = pickle.location?.line ?? 0;
-  this.dir = path.resolve("tmp", "e2e", `${feature}_${line}`);
-  await rm(this.dir, removeOptions);
+  world.dir = path.resolve("tmp", "e2e", `${feature}_${line}`);
+  await rm(world.dir, removeOptions);
   // The plugin, as if installed: a scenario's own package.json would hide this package from it.
-  const plugin = path.join(this.dir, "node_modules/@lotun/vitest-cucumber");
+  const plugin = path.join(world.dir, "node_modules/@lotun/vitest-cucumber");
   await mkdir(path.dirname(plugin), { recursive: true });
   await symlink(path.resolve(), plugin, "dir");
   // Every scenario has a config: the default one, unless it replaces it (see `../steps/files.ts`).
-  await writeDefaultConfig.call(this, "node");
+  await writeDefaultConfig.call(world, "node");
 });
 
 // Every resource the scenario opened is closed, whatever one of them throws (a `storybook dev` left
 // running would outlive the whole run: it has a session of its own); then the first error, if any.
-After(async function (this: E2EWorld) {
+After(async (world: E2EWorld) => {
   const closes = [
-    () => this.watching?.close(),
-    () => this.open?.close(),
-    () => this.storybookPage?.page.close(),
-    () => this.storybookDev?.close(),
+    () => world.watching?.close(),
+    () => world.open?.close(),
+    () => world.storybookPage?.page.close(),
+    () => world.storybookDev?.close(),
   ];
   const errors: unknown[] = [];
   for (const close of closes) {
@@ -177,7 +188,7 @@ After(async function (this: E2EWorld) {
     }
   }
   if (!process.env.E2E_KEEP) {
-    await rm(this.dir, removeOptions);
+    await rm(world.dir, removeOptions);
   }
   if (errors.length > 0) {
     throw errors[0];

@@ -1,5 +1,13 @@
 # @lotun/vitest-cucumber
 
+## 1.0.0-beta.8
+
+### Patch Changes
+
+- Steps from an npm package work in browser mode, Storybook's story tests and `storybook dev`: a support file imports the package, nothing else names it. Vite pre-bundled such a package together with Cucumber's own Node code, so the page failed as the support code loaded ("Cannot destructure property 'TERM' of 'env'"); node mode already worked
+- Storybook: in a static build (`storybook build`), an arrow function's `world` argument is recognised again (a test run hook's `context` too). The build minifies the support code and renames the parameter, so every such step or hook was called as Cucumber's own ("function uses multiple asynchronous interfaces", `world.story` undefined); story tests and `storybook dev` were not affected
+- A package a support file imports is pre-bundled as Vitest or Storybook starts, in browser mode, Storybook's story tests and `storybook dev`. Vite's scanner could not see the support files behind the feature files, so such a package was found only as the page first imported it: Vite pre-bundled it then and reloaded the page in the middle of the run ("Vite unexpectedly reloaded a test"; a story test could fail with "Failed to fetch dynamically imported module"), on every first run, CI's among them
+
 ## 1.0.0-beta.7
 
 ### Patch Changes

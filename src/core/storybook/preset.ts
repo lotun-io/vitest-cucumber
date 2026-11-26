@@ -15,6 +15,7 @@ import type { StoryIndexGenerator } from "storybook/internal/core-server";
 import type { Options } from "storybook/internal/types";
 import { createStorybookPlugin } from "../storybookPlugin.ts";
 import { ownModule } from "../utils/ownModule.ts";
+import { firstParameterMarks } from "./preset/firstParameterMarks.ts";
 import { importPathOf } from "./preset/importPath.ts";
 import { featureIndexer, type Indexer } from "./preset/indexer.ts";
 import { storybookPreviewPlugin } from "./preset/previewPlugin.ts";
@@ -68,9 +69,11 @@ export const previewAnnotations = (entries: string[] = []) => [
 ];
 
 /**
- * The Vite config's plugins: as Storybook serves or builds its preview, the preview plugin; in the
- * addon's Vitest runs (which add a preset's `viteFinal` plugins to the Storybook project), the
- * project's story tests' plugins, from Storybook's options (the addon entry's among them).
+ * The Vite config's plugins: as Storybook serves or builds its preview, the preview plugin, and
+ * for a build the one that marks the World-taking functions before they're minified
+ * (`./preset/firstParameterMarks.ts`); in the addon's Vitest runs (which add a preset's
+ * `viteFinal` plugins to the Storybook project), the project's story tests' plugins, from
+ * Storybook's options (the addon entry's among them).
  */
 export const viteFinal = async (
   config: { plugins?: unknown[] },
@@ -81,6 +84,6 @@ export const viteFinal = async (
     ...(config.plugins ?? []),
     ...(process.env.VITEST
       ? createStorybookPlugin(options)
-      : [storybookPreviewPlugin(options)]),
+      : [firstParameterMarks(), storybookPreviewPlugin(options)]),
   ],
 });

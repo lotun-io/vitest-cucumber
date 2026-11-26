@@ -43,12 +43,16 @@ export const createBrowserHooks = (options: Partial<CucumberOptions>) => {
           // applies the opt-out there.
           fsModuleCache: false,
         },
-        // Our page-side dependencies, pre-bundled at startup: Vite's scanner can't see them behind
-        // `.feature` files, and a dependency found mid-run makes Vite reload the page.
+        // What the page imports, pre-bundled at startup: Vite's scanner reads the test files to find
+        // the packages to pre-bundle and can't read a `.feature` file, and a package found only as
+        // the page first imports it is pre-bundled then, Vite reloading the page mid-run.
         optimizeDeps: {
           // The page's support code, runner and summary (`../worker/browser/`, `../worker/platform/summary/`).
           include: pageDependencies,
           exclude: pageExcluded,
+          // The project's own: its support files, for the scanner to follow (their globs, from
+          // the root, as Vite reads its entries).
+          entries: core.supportGlobs,
         },
       };
     },

@@ -80,8 +80,8 @@ const expectOneRun = (stream: readonly Envelope[]) => {
 };
 
 // The harness collects the runs' messages from now on (`../support/messages.ts`).
-Given("the run's messages are collected", function (this: E2EWorld) {
-  this.messages = [];
+Given("the run's messages are collected", (world: E2EWorld) => {
+  world.messages = [];
 });
 
 // The run's one stream (every project's in it): a cucumber run, its test cases' scenarios (in any
@@ -89,9 +89,9 @@ Given("the run's messages are collected", function (this: E2EWorld) {
 // alone).
 Then(
   "the run's stream has the test cases:",
-  function (this: E2EWorld, table: DataTable) {
-    expect(runs(this)).toHaveLength(1);
-    const stream = lastRun(this);
+  (world: E2EWorld, table: DataTable) => {
+    expect(runs(world)).toHaveLength(1);
+    const stream = lastRun(world);
     expectOneRun(stream);
     const { testCases } = scenarioNames(stream);
     const workers = new Map(
@@ -113,8 +113,8 @@ Then(
 // Every feature file once, whatever projects or plugins ran it: each test case's pickle sent.
 Then(
   "each feature file is in the stream once, its pickles every test case's",
-  function (this: E2EWorld) {
-    const stream = lastRun(this);
+  (world: E2EWorld) => {
+    const stream = lastRun(world);
     const uris = stream.flatMap(({ source }) => (source ? [source.uri] : []));
     expect(uris.length).toBeGreaterThan(0);
     expect(new Set(uris).size).toBe(uris.length);
@@ -134,8 +134,8 @@ Then(
 // The text of a scenario's failed step (or hook): as Vitest prints its error.
 Then(
   "in the stream, the scenario {string} fails with:",
-  function (this: E2EWorld, scenario: string, text: string) {
-    const stream = lastRun(this);
+  (world: E2EWorld, scenario: string, text: string) => {
+    const stream = lastRun(world);
     const { started } = scenarioNames(stream);
     const messages = stream.flatMap(({ testStepFinished }) =>
       testStepFinished?.testStepResult.status === "FAILED" &&
@@ -150,8 +150,8 @@ Then(
 // Each attempt of a scenario, in order: its number, whether it's retried.
 Then(
   "in the stream, the attempts are:",
-  function (this: E2EWorld, table: DataTable) {
-    const stream = lastRun(this);
+  (world: E2EWorld, table: DataTable) => {
+    const stream = lastRun(world);
     const { started } = scenarioNames(stream);
     const finished = new Map(
       stream.flatMap(({ testCaseFinished }) =>
@@ -210,24 +210,24 @@ const hookRunsOf = (stream: readonly Envelope[]) => {
 // The BeforeAll and AfterAll runs, in order: each hook's type and its result's status.
 Then(
   "in the stream, the run's hooks are:",
-  function (this: E2EWorld, table: DataTable) {
-    expect(hookRunsOf(lastRun(this))).toEqual(table.hashes());
+  (world: E2EWorld, table: DataTable) => {
+    expect(hookRunsOf(lastRun(world))).toEqual(table.hashes());
   },
 );
 
 // The same, in any order: several workers' runs, each sent as it ran.
 Then(
   "in the stream, the run's hooks are, in any order:",
-  function (this: E2EWorld, table: DataTable) {
-    expect(sorted(hookRunsOf(lastRun(this)))).toEqual(sorted(table.hashes()));
+  (world: E2EWorld, table: DataTable) => {
+    expect(sorted(hookRunsOf(lastRun(world)))).toEqual(sorted(table.hashes()));
   },
 );
 
 // The run's `success` (`testRunFinished`): cucumber's, and Vitest's.
 Then(
   /^in the stream, the run (succeeds|fails)$/,
-  function (this: E2EWorld, outcome: string) {
-    const finished = lastRun(this).at(-1)?.testRunFinished;
+  (world: E2EWorld, outcome: string) => {
+    const finished = lastRun(world).at(-1)?.testRunFinished;
     expect(finished?.success).toBe(outcome === "succeeds");
   },
 );
@@ -255,8 +255,8 @@ const workerIdsOf = (stream: readonly Envelope[]) => {
 // whose BeforeAll ran in the run.
 Then(
   "in the stream, every BeforeAll's worker id is 1 to {int}",
-  function (this: E2EWorld, max: number) {
-    const { beforeAll, testCases } = workerIdsOf(lastRun(this));
+  (world: E2EWorld, max: number) => {
+    const { beforeAll, testCases } = workerIdsOf(lastRun(world));
     expect(beforeAll.length).toBeGreaterThan(0);
     for (const id of beforeAll) {
       expect(workerNumber(id)).toBeGreaterThanOrEqual(1);
@@ -271,8 +271,8 @@ Then(
 // How many workers or pages ran BeforeAll (`isolate: true`: one per feature file).
 Then(
   /^in the stream, BeforeAll runs (at most )?(\d+) times?$/,
-  function (this: E2EWorld, atMost: string | undefined, count: string) {
-    const ran = workerIdsOf(lastRun(this)).beforeAll.length;
+  (world: E2EWorld, atMost: string | undefined, count: string) => {
+    const ran = workerIdsOf(lastRun(world)).beforeAll.length;
     if (atMost) {
       expect(ran).toBeGreaterThan(0);
       expect(ran).toBeLessThanOrEqual(Number(count));
@@ -284,9 +284,9 @@ Then(
 
 // The run's `success` is Vitest's verdict, as its exit code says (Vitest's own reporter's PASS or
 // FAIL: a failed test module, an unhandled error): a Vitest that decides runs otherwise fails this.
-Then("the stream's success is Vitest's", function (this: E2EWorld) {
-  const finished = lastRun(this).at(-1)?.testRunFinished;
-  expect(finished?.success, this.lastRun.output).toBe(
-    this.lastRun.exitCode === 0,
+Then("the stream's success is Vitest's", (world: E2EWorld) => {
+  const finished = lastRun(world).at(-1)?.testRunFinished;
+  expect(finished?.success, world.lastRun.output).toBe(
+    world.lastRun.exitCode === 0,
   );
 });

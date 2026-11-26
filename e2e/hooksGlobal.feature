@@ -300,13 +300,13 @@ Feature: Failing BeforeAll and AfterAll hooks
       import { AfterAll, BeforeAll, Given } from "@cucumber/cucumber";
 
       let ready = false;
-      BeforeAll(function (done) {
+      BeforeAll((done) => {
         setTimeout(() => {
           ready = true;
           done();
         }, 10);
       });
-      AfterAll(function (done) {
+      AfterAll((done) => {
         setTimeout(done, 10);
       });
       Given("a passing step", () => {

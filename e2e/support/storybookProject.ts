@@ -8,9 +8,10 @@
 // out of the support code's `features/**/*.ts`). A feature file is its own story tests' test file,
 // its tests named as node and browser mode name them: its run is read as it is (`asFeatureRun`: the
 // addon's debug links taken out).
-import { rm, symlink } from "node:fs/promises";
+import { rm, symlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { glob } from "tinyglobby";
+import { linkStorybookModules, packagesOf, writePackages } from "./packages.ts";
 import type { E2EWorld, RunResult } from "./world.ts";
 
 /** The Storybook project's package (its `node_modules`). */
@@ -59,6 +60,31 @@ export async function useStorybookProject(this: E2EWorld) {
   await rm(modules, { recursive: true, force: true });
   await symlink(path.join(storybookPackage, "node_modules"), modules, "dir");
   await writeStorybookFiles.call(this);
+}
+
+/**
+ * Before Storybook's own program runs in the scenario's folder (`storybook build`, `storybook dev`:
+ * a story-test run has its folder, `./kept.ts`): a scenario with packages of its own gets them,
+ * its `node_modules` a folder linking each thing of `storybook/`'s instead of the one link
+ * (`./packages.ts`), and a `package.json`, so Storybook keeps its caches in that folder (the
+ * nearest package's `node_modules`: else the repository's, by the config folder's path, an
+ * earlier run's package pre-bundled as it was then). Any other scenario is left as it is.
+ */
+export async function withOwnPackages(this: E2EWorld) {
+  const packages = packagesOf(this.files);
+  if (packages.length === 0) {
+    return;
+  }
+  const modules = path.join(this.dir, "node_modules");
+  await rm(modules, { recursive: true, force: true });
+  await linkStorybookModules(modules);
+  await writePackages(this.dir, packages);
+  if (!this.files.has("package.json")) {
+    await writeFile(
+      this.file("package.json"),
+      JSON.stringify({ name: "e2e-storybook", private: true, type: "module" }),
+    );
+  }
 }
 
 /**

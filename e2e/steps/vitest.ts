@@ -36,34 +36,34 @@ for (const [step, start] of [
     }
     return start.call(world, options);
   };
-  When(step, function (this: E2EWorld) {
-    return startIn(this, undefined);
+  When(step, (world: E2EWorld) => {
+    return startIn(world, undefined);
   });
-  When(`${step} with {string}`, function (this: E2EWorld, filters: string) {
-    return startIn(this, undefined, { filters: toFilters(filters) });
+  When(`${step} with {string}`, (world: E2EWorld, filters: string) => {
+    return startIn(world, undefined, { filters: toFilters(filters) });
   });
-  When(`${step} with options:`, function (this: E2EWorld, json: string) {
-    return startIn(this, undefined, { options: toOptions(json) });
+  When(`${step} with options:`, (world: E2EWorld, json: string) => {
+    return startIn(world, undefined, { options: toOptions(json) });
   });
-  When(`${step} in {word} mode`, function (this: E2EWorld, mode: string) {
-    return startIn(this, mode);
+  When(`${step} in {word} mode`, (world: E2EWorld, mode: string) => {
+    return startIn(world, mode);
   });
   When(
     `${step} in {word} mode with {string}`,
-    function (this: E2EWorld, mode: string, filters: string) {
-      return startIn(this, mode, { filters: toFilters(filters) });
+    (world: E2EWorld, mode: string, filters: string) => {
+      return startIn(world, mode, { filters: toFilters(filters) });
     },
   );
   When(
     `${step} in {word} mode with options:`,
-    function (this: E2EWorld, mode: string, json: string) {
-      return startIn(this, mode, { options: toOptions(json) });
+    (world: E2EWorld, mode: string, json: string) => {
+      return startIn(world, mode, { options: toOptions(json) });
     },
   );
   When(
     `${step} in {word} mode with {string} and options:`,
-    function (this: E2EWorld, mode: string, filters: string, json: string) {
-      return startIn(this, mode, {
+    (world: E2EWorld, mode: string, filters: string, json: string) => {
+      return startIn(world, mode, {
         filters: toFilters(filters),
         options: toOptions(json),
       });
@@ -78,34 +78,32 @@ for (const [step, staticParse] of [
   ["I list its tests", true],
   ["I collect its tests", false],
 ] as const) {
-  When(`${step} in {word} mode`, async function (this: E2EWorld, mode: string) {
-    await writeDefaultConfig.call(this, mode);
-    await listVitest.call(this, { staticParse });
+  When(`${step} in {word} mode`, async (world: E2EWorld, mode: string) => {
+    await writeDefaultConfig.call(world, mode);
+    await listVitest.call(world, { staticParse });
   });
   When(
     `${step} in {word} mode with {string}`,
-    async function (this: E2EWorld, mode: string, filters: string) {
-      await writeDefaultConfig.call(this, mode);
-      await listVitest.call(this, { filters: toFilters(filters), staticParse });
+    async (world: E2EWorld, mode: string, filters: string) => {
+      await writeDefaultConfig.call(world, mode);
+      await listVitest.call(world, {
+        filters: toFilters(filters),
+        staticParse,
+      });
     },
   );
   When(
     `${step} in {word} mode with options:`,
-    async function (this: E2EWorld, mode: string, json: string) {
-      await writeDefaultConfig.call(this, mode);
-      await listVitest.call(this, { options: toOptions(json), staticParse });
+    async (world: E2EWorld, mode: string, json: string) => {
+      await writeDefaultConfig.call(world, mode);
+      await listVitest.call(world, { options: toOptions(json), staticParse });
     },
   );
   When(
     `${step} in {word} mode with {string} and options:`,
-    async function (
-      this: E2EWorld,
-      mode: string,
-      filters: string,
-      json: string,
-    ) {
-      await writeDefaultConfig.call(this, mode);
-      await listVitest.call(this, {
+    async (world: E2EWorld, mode: string, filters: string, json: string) => {
+      await writeDefaultConfig.call(world, mode);
+      await listVitest.call(world, {
         filters: toFilters(filters),
         options: toOptions(json),
         staticParse,
@@ -124,17 +122,17 @@ Given("the worker's kept Vitests are closed", async () => {
   await closeKept();
 });
 
-When("I run vitest in a fresh Vitest", function (this: E2EWorld) {
-  return runVitest.call(this, { fresh: true });
+When("I run vitest in a fresh Vitest", (world: E2EWorld) => {
+  return runVitest.call(world, { fresh: true });
 });
 
 // Never in a kept Vitest: in one, Vitest's browser pool can leave its own rejection of a file whose
 // page reloads unhandled (Vitest's bug, see `notes/issues.md` 3a; until Vitest fixes it).
 When(
   "I run vitest in a fresh Vitest in {word} mode",
-  async function (this: E2EWorld, mode: string) {
-    await writeDefaultConfig.call(this, mode);
-    return runVitest.call(this, { fresh: true });
+  async (world: E2EWorld, mode: string) => {
+    await writeDefaultConfig.call(world, mode);
+    return runVitest.call(world, { fresh: true });
   },
 );
 
@@ -142,9 +140,9 @@ When(
 // with no one told, its tests run again.
 When(
   "I open vitest without a watcher in {word} mode",
-  async function (this: E2EWorld, mode: string) {
-    await writeDefaultConfig.call(this, mode);
-    await openVitest.call(this);
+  async (world: E2EWorld, mode: string) => {
+    await writeDefaultConfig.call(world, mode);
+    await openVitest.call(world);
   },
 );
 
@@ -158,17 +156,17 @@ const open = (world: E2EWorld) => {
   return world.open;
 };
 
-When("I run its tests", function (this: E2EWorld) {
-  return open(this).run();
+When("I run its tests", (world: E2EWorld) => {
+  return open(world).run();
 });
 
 for (const step of [
   "the file {string} is changed, unseen, to:",
   "the file {string} is added, unseen, with:",
 ]) {
-  When(step, async function (this: E2EWorld, name: string, content: string) {
-    open(this);
-    await writeFile(this.file(name), content);
+  When(step, async (world: E2EWorld, name: string, content: string) => {
+    open(world);
+    await writeFile(world.file(name), content);
   });
 }
 
@@ -190,16 +188,16 @@ for (const step of [
   "I change the file {string} to:",
   "I add the file {string} with:",
 ]) {
-  When(step, function (this: E2EWorld, name: string, content: string) {
-    return rerunAfter(this, () => writeFile(this.file(name), content));
+  When(step, (world: E2EWorld, name: string, content: string) => {
+    return rerunAfter(world, () => writeFile(world.file(name), content));
   });
 }
 
 // Its run runs while the next change is made (see `rerunAfter`).
 When(
   "I start changing the file {string} to:",
-  function (this: E2EWorld, name: string, content: string) {
-    return watching(this).startRun(() => writeFile(this.file(name), content));
+  (world: E2EWorld, name: string, content: string) => {
+    return watching(world).startRun(() => writeFile(world.file(name), content));
   },
 );
 
@@ -208,33 +206,30 @@ When(
 // run). Node and browser mode: a Storybook project's options are its addon entry's, not its
 // Vitest config's.
 let configChanges = 0;
-When(
-  "I change the plugin options to:",
-  function (this: E2EWorld, options: string) {
-    if (this.ownConfig || this.mode === "storybook") {
-      throw new Error(
-        "The plugin's options are changed in the default config, in node or browser mode",
-      );
-    }
-    return rerunAfter(this, async () => {
-      this.pluginOptions = JSON.parse(options);
-      await writeConfig(
-        this,
-        CONFIG,
-        defaultConfig(this.pluginOptions, this.mode),
-        `vitest.scenario.${String(++configChanges)}.ts`,
-      );
-    });
-  },
-);
+When("I change the plugin options to:", (world: E2EWorld, options: string) => {
+  if (world.ownConfig || world.mode === "storybook") {
+    throw new Error(
+      "The plugin's options are changed in the default config, in node or browser mode",
+    );
+  }
+  return rerunAfter(world, async () => {
+    world.pluginOptions = JSON.parse(options);
+    await writeConfig(
+      world,
+      CONFIG,
+      defaultConfig(world.pluginOptions, world.mode),
+      `vitest.scenario.${String(++configChanges)}.ts`,
+    );
+  });
+});
 
-When("I remove the file {string}", function (this: E2EWorld, name: string) {
-  return rerunAfter(this, () => rm(this.file(name)));
+When("I remove the file {string}", (world: E2EWorld, name: string) => {
+  return rerunAfter(world, () => rm(world.file(name)));
 });
 
 When(
   "I change Vitest's filename filter to {string}",
-  function (this: E2EWorld, pattern: string) {
-    return watching(this).changeFilter(pattern);
+  (world: E2EWorld, pattern: string) => {
+    return watching(world).changeFilter(pattern);
   },
 );

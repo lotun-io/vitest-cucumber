@@ -157,9 +157,9 @@ Feature: Running feature files
         },
       );
 
-      Then("the World greets", function (this: { greeting: string }) {
-        if (this.greeting !== "hello from the World") {
-          throw new Error(`The World greets with ${this.greeting}`);
+      Then("the World greets", (world: { greeting: string }) => {
+        if (world.greeting !== "hello from the World") {
+          throw new Error(`The World greets with ${world.greeting}`);
         }
       });
       Given("a slow step", { timeout: 50 }, () => new Promise((resolve) => setTimeout(resolve, 200)));
