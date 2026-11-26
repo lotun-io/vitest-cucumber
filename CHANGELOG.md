@@ -1,5 +1,11 @@
 # @lotun/vitest-cucumber
 
+## 1.0.0-beta.7
+
+### Patch Changes
+
+- a60d74f: Storybook: a scenario can say where its story is, with Storybook's own tags written as Gherkin tags. `@!test` keeps it in Storybook's sidebar and out of story tests (a skipped test in Vitest); `@!dev` runs it as a story test and keeps it out of the sidebar; `@dev` and `@test` put back what a feature's tag, the story or the stories file's meta took away. In a Storybook project these four are the story's Storybook tags (without the `@`) and no longer its test's Vitest tags
+
 ## 1.0.0-beta.6
 
 ### Patch Changes
