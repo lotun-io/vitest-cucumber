@@ -8,16 +8,19 @@ export type Mode = "node" | "browser" | "storybook";
 
 export const modes: readonly Mode[] = ["node", "browser", "storybook"];
 
-/** Samples left out, with why: cucumber-js leaves out the first five too (its `cck_spec.ts`). */
+/**
+ * Samples left out, with why: cucumber-js leaves out the first three too (its `cck_spec.ts`). It
+ * leaves out two more, which run here: `all-statuses` (as any sample), and
+ * `global-hooks-attachments`, whose BeforeAll and AfterAll fail in cucumber 13.3 (their `this` has
+ * no `attach`) and fail the same way in the plugin: once cucumber gives them one, it differs.
+ */
 export const leftOut: Record<string, string> = {
-  "all-statuses": "cucumber-js doesn't run it",
-  "global-hooks-attachments":
-    "cucumber-js doesn't run it (BeforeAll/AfterAll can't attach in cucumber 13.3)",
   "pending-exception":
     "cucumber signals pending by a return value, not an exception",
   "skipped-exception":
     "cucumber signals skipped by a return value, not an exception",
-  "test-run-exception": "cucumber-js doesn't run it",
+  "test-run-exception":
+    "its `--error` argument is the reference implementation's (cucumber has none)",
   "multiple-features-reversed": "file order is Vitest's (`--order reverse`)",
 };
 

@@ -253,6 +253,7 @@ Then("it lists the tests:", function (this: E2EWorld, table: DataTable) {
       "Nothing listed: add a `When I list its tests in <mode> mode` step",
     );
   }
+  expect(this.listed.errors, this.listed.output).toEqual([]);
   expect(this.listed.tests, this.listed.output).toEqual(
     table.hashes().map(({ NAME, LOCATION }) => ({
       name: NAME,

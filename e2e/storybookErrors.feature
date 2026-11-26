@@ -55,7 +55,8 @@ Feature: Storybook errors
     And Vitest reports the tests:
       | NAME          | STATE  |
       | Page > A step | passed |
-    # Storybook's index fails on it, with the parse error.
+    # Storybook's index fails on it, with the parse error: so on any broken feature file (a link
+    # the plugin can't make too: the indexer throws its plan's errors, `preset.test.ts`).
     And building its Storybook fails with:
       """
       Unable to index ./src/Broken.feature:
@@ -92,14 +93,9 @@ Feature: Storybook errors
     And Vitest reports the tests:
       | NAME          | STATE  |
       | Page > A step | passed |
-    And building its Storybook fails with:
-      """
-      - src/Linked.feature:3: src/Linked.stories.ts has no story "Primry"
-      """
 
   # Two feature files on one stories file with the same name would share its title, and their
   # stories' ids: the one linked second fails, naming the other (the user's call, 2026-11-20).
-  # Storybook's index links every feature file, so its build always stops.
   Scenario: Two feature files on one stories file with the same name fail
     Given a file named "features/steps.ts" with:
       """
@@ -119,10 +115,6 @@ Feature: Storybook errors
     And the output contains:
       """
       src/Page.stories.ts already has a "Feature: Page"
-      """
-    And building its Storybook fails with:
-      """
-      already has a
       """
 
   # A Storybook project gets the plugin from its addon entry in `.storybook/main.ts` (the preset
@@ -259,8 +251,8 @@ Feature: Storybook errors
       | STORY                     | STATUS | SHOWS                       |
       | page-feature-page--a-step | FAIL   | BeforeAll failed on purpose |
 
-  # `e2e/options.feature` has story tests without `import`.
-  Scenario: Without `import`, the preview loads no support code
+  # `e2e/options.feature` has its story tests.
+  Scenario: With no `import` globs, the preview loads no support code
     Given the plugin options:
       """
       { "import": [] }

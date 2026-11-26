@@ -64,43 +64,25 @@ Feature: Storybook's dev server
           Given the Primary story
       """
 
-  Scenario: A stories file edited: an open story shows it
+  # One dev server, a story's page kept open: each save is followed in turn, the page never
+  # reloading.
+  Scenario: A stories file edited, a feature saved, a feature added then deleted: the open page follows each without reloading
     When I start its Storybook dev server
     And I open its story "card-feature-card--primary"
+    # A stories file edited: the open story shows it.
     Then its page shows "Label one"
     When I save the file "src/Card.stories.ts" replacing "Label one" with "Label two"
     Then its page shows "Label two"
     And its page didn't reload
     And no file but "src/Card.stories.ts" has a new time
-
-  # Storybook's index follows the feature files alone: the plugin tells it of the features a
-  # changed stories file leaves out of date. A page is opened first: Storybook's index answers
-  # before its preview's dev server is up, and a file saved before that is seen by no watcher.
-  Scenario: A stories file's title changed: its features are indexed under it
-    When I start its Storybook dev server
-    And I open its story "card-feature-card--primary"
-    Then its page shows "Label one"
-    And its index has the story "card-feature-card--primary"
-    When I save the file "src/Card.stories.ts" replacing 'title: "Card"' with 'title: "Panel"'
-    Then its index has the story "panel-feature-card--primary"
-    And its index has the story "panel-feature-other--also-primary"
-    And its index has no story "card-feature-card--primary"
-    And no file but "src/Card.stories.ts" has a new time
-
-  # The open story is another feature's: nothing of Storybook's renders it again as this one is saved.
-  Scenario: A feature saved: a page showing its text follows
-    When I start its Storybook dev server
-    And I open its story "card-feature-card--primary"
+    # A feature saved: the page showing its text follows. The open story is another feature's:
+    # nothing of Storybook's renders it again as this one is saved.
     Then its page shows "Scenario: Also primary"
     When I save the file "src/Other.feature" replacing "Also primary" with "Renamed here"
     Then its page shows "Scenario: Renamed here"
     And its page didn't reload
     And no file but "src/Other.feature" has a new time
-
-  Scenario: A feature added, then deleted: a page showing a stories file's features follows
-    When I start its Storybook dev server
-    And I open its story "card-feature-card--primary"
-    Then its page shows "Feature: Other"
+    # A feature added, then deleted: the page showing its stories file's features follows.
     When I save the file "src/More.feature" with:
       """
       Feature: More
@@ -116,6 +98,20 @@ Feature: Storybook's dev server
     Then its page no longer shows "Feature: More"
     And its index has no story "card-feature-more--a-third"
     And its page didn't reload
+
+  # Storybook's index follows the feature files alone: the plugin tells it of the features a
+  # changed stories file leaves out of date. A page is opened first: Storybook's index answers
+  # before its preview's dev server is up, and a file saved before that is seen by no watcher.
+  Scenario: A stories file's title changed: its features are indexed under it
+    When I start its Storybook dev server
+    And I open its story "card-feature-card--primary"
+    Then its page shows "Label one"
+    And its index has the story "card-feature-card--primary"
+    When I save the file "src/Card.stories.ts" replacing 'title: "Card"' with 'title: "Panel"'
+    Then its index has the story "panel-feature-card--primary"
+    And its index has the story "panel-feature-other--also-primary"
+    And its index has no story "card-feature-card--primary"
+    And no file but "src/Card.stories.ts" has a new time
 
   # The support code loads once per page: a change of it, or of a module it imports, reloads the page.
   Scenario: A module a support file imports edited: the page reloads with it

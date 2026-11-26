@@ -200,12 +200,14 @@ Then(
   },
 );
 
-// Since the page was opened, or the scenario's first save: the files with another time, or new.
+// Since the page was opened, the scenario's first save, or this step last: the files with another
+// time, or new.
 Then(
   "no file but {string} has a new time",
   async function (this: E2EWorld, name: string) {
     const before = this.fileTimes ?? new Map<string, number>();
     const now = await timesOf(this.dir);
+    this.fileTimes = now;
     expect(
       [...now].flatMap(([file, time]) =>
         time === before.get(file) ? [] : [file],

@@ -3,10 +3,15 @@
 import { Given, When } from "@cucumber/cucumber";
 import { rm, writeFile } from "node:fs/promises";
 import type { CliOptions } from "vitest/node";
+import { writeConfig } from "../support/config.ts";
 import { closeKept } from "../support/kept.ts";
 import { listVitest } from "../support/listVitest.ts";
 import { openVitest } from "../support/openVitest.ts";
-import { writeDefaultConfig } from "../support/project.ts";
+import {
+  CONFIG,
+  defaultConfig,
+  writeDefaultConfig,
+} from "../support/project.ts";
 import { runVitest } from "../support/runVitest.ts";
 import { watchVitest } from "../support/watch.ts";
 import type { E2EWorld } from "../support/world.ts";
@@ -66,29 +71,48 @@ for (const [step, start] of [
   );
 }
 
-// `vitest list` as its command line runs it by default (Vitest's static collection: the files parsed,
-// not run; see `../support/listVitest.ts`), in the mode's default config.
-When(
-  "I list its tests in {word} mode",
-  async function (this: E2EWorld, mode: string) {
+// `vitest list` in the mode's default config (see `../support/listVitest.ts`): as its command line
+// runs it by default (Vitest's static collection: the files parsed, not run), or as `vitest list
+// --staticParse=false` (the files imported, their tests collected, none run).
+for (const [step, staticParse] of [
+  ["I list its tests", true],
+  ["I collect its tests", false],
+] as const) {
+  When(`${step} in {word} mode`, async function (this: E2EWorld, mode: string) {
     await writeDefaultConfig.call(this, mode);
-    await listVitest.call(this, {});
-  },
-);
-When(
-  "I list its tests in {word} mode with {string}",
-  async function (this: E2EWorld, mode: string, filters: string) {
-    await writeDefaultConfig.call(this, mode);
-    await listVitest.call(this, { filters: toFilters(filters) });
-  },
-);
-When(
-  "I list its tests in {word} mode with options:",
-  async function (this: E2EWorld, mode: string, json: string) {
-    await writeDefaultConfig.call(this, mode);
-    await listVitest.call(this, { options: toOptions(json) });
-  },
-);
+    await listVitest.call(this, { staticParse });
+  });
+  When(
+    `${step} in {word} mode with {string}`,
+    async function (this: E2EWorld, mode: string, filters: string) {
+      await writeDefaultConfig.call(this, mode);
+      await listVitest.call(this, { filters: toFilters(filters), staticParse });
+    },
+  );
+  When(
+    `${step} in {word} mode with options:`,
+    async function (this: E2EWorld, mode: string, json: string) {
+      await writeDefaultConfig.call(this, mode);
+      await listVitest.call(this, { options: toOptions(json), staticParse });
+    },
+  );
+  When(
+    `${step} in {word} mode with {string} and options:`,
+    async function (
+      this: E2EWorld,
+      mode: string,
+      filters: string,
+      json: string,
+    ) {
+      await writeDefaultConfig.call(this, mode);
+      await listVitest.call(this, {
+        filters: toFilters(filters),
+        options: toOptions(json),
+        staticParse,
+      });
+    },
+  );
+}
 
 // The scenario's own config, in a fresh Vitest (not a kept one): e.g. a run that fails as Vitest
 // starts (the plugin refusing its options), which Vitest reports as its command line does.
@@ -176,6 +200,31 @@ When(
   "I start changing the file {string} to:",
   function (this: E2EWorld, name: string, content: string) {
     return watching(this).startRun(() => writeFile(this.file(name), content));
+  },
+);
+
+// The default config written again with other options for the plugin, while Vitest watches: its
+// config file changed, Vitest restarts (everything closed, its config resolved again, every file
+// run). Node and browser mode: a Storybook project's options are its addon entry's, not its
+// Vitest config's.
+let configChanges = 0;
+When(
+  "I change the plugin options to:",
+  function (this: E2EWorld, options: string) {
+    if (this.ownConfig || this.mode === "storybook") {
+      throw new Error(
+        "The plugin's options are changed in the default config, in node or browser mode",
+      );
+    }
+    return rerunAfter(this, async () => {
+      this.pluginOptions = JSON.parse(options);
+      await writeConfig(
+        this,
+        CONFIG,
+        defaultConfig(this.pluginOptions, this.mode),
+        `vitest.scenario.${String(++configChanges)}.ts`,
+      );
+    });
   },
 );
 

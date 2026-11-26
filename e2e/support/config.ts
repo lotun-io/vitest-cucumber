@@ -248,19 +248,22 @@ export const asStorybook = (
   };
 };
 
+/** The module a config exports the scenario's from, next to it. */
+const SCENARIO_CONFIG = "vitest.scenario.ts";
+
 /**
- * The config `name` exporting the scenario's (`./vitest.scenario.ts`), with what the repository
+ * The config `name` exporting the scenario's (`module`, next to it), with what the repository
  * needs: a function, its plugins (Storybook's) made per Vitest (see `./project.ts`'s `defaultConfig`);
  * a Storybook project's browser with the Playwright `provider` (code: `./project.ts`'s).
  */
-const configWrapper = (provider?: string) =>
+const configWrapper = (provider?: string, module = SCENARIO_CONFIG) =>
   provider
     ? `import { storybookTest } from "@storybook/addon-vitest/vitest-plugin";
 import react from "@vitejs/plugin-react";
 import { playwright } from "@vitest/browser-playwright";
 import path from "node:path";
 import { asStorybook, withRepository } from ${JSON.stringify(import.meta.filename)};
-import config from "./vitest.scenario.ts";
+import config from ${JSON.stringify(`./${module}`)};
 
 export default () =>
   withRepository(
@@ -277,25 +280,26 @@ export default () =>
   );
 `
     : `import { withRepository } from ${JSON.stringify(import.meta.filename)};
-import config from "./vitest.scenario.ts";
+import config from ${JSON.stringify(`./${module}`)};
 
 export default () => withRepository(config, ${JSON.stringify(inject("e2eChromium"))});
 `;
 
 /**
  * Writes a Vitest config (`name`: e.g. `packages/a/vitest.config.ts`, in the scenario's project) of
- * `content`, with the scenario's `write`.
+ * `content`, with the scenario's `write`: `content` in a module next to it (`module`), which the
+ * config exports. A config changed while Vitest watches names a new module: the config file alone
+ * changes then, as a user's does (a module it imports changing too would rerun the files before
+ * Vitest restarts).
  */
 export const writeConfig = async (
   scenario: { write(name: string, content: string): Promise<void> },
   name: string,
   content: string,
+  module = SCENARIO_CONFIG,
 ) => {
-  await scenario.write(
-    path.join(path.dirname(name), "vitest.scenario.ts"),
-    content,
-  );
-  await scenario.write(name, configWrapper());
+  await scenario.write(path.join(path.dirname(name), module), content);
+  await scenario.write(name, configWrapper(undefined, module));
 };
 
 /**

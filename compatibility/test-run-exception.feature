@@ -2,7 +2,7 @@
 @leftOut
 Feature: Compatibility: test-run-exception
   Cucumber's compatibility kit sample `test-run-exception`: the plugin reports what cucumber does.
-  Left out: cucumber-js doesn't run it.
+  Left out: its `--error` argument is the reference implementation's (cucumber has none).
 
   Scenario Outline: The plugin reports what cucumber does (<mode>)
     Given the compatibility kit's sample "test-run-exception"

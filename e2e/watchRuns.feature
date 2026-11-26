@@ -222,3 +222,57 @@ Feature: Watch mode: runs
       | mode    |
       | node    |
       | browser |
+
+  # Vitest restarts as its config file changes: everything closed, its config resolved again (the
+  # plugin made again, with its new options), every file run. The plugin then follows the new
+  # Vitest: a support file changed after it still reruns the feature files.
+  Scenario Outline: The config file changed restarts Vitest with the plugin's new options, and later changes still rerun (<mode>)
+    Given the plugin options:
+      """
+      { "worldParameters": { "greeting": "bye" } }
+      """
+    And a file named "features/steps.ts" with:
+      """
+      import { Given, type IWorld } from "@cucumber/cucumber";
+
+      Given("a changing step", (world: IWorld<{ greeting: string }>) => {
+        if (world.parameters.greeting !== "hello") {
+          throw new Error(`Greeting: ${world.parameters.greeting}`);
+        }
+      });
+      """
+    When I start vitest in watch mode in <mode> mode
+    Then Vitest reports the tests:
+      | NAME         | STATE  |
+      | A > changing | failed |
+    And the output contains:
+      """
+      Greeting: bye
+      """
+    When I change the plugin options to:
+      """
+      { "worldParameters": { "greeting": "hello" } }
+      """
+    Then Vitest reports the tests:
+      | NAME         | STATE  |
+      | A > changing | passed |
+    When I change the file "features/steps.ts" to:
+      """
+      import { Given } from "@cucumber/cucumber";
+
+      Given("a changing step", () => {
+        throw new Error("After the restart");
+      });
+      """
+    Then Vitest reports the tests:
+      | NAME         | STATE  |
+      | A > changing | failed |
+    And the output contains:
+      """
+      After the restart
+      """
+
+    Examples:
+      | mode    |
+      | node    |
+      | browser |
