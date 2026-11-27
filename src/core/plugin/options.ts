@@ -6,10 +6,22 @@ import { dialects } from "@cucumber/gherkin";
 import type { CucumberOptions, RunOptions } from "../../types/feature.ts";
 import { pluginError } from "../../utils/errors.ts";
 import { defaultRunOptions } from "../../utils/runOptions.ts";
+import { slash } from "../../utils/slash.ts";
 import { jsonWorldParameters } from "./worldParameters.ts";
 
 /** The plugin's options, every one set. */
 export type Configuration = Required<CucumberOptions>;
+
+/**
+ * The `import` globs as they're globbed (tinyglobby reads a `\` as an escape): on Windows each `\`
+ * a `/`, a path's separator there, as cucumber reads them (Node's `fs.glob`,
+ * `windowsPathsNoEscape`): a glob made with `path.join`, `path.resolve` or `fileURLToPath` in a
+ * config. Elsewhere as written, a `\` an escape, as cucumber's.
+ */
+export const importGlobsOf = (
+  globs: readonly string[],
+  platform: NodeJS.Platform = process.platform,
+) => (platform === "win32" ? globs.map(slash) : [...globs]);
 
 /**
  * `options` (as a config gives them, whatever their type says: none at all from JavaScript) with
@@ -30,7 +42,7 @@ export const configurationOf = (
     );
   }
   const configuration: Configuration = {
-    import: globs,
+    import: importGlobsOf(globs),
     dryRun: options.dryRun ?? defaultRunOptions.dryRun,
     backtrace: options.backtrace ?? false,
     language: options.language ?? "en",

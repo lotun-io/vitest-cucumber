@@ -66,13 +66,23 @@ const firstNameOf = (arrow: Node) => {
     : undefined;
 };
 
-/** `node` and every node below it. */
-function* nodesOf(node: Node): Generator<Node> {
-  yield node;
-  for (const value of Object.values(node)) {
-    for (const child of Array.isArray(value) ? value : [value]) {
-      if (isNode(child)) {
-        yield* nodesOf(child);
+/**
+ * `root` and every node below it, each before the nodes below it, in the order they're written.
+ * A stack of its own, not a call per level: a module's tree can be deeper than the call stack (a
+ * long `a + b + …` chain, generated code), and the bundler's whole build stops on a throw here.
+ */
+function* nodesOf(root: Node): Generator<Node> {
+  const stack = [root];
+  for (let node = stack.pop(); node !== undefined; node = stack.pop()) {
+    yield node;
+    const children = Object.values(node).flatMap((value: unknown) =>
+      (Array.isArray(value) ? value : [value]).filter(isNode),
+    );
+    // One by one, last first (a spread of a long list, a big array literal's, would overflow too).
+    for (let index = children.length - 1; index >= 0; index -= 1) {
+      const child = children[index];
+      if (child !== undefined) {
+        stack.push(child);
       }
     }
   }
@@ -121,7 +131,11 @@ export const markedCode = (code: string, program: unknown) => {
   for (const { node, body, name } of functions.reverse()) {
     const statement = firstParameterStatement(name);
     if (body.type === "BlockStatement") {
-      marked.appendRight(afterDirectives(body), statement);
+      const at = afterDirectives(body);
+      // After a directive written without its `;` (`"use strict"` and a line break), one first: the
+      // two would be one statement.
+      const after = at > body.start + 1 && code[at - 1] !== ";" ? ";" : "";
+      marked.appendRight(at, `${after}${statement}`);
     } else {
       // An expression: a block that returns it, in parentheses (as written after the arrow, its
       // own parentheses with it: a `return` before a line break would return nothing).
@@ -158,7 +172,16 @@ export const firstParameterMarks = (): Plugin => ({
     ) {
       return undefined;
     }
-    const marked = markedCode(code, this.parse(code));
+    let program;
+    try {
+      program = this.parse(code);
+    } catch {
+      // A module the bundler's parser refuses here (it parses as a module what may be a script: a
+      // CommonJS file's top-level `return`): left as it is, its functions unmarked; the build is
+      // the bundler's to make or stop.
+      return undefined;
+    }
+    const marked = markedCode(code, program);
     return (
       marked && {
         code: marked.toString(),

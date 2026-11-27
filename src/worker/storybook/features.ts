@@ -6,6 +6,7 @@
 // `onFeaturesChange` tells: with `featuresOf`, what React's `useSyncExternalStore` takes (a
 // block's hook is the user's: nothing of React here). Page code.
 import type { FeatureSource } from "../../types/storybook.ts";
+import { asRelative } from "../../utils/asRelative.ts";
 import { features, onFeaturesChange as onMapChange } from "./featuresMap.ts";
 
 export type { FeatureSource };
@@ -29,10 +30,11 @@ export const featuresOf = (storiesFile: string): readonly FeatureSource[] =>
 export const onFeaturesChange = (listener: () => void): (() => void) =>
   onMapChange(listener);
 
-/** `storiesFile`'s features in map `features` (its path with or without its leading `./`). */
+/**
+ * `storiesFile`'s features in map `features` (its path as Storybook writes it, `./src/…` or
+ * `../shared/…`, or without the `./`).
+ */
 export const featuresIn = (
   features: Readonly<Record<string, readonly FeatureSource[]>>,
   storiesFile: string,
-): readonly FeatureSource[] =>
-  features[storiesFile.startsWith("./") ? storiesFile : `./${storiesFile}`] ??
-  none;
+): readonly FeatureSource[] => features[asRelative(storiesFile)] ?? none;

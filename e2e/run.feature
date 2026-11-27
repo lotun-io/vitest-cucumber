@@ -50,7 +50,8 @@ Feature: Running feature files
 
   # A name left empty: an unnamed feature has no suite (Vitest prints its file), a rule, scenario or
   # outline is named by its keyword as written, an example of an unnamed outline by its language's
-  # `Example` keyword (the user's calls, 2026-11-20: `core/feature/featureTree.ts`).
+  # `Example` keyword (the user's calls, 2026-11-20: `core/feature/featureTree.ts`). Each fallback
+  # once: two of one name would be one story in Storybook, its error (`e2e/storybookErrors.feature`).
   Scenario Outline: Empty names: no feature suite, the keywords, `Example` (<mode>)
     Given a file named "features/a.feature" with:
       """
@@ -58,26 +59,20 @@ Feature: Running feature files
         Scenario:
           Given a passing step
 
-        Scenario Outline:
-          Given a passing step
-
-          Examples:
-            | n |
-            | 1 |
-            | 2 |
-
         Rule:
-          Example:
+          Scenario Outline:
             Given a passing step
+
+            Examples:
+              | n |
+              | 1 |
       """
     When I run vitest in <mode> mode
     Then it passes
     And Vitest reports the tests:
-      | NAME                       | STATE  |
-      | Scenario                   | passed |
-      | Scenario Outline > Example | passed |
-      | Scenario Outline > Example | passed |
-      | Rule > Example             | passed |
+      | NAME                              | STATE  |
+      | Scenario                          | passed |
+      | Rule > Scenario Outline > Example | passed |
 
     Examples:
       | mode      |
@@ -86,7 +81,8 @@ Feature: Running feature files
       | storybook |
 
   # A test runs its scenario by line, not by name: two scenarios with one name are two tests, each
-  # with its own steps.
+  # with its own steps. Not in Storybook, where they'd be one story: an error
+  # (`e2e/storybookErrors.feature`).
   Scenario Outline: Two scenarios with the same name each run their own steps (<mode>)
     Given a file named "features/a.feature" with:
       """
@@ -105,10 +101,9 @@ Feature: Running feature files
       | A > same name | failed |
 
     Examples:
-      | mode      |
-      | node      |
-      | browser   |
-      | storybook |
+      | mode    |
+      | node    |
+      | browser |
 
   Scenario Outline: A failing scenario fails its test only (<mode>)
     Given a file named "features/a.feature" with:

@@ -1,7 +1,12 @@
+import { Script } from "node:vm";
 import { sanitize } from "storybook/internal/csf";
 import { expect, test } from "vitest";
 import { planOf } from "../../../feature/plan.ts";
-import { featureLabelOf, featureStoriesOf } from "../featureStories.ts";
+import {
+  exportNameOf,
+  featureLabelOf,
+  featureStoriesOf,
+} from "../featureStories.ts";
 
 /** Feature file `uri`'s label, `lines` its Gherkin. */
 const labelOf = (uri: string, lines: string[]) => {
@@ -45,7 +50,7 @@ test("a feature's label: its keyword and name, as written; no name, its file's b
 });
 
 /** Feature file `src/Login.feature` (its Gherkin `source`) as stories: every pickle a link, on no story. */
-const storiesOf = (source: string) => {
+const storiesOf = (source: string, storiesFile = "/p/src/Login.stories.ts") => {
   const { gherkin, featureTree } = planOf(source, "src/Login.feature", "en");
   if (!gherkin) {
     throw new Error("no Gherkin");
@@ -54,7 +59,7 @@ const storiesOf = (source: string) => {
     feature: "/p/src/Login.feature",
     document: gherkin.document,
     tree: featureTree,
-    storiesFile: "/p/src/Login.stories.ts",
+    storiesFile,
     storiesTitle: "Example/Login",
     stories: { exports: [], factories: false, metaTags: [], tags: {} },
     links: gherkin.pickles.map(({ name, location, tags }) => ({
@@ -62,7 +67,7 @@ const storiesOf = (source: string) => {
       line: location?.line ?? 0,
       name,
       tags: tags.map((tag) => tag.name),
-      storiesFile: "/p/src/Login.stories.ts",
+      storiesFile,
       unmounted: false,
     })),
     featureModule: "/p/feature",
@@ -132,14 +137,18 @@ test("each story's title its place in Vitest's tree, its name its test's (a scen
     ]),
   ).toEqual([
     ["LogInOut", "Log in|out", "Example/Login/Feature: Login/Log in|out"],
-    ["LogOut", "Log out", "Example/Login/Feature: Login/Logged in/Log out"],
     [
-      "LogOutAfterSave",
+      "LoggedInLogOut",
+      "Log out",
+      "Example/Login/Feature: Login/Logged in/Log out",
+    ],
+    [
+      "LoggedInLogOutAfterSave",
       "Log out after Save",
       "Example/Login/Feature: Login/Logged in/Log out after <button>",
     ],
     [
-      "Scenario",
+      "RuleExample",
       "Example",
       "Example/Login/Feature: Login/Rule/Scenario Outline",
     ],
@@ -151,4 +160,70 @@ test("each story's title its place in Vitest's tree, its name its test's (a scen
       scenarios.map(({ export: exportName, title }) => [exportName, title]),
     ),
   });
+});
+
+test("a story's export: its name in PascalCase, of the characters a JavaScript name may have", () => {
+  expect(exportNameOf("Log in|out")).toBe("LogInOut");
+  expect(exportNameOf("HTTP request")).toBe("HTTPRequest");
+  // Not `ID_Continue` (Unicode's other numbers): dropped, the export still a name.
+  expect(exportNameOf("Price per m²")).toBe("PricePerM");
+  expect(exportNameOf("Step ① of ½")).toBe("StepOf");
+  // Letters and numbers of any script, as written.
+  expect(exportNameOf("Prihlásenie používateľa")).toBe(
+    "PrihláseniePoužívateľa",
+  );
+  expect(exportNameOf("ログイン 2")).toBe("ログイン2");
+  // Not starting as a name may: `Scenario` first.
+  expect(exportNameOf("2 items")).toBe("Scenario2Items");
+  expect(exportNameOf("")).toBe("Scenario");
+  expect(exportNameOf("²")).toBe("Scenario");
+  // Each one an export JavaScript parses.
+  for (const name of [
+    "Price per m²",
+    "Step ① of ½",
+    "2 items",
+    "ログイン 2",
+    "",
+  ]) {
+    expect(() => new Script(`const ${exportNameOf(name)} = 1;`)).not.toThrow();
+  }
+});
+
+test("a story's export: its rule's name before its own, so one name in two rules is two stories", () => {
+  const { scenarios } = storiesOf(`Feature: Login
+
+  Scenario: Log in
+    Given a step
+
+  Rule: Guests
+
+    Scenario: Log in
+      Given a step
+
+  Rule: Members
+
+    Scenario: Log in
+      Given a step
+`);
+  expect(scenarios.map(({ export: exportName }) => exportName)).toEqual([
+    "LogIn",
+    "GuestsLogIn",
+    "MembersLogIn",
+  ]);
+});
+
+test("the stories file's import: a relative path, in a folder named with a dot too (not a package's name)", () => {
+  expect(storiesOf("Feature: Login\n").code).toContain(
+    'import * as __cucumberStories from "./Login.stories.ts";',
+  );
+  expect(
+    storiesOf("Feature: Login\n", "/p/src/.design/Login.stories.ts").code,
+  ).toContain(
+    'import * as __cucumberStories from "./.design/Login.stories.ts";',
+  );
+  expect(
+    storiesOf("Feature: Login\n", "/p/shared/Login.stories.ts").code,
+  ).toContain(
+    'import * as __cucumberStories from "../shared/Login.stories.ts";',
+  );
 });

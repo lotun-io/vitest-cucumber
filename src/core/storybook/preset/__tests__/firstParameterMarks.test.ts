@@ -77,6 +77,43 @@ describe("the statement, as it's written", () => {
     ).toBe(`(world) => { "use server"; "use strict";${world} return world; }`);
   });
 
+  test("after a directive written without its `;`, one first: the code still parses, the directive still one", () => {
+    const code = marked('(world) => { "use strict"\n  return world; }');
+    expect(code).toBe(`(world) => { "use strict";${world}\n  return world; }`);
+    const fn = valueOf(code) as (value: unknown) => unknown;
+    expect(fn(1)).toBe(1);
+  });
+
+  test("after several directives written without their `;`, after the last: each still a directive", () => {
+    const code = marked(
+      '(world) => {\n  "use server"\n  "use strict"\n  return world;\n}',
+    );
+    expect(code).toBe(
+      `(world) => {\n  "use server"\n  "use strict";${world}\n  return world;\n}`,
+    );
+    const fn = valueOf(code) as (value: unknown) => unknown;
+    expect(fn(1)).toBe(1);
+    // Still directives: `"use strict"` makes the function strict (`this` not the global object).
+    const strict = valueOf(
+      marked(
+        '(world) => {\n  "use server"\n  "use strict"\n  return (function () { return this; })();\n}',
+      ),
+    ) as (value: unknown) => unknown;
+    expect(strict(1)).toBeUndefined();
+  });
+
+  test("a module deeper than the call stack: marked all the same", () => {
+    // A left-deep chain: each `+` a level of the tree (a call per level overflowed at ~5,000).
+    const chain = Array.from(
+      { length: 20_000 },
+      (_, index) => `a${String(index)}`,
+    );
+    const code = `const step = (world) => world;\nconst sum = ${chain.join(" + ")};`;
+    expect(marked(code)).toMatch(
+      `const step = (world) =>{${world}return ( world);}`,
+    );
+  });
+
   test("an expression becomes a block that returns it, in parentheses", () => {
     expect(marked("(world, count) => world + count")).toBe(
       `(world, count) =>{${world}return ( world + count);}`,
@@ -259,6 +296,24 @@ describe("the modules marked", () => {
       transform(step, slash(ownModule("worker/storybook/feature"))),
     ).toBeUndefined();
     expect(transform(step, "/project/src/Cart.feature")).toBeUndefined();
+  });
+
+  test("a module the bundler's parser refuses is left as it is", () => {
+    const hook = plugin.transform;
+    if (typeof hook !== "function") {
+      throw new Error("The plugin's transform is a function");
+    }
+    const refusing = {
+      parse: () => {
+        throw new SyntaxError("'return' outside of function");
+      },
+    };
+    expect(
+      Reflect.apply(hook, refusing, [
+        "const context = 1;\nreturn;",
+        "/project/node_modules/legacy/index.js",
+      ]),
+    ).toBeUndefined();
   });
 
   test("a module naming neither parameter isn't parsed", () => {

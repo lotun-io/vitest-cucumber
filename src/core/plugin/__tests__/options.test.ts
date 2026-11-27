@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import type { CucumberOptions } from "../../../types/feature.ts";
-import { configurationOf, runOptionsOf } from "../options.ts";
+import { configurationOf, importGlobsOf, runOptionsOf } from "../options.ts";
 
 /** The error `configurationOf` throws for options a config may give, whatever their type says. */
 const thrownFor = (options?: Record<string, unknown>) => {
@@ -105,4 +105,20 @@ test("the run's options: what the runtime reads of the configuration", () => {
       configurationOf({ import: [], dryRun: true, worldParameters: { a: 1 } }),
     ),
   ).toEqual({ strict: true, dryRun: true, worldParameters: { a: 1 } });
+});
+
+test("the `import` globs: on Windows each `\\` a `/` (a path's separator there, as cucumber reads them); elsewhere as written", () => {
+  expect(
+    importGlobsOf(
+      ["C:\\proj\\features\\steps", "features\\**\\*.ts", "features/*.ts"],
+      "win32",
+    ),
+  ).toEqual(["C:/proj/features/steps", "features/**/*.ts", "features/*.ts"]);
+  // A `\` an escape elsewhere: a literal `(` in a folder's name.
+  expect(importGlobsOf(["features/\\(old\\)/*.ts"], "linux")).toEqual([
+    "features/\\(old\\)/*.ts",
+  ]);
+  expect(configurationOf({ import: ["features/*.ts"] }).import).toEqual([
+    "features/*.ts",
+  ]);
 });

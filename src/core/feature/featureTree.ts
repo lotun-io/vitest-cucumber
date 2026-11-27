@@ -31,7 +31,7 @@ const suite = (name: string, { line, column = 1 }: Location): FeatureSuite => ({
  * keyword, Gherkin's primary scenario keyword (https://cucumber.io/docs/gherkin/reference/: "Example
  * (or Scenario)"), first in each dialect's list.
  */
-const exampleName = (language: string) =>
+export const exampleName = (language: string) =>
   dialects[language]?.scenario[0] ?? "Example";
 
 export const featureTree = (

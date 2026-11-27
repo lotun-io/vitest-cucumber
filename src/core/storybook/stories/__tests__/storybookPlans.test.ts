@@ -378,7 +378,7 @@ test("two features on one stories file with the same label: refused, each naming
   const refused = (feature: string, other: string) => ({
     error: {
       message: expect.stringContaining(
-        `${feature}: src/Dup.stories.ts already has a "Feature: Login" (${other}): give one of them another name`,
+        `${feature}: src/Dup.stories.ts already has a "Feature: Login" (${other}), the same id "`,
       ) as string,
     },
   });

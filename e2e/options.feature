@@ -335,6 +335,55 @@ Feature: Plugin options
       | browser   |
       | storybook |
 
+  # A glob made from a path (`path.join`, `path.resolve`, `fileURLToPath` in the config) has `\` on
+  # Windows: there a path's separator, as cucumber reads it (Node's `fs.glob`), not a glob's escape
+  # (`core/plugin/options.ts`'s `importGlobsOf`). Elsewhere an absolute path, as any glob.
+  Scenario Outline: An `import` glob made with Node's path functions loads its support code (<mode>)
+    Given the Vitest config:
+      """
+      import { cucumber } from "@lotun/vitest-cucumber";
+      import { playwright } from "@vitest/browser-playwright";
+      import path from "node:path";
+
+      export default {
+        plugins: [
+          cucumber({ import: [path.join(import.meta.dirname, "features", "steps")] }),
+        ],
+        test: {
+          include: ["features/**/*.feature"],
+          browser: {
+            enabled: <browser>,
+            headless: true,
+            provider: playwright(),
+            instances: [{ browser: "chromium" }],
+            screenshotFailures: false,
+          },
+        },
+      };
+      """
+    And a file named "features/steps/steps.ts" with:
+      """
+      import { Given } from "@cucumber/cucumber";
+
+      Given("a step", () => {});
+      """
+    And a file named "features/a.feature" with:
+      """
+      Feature: A
+        Scenario: a
+          Given a step
+      """
+    When I run vitest
+    Then it passes
+    And it runs the scenarios:
+      | NAME | STATUS |
+      | a    | passed |
+
+    Examples:
+      | mode    | browser |
+      | node    | false   |
+      | browser | true    |
+
   # As cucumber: a BeforeAll hook's `this.parameters` is the run's, each World's a clone of them
   # (a BeforeAll hook's changes included), so a scenario's changes don't reach the next one.
   Scenario Outline: `worldParameters` are the World's parameters, a clone per World, a BeforeAll hook's changes included (<mode>)

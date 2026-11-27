@@ -1,5 +1,17 @@
 # @lotun/vitest-cucumber
 
+## 1.0.0-beta.9
+
+### Patch Changes
+
+- `BeforeStep` and `AfterStep` with `{ tags: null }` or `{ tags: "" }` run for every step, as cucumber's: the support code failed to load
+- Storybook's static build no longer fails on a script with an arrow function's directive written without its `;` (`'use strict'` then a line break), on a very deeply nested module, or on a module its parser refuses: each is built as it is
+- Storybook's static build no longer contains the absolute path of the folder it was built in (it had the project's, e.g. `/home/<user>/…`, which a published Storybook showed)
+- Storybook: a stories file outside Storybook's folder (`../shared/Card.stories.tsx`, in a monorepo) has its features in `featuresOf`, and one in a folder named with a dot (`.design/`) loads its feature files' stories: the plugin wrote their paths otherwise than Storybook does
+- Storybook: two scenarios of a feature that would get one story id (the same name, names differing only in case or punctuation, an Outline's rows its name doesn't tell apart, two features on one stories file whose names differ only so) now fail the feature with an error naming each and the id, where the second was numbered or Storybook silently kept one. A story's id now has its Rule's name before its own, so one name in two Rules is two stories. A scenario named with characters a JavaScript name can't have (`²`, `①`) no longer breaks its feature's module.
+- A step defined with a parameter type name no type may have (`{order.id}`) gets cucumber's summary, the type listed as missing: the summary failed with the plugin's own error
+- Windows: an `import` glob with `\` (one made with `path.join`, `path.resolve` or `fileURLToPath` in the config) loads its support code, as cucumber reads it there. It matched nothing, so every step was undefined
+
 ## 1.0.0-beta.8
 
 ### Patch Changes

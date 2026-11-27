@@ -5,8 +5,8 @@
 // its stories file's title taken: the one written in it, else Storybook's automatic one
 // (`./storiesTitle.ts`); neither (no title written, no `stories` pattern matching the file), the
 // feature has no title to be listed under. A feature file a Storybook project lists as stories
-// must run on a stories file, and have a label no other feature on it has (two would share their
-// title and ids in Storybook). The feature's module (its scenarios as stories, its stories
+// must run on a stories file, and a label whose id no other feature on it has (two would share
+// their stories' ids in Storybook: Storybook's ids ignore case and punctuation). The feature's module (its scenarios as stories, its stories
 // file's meta, its title) is made from this, or it's stopped by every error in its links, which
 // are the feature file's.
 import path from "node:path";
@@ -28,13 +28,20 @@ export type LinkedFeature =
     }
   | { errors: string[] };
 
+/** Another feature file on the same stories file whose label gives the same id: its path, its label. */
+export interface SameLabel {
+  file: string;
+  label: string;
+}
+
 /**
  * A linked feature file (`uri`, its path from `root`; `linked`, its links: `./featureLinks.ts`'s,
  * with the Storybook steps' own errors, `stepErrors`), checked against its stories file's stories
  * as Storybook reads them (`storiesOf`): its stories file, its stories, its title (the stories
  * file's own, else Storybook's automatic one, `autoTitleOf`) and the scenarios that run on them;
  * or every error in its links, these among them: it has no stories file, or another feature on
- * its stories file has its `label` (`sameLabel`: those that do, linked so far).
+ * its stories file has a label with its `label`'s id (`sameLabel`: those that do, linked so far;
+ * `idOf`, Storybook's `sanitize`: the error names the id).
  */
 export const linkedFeatureOf = async ({
   uri,
@@ -45,6 +52,7 @@ export const linkedFeatureOf = async ({
   sameLabel,
   autoTitleOf,
   storiesOf = storiesOfFile,
+  idOf,
 }: {
   uri: string;
   root: string;
@@ -52,10 +60,12 @@ export const linkedFeatureOf = async ({
   stepErrors: readonly string[];
   /** The feature's label (`Feature: <name>`). */
   label: string;
-  /** The other feature files on its stories file with its label (paths with `/`, by path). */
-  sameLabel: readonly string[];
+  /** The other feature files on its stories file whose labels give its id (by path). */
+  sameLabel: readonly SameLabel[];
   autoTitleOf: AutoTitleOf;
   storiesOf?: (file: string) => Promise<StoriesOf>;
+  /** Storybook's `sanitize`: a title's id. */
+  idOf: (title: string) => string;
 }): Promise<LinkedFeature> => {
   const errors = [...stepErrors, ...linked.errors];
   const { storiesFile, links } = linked;
@@ -71,18 +81,35 @@ export const linkedFeatureOf = async ({
     };
   }
   const storiesUri = slash(path.relative(root, storiesFile));
-  /** Its label taken on its stories file: the last of its errors. */
-  const taken =
-    sameLabel.length > 0
-      ? [
-          `${uri}: ${storiesUri} already has a "${label}" (${sameLabel
-            .map((other) => slash(path.relative(root, other)))
-            .join(", ")}): give one of them another name`,
-        ]
-      : [];
+  /**
+   * Its label's id taken on its stories file (titled `title`, if it has one): the last of its
+   * errors, the id named (the other labels too, those written otherwise).
+   */
+  const takenOf = (title?: string) => {
+    if (sameLabel.length === 0) {
+      return [];
+    }
+    const others = sameLabel
+      .map(({ file, label: theirs }) => {
+        const other = slash(path.relative(root, file));
+        return theirs === label ? other : `${other}: "${theirs}"`;
+      })
+      .join(", ");
+    const id =
+      title === undefined ? "" : `, the same id "${idOf(`${title}/${label}`)}"`;
+    const why = sameLabel.some(({ label: theirs }) => theirs !== label)
+      ? " (Storybook's ids ignore case and punctuation)"
+      : "";
+    return [
+      `${uri}: ${storiesUri} already has a "${label}" (${others})${id}${why}: give one of them another name`,
+    ];
+  };
   /** Stopped: its links' errors, `more` of its stories file's, its label's. */
-  const stopped = (...more: string[]): LinkedFeature => ({
-    errors: [...errors, ...more, ...taken],
+  const stopped = (
+    title: string | undefined,
+    ...more: string[]
+  ): LinkedFeature => ({
+    errors: [...errors, ...more, ...takenOf(title)],
   });
   /** Where the feature names its stories file: its stories file step's line, if it has one. */
   const at = `${uri}${linked.storiesLine === undefined ? "" : `:${String(linked.storiesLine)}`}`;
@@ -101,11 +128,13 @@ export const linkedFeatureOf = async ({
       .replaceAll(`${slash(root)}/`, "")
       .split("\n");
     return stopped(
+      undefined,
       `${at}: ${storiesUri} can't be read as a stories file (${reason})`,
     );
   }
   if (stories.factories) {
     return stopped(
+      undefined,
       `${storiesUri} uses CSF factories, which the plugin doesn't support yet: ${uri}'s scenarios need its stories in CSF 3`,
     );
   }
@@ -129,9 +158,9 @@ export const linkedFeatureOf = async ({
   ];
   if (
     title === undefined ||
-    errors.length + missing.length + taken.length > 0
+    errors.length + missing.length + sameLabel.length > 0
   ) {
-    return stopped(...missing);
+    return stopped(title, ...missing);
   }
   return { storiesFile, stories, title, links };
 };

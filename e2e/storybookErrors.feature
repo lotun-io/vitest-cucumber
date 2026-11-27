@@ -95,8 +95,9 @@ Feature: Storybook errors
       | Page > A step | passed |
 
   # Two feature files on one stories file with the same name would share its title, and their
-  # stories' ids: the one linked second fails, naming the other (the user's call, 2026-11-20).
-  Scenario: Two feature files on one stories file with the same name fail
+  # stories' ids: the one linked second fails, naming the other (the user's call, 2026-11-20). Names
+  # differing in case or punctuation only too: Storybook's ids ignore them (2026-11-27).
+  Scenario: Two feature files on one stories file whose names give one id fail
     Given a file named "features/steps.ts" with:
       """
       import { Given } from "@cucumber/cucumber";
@@ -104,7 +105,7 @@ Feature: Storybook errors
       """
     And a file named "src/Page.feature.md" with:
       """
-      # Feature: Page
+      # Feature: page!
 
       ## Scenario: Another step
 
@@ -114,8 +115,64 @@ Feature: Storybook errors
     Then it fails
     And the output contains:
       """
-      src/Page.stories.ts already has a "Feature: Page"
+      the same id "page-feature-page" (Storybook's ids ignore case and punctuation): give one of them another name
       """
+
+  # A feature's scenarios with one story id would be one story in Storybook (its index keeps the
+  # first, its preview the last): the same name, names differing in case or punctuation only, two
+  # unnamed scenarios, an Outline's rows its name doesn't tell apart. Its stories fail, each such
+  # scenario and the id named (the user's call, 2026-11-27: a name to change, no number added); the
+  # other features' run. Node and browser mode run them, as cucumber does (`e2e/run.feature`).
+  Scenario: Scenarios with one story id fail their feature's stories
+    Given a file named "features/steps.ts" with:
+      """
+      import { Given } from "@cucumber/cucumber";
+      Given("a step", () => {});
+      """
+    And a file named "src/Cart.stories.ts" with:
+      """
+      export default { title: "Cart", render: () => null };
+      """
+    And a file named "src/Cart.feature" with:
+      """
+      Feature: Cart
+        Scenario: HTTP request
+          Given a step
+
+        Scenario: Http request!
+          Given a step
+
+        Scenario:
+          Given a step
+
+        Scenario:
+          Given a step
+
+        Scenario Outline: Pay
+          Given a step
+
+          Examples:
+            | card |
+            | Visa |
+            | Amex |
+      """
+    When I run vitest
+    Then it fails
+    And the output contains:
+      """
+      scenarios would be the same story in Storybook (id "cart-feature-cart--http-request"):
+      - src/Cart.feature:2 (Scenario: "HTTP request")
+      - src/Cart.feature:5 (Scenario: "Http request!")
+      scenarios would be the same story in Storybook (id "cart-feature-cart--scenario"):
+      - src/Cart.feature:8 (Scenario: "Scenario")
+      - src/Cart.feature:11 (Scenario: "Scenario")
+      scenarios would be the same story in Storybook (id "cart-feature-cart--pay"):
+      - src/Cart.feature:19 (Example: "Pay")
+      - src/Cart.feature:20 (Example: "Pay")
+      """
+    And Vitest reports the tests:
+      | NAME          | STATE  |
+      | Page > A step | passed |
 
   # A Storybook project gets the plugin from its addon entry in `.storybook/main.ts` (the preset
   # gives its story tests' plugins): a `cucumber()` in its Vitest config too, its own or the root's

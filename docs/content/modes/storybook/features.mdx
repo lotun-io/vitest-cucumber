@@ -50,6 +50,11 @@ Each scenario's story:
   scenario's Gherkin tags (with their `@`; Storybook's own, `@!dev` and `@!test`,
   [without it](/modes/storybook/running#storybook-tags)), and not in
   autodocs pages;
+- has **an id from its names**: the feature's, then its Rule's and its own
+  (`example-greeting-feature-greeting--saying-hello`). Storybook's ids ignore case and punctuation,
+  so two scenarios of a feature whose names give one id (the same name twice, `HTTP request` and
+  `Http request`, an Outline's rows its name doesn't tell apart) fail the feature, each named
+  with the id: give each its own name (an Outline a `<placeholder>` in its name);
 - is listed under **the stories file's title, then the feature**: `Example/Greeting/Feature: Greeting`
   (the title written in the stories file, or Storybook's automatic one if it writes none; then the
   feature's keyword and name; a feature without a name, its file's name without the extension:

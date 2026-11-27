@@ -53,6 +53,7 @@ import {
   type IndexInput,
   type MakeTitle,
 } from "./indexEntries.ts";
+import type { SameLabel } from "./linkedFeature.ts";
 import { staleFeaturesOf } from "./staleFeatures.ts";
 import {
   dropStoriesFile,
@@ -155,15 +156,31 @@ export const createStorybookPlans = ({
       ? []
       : links.featuresOf(storiesFile).filter((other) => other !== feature);
   };
-  /** The other feature files on `feature`'s stories file with its `label`, by path (one failing: none). */
-  const sameLabelOf = async (feature: string, label: string) => {
+  /**
+   * The other feature files on `feature`'s stories file whose labels have its `label`'s id (one
+   * title before both: Storybook's `sanitize`, case and punctuation dropped), by path (one
+   * failing: none).
+   */
+  const sameLabelOf = async (
+    feature: string,
+    label: string,
+  ): Promise<SameLabel[]> => {
+    const { sanitize } = await import("storybook/internal/csf");
     const others = othersOf(feature);
     const theirs = await Promise.all(
       others.map((other) =>
         labels(other, readLabel(other)).catch(() => undefined),
       ),
     );
-    return others.filter((_, index) => theirs[index] === label).sort();
+    const id = sanitize(label);
+    return others
+      .flatMap((file, index) => {
+        const other = theirs[index];
+        return other !== undefined && sanitize(other) === id
+          ? [{ file, label: other }]
+          : [];
+      })
+      .sort((a, b) => (a.file < b.file ? -1 : a.file > b.file ? 1 : 0));
   };
 
   /** Stories file `file`'s stories, as Storybook reads them. */

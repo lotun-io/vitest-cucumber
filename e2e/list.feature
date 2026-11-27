@@ -27,7 +27,7 @@ Feature: Listing the scenarios without running them
 
         Rule: Discounts
 
-          Scenario Outline: A coupon
+          Scenario Outline: A coupon for <item>
             Given a step with "<item>"
 
             Examples:
@@ -37,14 +37,14 @@ Feature: Listing the scenarios without running them
       """
     When I list its tests in <mode> mode
     Then it lists the tests:
-      | NAME                                   | LOCATION                   |
-      | Cart > Adding an item                  | features/cart.feature:8:3  |
-      | Cart > Discounts > A coupon > A coupon | features/cart.feature:18:9 |
-      | Cart > Discounts > A coupon > A coupon | features/cart.feature:19:9 |
+      | NAME                                                         | LOCATION                   |
+      | Cart > Adding an item                                        | features/cart.feature:8:3  |
+      | Cart > Discounts > A coupon for <item> > A coupon for apples | features/cart.feature:18:9 |
+      | Cart > Discounts > A coupon for <item> > A coupon for pears  | features/cart.feature:19:9 |
     When I list its tests in <mode> mode with "features/cart.feature:19"
     Then it lists the tests:
-      | NAME                                   | LOCATION                   |
-      | Cart > Discounts > A coupon > A coupon | features/cart.feature:19:9 |
+      | NAME                                                        | LOCATION                   |
+      | Cart > Discounts > A coupon for <item> > A coupon for pears | features/cart.feature:19:9 |
     When I list its tests in <mode> mode with options:
       """
       { "tagsFilter": ["@smoke"] }
@@ -80,7 +80,7 @@ Feature: Listing the scenarios without running them
 
         Rule: Discounts
 
-          Scenario Outline: A coupon
+          Scenario Outline: A coupon for <item>
             Given a step with "<item>"
 
             Examples:
@@ -98,10 +98,10 @@ Feature: Listing the scenarios without running them
       """
     When I collect its tests in <mode> mode with "features/cart.feature"
     Then it lists the tests:
-      | NAME                                   | LOCATION                   |
-      | Cart > Adding an item                  | features/cart.feature:4:3  |
-      | Cart > Discounts > A coupon > A coupon | features/cart.feature:14:9 |
-      | Cart > Discounts > A coupon > A coupon | features/cart.feature:15:9 |
+      | NAME                                                         | LOCATION                   |
+      | Cart > Adding an item                                        | features/cart.feature:4:3  |
+      | Cart > Discounts > A coupon for <item> > A coupon for apples | features/cart.feature:14:9 |
+      | Cart > Discounts > A coupon for <item> > A coupon for pears  | features/cart.feature:15:9 |
     When I collect its tests in <mode> mode with "features/cart.feature" and options:
       """
       { "tagsFilter": ["@smoke"] }

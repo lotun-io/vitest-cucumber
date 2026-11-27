@@ -63,7 +63,14 @@ export const usedMissingTypes = (
           // Not a missing type: can't tell, so it's listed.
           return true;
         }
-        registry.defineParameterType(typeOf(name, [".*"]));
+        try {
+          registry.defineParameterType(typeOf(name, [".*"]));
+        } catch {
+          // A name no parameter type may have (`{order.id}`: cucumber's expressions read it as a
+          // missing type, its parameter types refuse it): no stand-in, can't tell, so it's
+          // listed, as cucumber lists every missing type.
+          return true;
+        }
       }
     }
   };

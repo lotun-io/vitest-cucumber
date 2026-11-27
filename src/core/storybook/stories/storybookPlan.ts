@@ -7,18 +7,20 @@ import { pluginError } from "../../../utils/errors.ts";
 import type { FailedPlan, VitestPlan } from "../../feature/plans.ts";
 import type { FeatureLinks } from "./featureLinks.ts";
 import { featureModuleOf } from "./featureRuntimeModule.ts";
-import { featureStoriesOf } from "./featureStories.ts";
-import { linkedFeatureOf } from "./linkedFeature.ts";
+import { featureStoriesOf, featureStoryExport } from "./featureStories.ts";
+import { linkedFeatureOf, type SameLabel } from "./linkedFeature.ts";
 import type { StoriesOf } from "./storiesFile.ts";
 import type { AutoTitleOf } from "./storiesTitle.ts";
 import type { StorybookPlan } from "./storybookPlans.ts";
+import { sameIdErrorsOf } from "./storyIds.ts";
 
 /**
  * Feature file `feature` (its Vitest `plan`; its links `linked`, with the Storybook steps' own
  * errors `stepErrors`) for the project at `root`: its links checked against its stories file's
  * stories (`storiesOf`), its title its stories file's (Storybook's automatic one: `autoTitleOf`),
  * its stories module written. One that can't be linked (`./linkedFeature.ts`: no stories file,
- * its `label` another feature's on it, `sameLabel`, …) is stopped by its links' errors.
+ * its `label`'s id another feature's on it, `sameLabel`, …) is stopped by its links' errors; one
+ * whose stories have one id between two of them (`./storyIds.ts`), by those.
  */
 export const storybookPlanFrom = async ({
   feature,
@@ -37,8 +39,8 @@ export const storybookPlanFrom = async ({
   linked: FeatureLinks;
   /** Its label (`Feature: <name>`). */
   label: string;
-  /** The other feature files on its stories file with its label (paths with `/`, by path). */
-  sameLabel: readonly string[];
+  /** The other feature files on its stories file whose labels give its id (by path). */
+  sameLabel: readonly SameLabel[];
   stepErrors: readonly string[];
   /** Whether a support file has a Storybook step (the plan's `storybookSteps`). */
   storybookSteps: boolean;
@@ -49,6 +51,9 @@ export const storybookPlanFrom = async ({
   autoTitleOf: AutoTitleOf;
 }): Promise<StorybookPlan | FailedPlan> => {
   const { uri, gherkin, featureTree } = plan;
+  // Storybook's own ids (`storybook/internal/csf`: loaded only in Storybook projects).
+  const { sanitize, storyNameFromExport, toId } =
+    await import("storybook/internal/csf");
   const linked = await linkedFeatureOf({
     uri,
     root,
@@ -58,6 +63,7 @@ export const storybookPlanFrom = async ({
     sameLabel,
     storiesOf,
     autoTitleOf,
+    idOf: sanitize,
   });
   if ("errors" in linked) {
     return {
@@ -68,9 +74,7 @@ export const storybookPlanFrom = async ({
       ),
     };
   }
-  // Storybook's own ids (`storybook/internal/csf`: loaded only in Storybook projects).
-  const { sanitize } = await import("storybook/internal/csf");
-  const { code, title, titles } = featureStoriesOf({
+  const { code, title, titles, scenarios } = featureStoriesOf({
     feature,
     document: gherkin.document,
     tree: featureTree,
@@ -81,6 +85,18 @@ export const storybookPlanFrom = async ({
     featureModule: featureModuleOf(feature),
     idOf: sanitize,
   });
+  // Two of its stories with one id: stopped, each named (its module isn't used).
+  const sameIds = sameIdErrorsOf({
+    uri,
+    document: gherkin.document,
+    metaId: sanitize(title),
+    own: featureStoryExport,
+    stories: scenarios,
+    ids: { toId, storyNameFromExport },
+  });
+  if (sameIds.length > 0) {
+    return { error: pluginError(sameIds.join("\n"), { quiet: true }) };
+  }
   return {
     ...plan,
     storybookSteps,

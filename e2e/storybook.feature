@@ -9,7 +9,8 @@ Feature: Storybook
   pending, ambiguous); `Attachments` attach, `Hooks` run Before and After hooks (one failing), `Args`
   are an Outline's rows, each on its own story (its `args`), `Account` a Markdown feature, `Story`
   a step reading its story, a story's own `play` not run, an unmounted story a step mounts, `Unnamed`
-  a feature whose names are all empty, `Tags` Storybook's own tags written as Gherkin tags (`@!dev`:
+  a feature whose names are empty (each fallback once: two stories of one name would have one id,
+  `e2e/storybookErrors.feature`), `Tags` Storybook's own tags written as Gherkin tags (`@!dev`:
   not in the sidebar; `@!test`: not a story test; `@dev` after a rule's `@!dev`: listed again). Each story is listed in
   Storybook's sidebar as Vitest's tree
   has its test: its title the feature's, then its rule's, then its outline's (an example's) or its
@@ -383,12 +384,11 @@ Feature: Storybook
 
           Examples:
             | button  |
-            | Log in  |
             | Sign up |
 
         Rule:
 
-          Scenario:
+          Scenario: In a rule
             Given I see the "Log in" button
       """
     And a file named "src/Tags.feature" with:
@@ -596,8 +596,7 @@ Feature: Storybook
       | Story > Unmounted                                                             | passed  |
       | Scenario                                                                      | passed  |
       | Scenario Outline > Example                                                    | passed  |
-      | Scenario Outline > Example                                                    | passed  |
-      | Rule > Scenario                                                               | passed  |
+      | Rule > In a rule                                                              | passed  |
       | Tags > Everywhere                                                             | passed  |
       | Tags > Only in story tests                                                    | passed  |
       | Tags > Only in Storybook                                                      | skipped |
@@ -652,56 +651,56 @@ Feature: Storybook
   Scenario: Its preview, in a static build
     Given the worker's kept Vitests are closed
     When I build its Storybook
-    Then its stories show:
-      | STORY                                                           | STATUS | SHOWS                                                                       | HIDES           |
-      | cucumber-login-feature-login--log-in                            | PASS   | Given I see the "Log in" button                                             |                 |
-      | cucumber-login-feature-login--log-in                            | PASS   | Then I see the "Log out" button                                             |                 |
-      | cucumber-login-feature-login--sign-up-then-log-out-with-log-in  | PASS   | When I click the "Log in" button                                            |                 |
-      | cucumber-login-feature-login--sign-up-then-log-out-with-sign-up | PASS   | When I click the "Sign up" button                                           |                 |
-      | cucumber-account-feature-account--log-out-after-log-in          | PASS   | When I click the "Log in" button                                            |                 |
-      | cucumber-account-feature-account--log-out-after-signing-up      | PASS   | When I click the "Sign up" button                                           |                 |
-      | failures-feature-failures--failing                              | FAIL   | Then I see the "Nope" button                                                |                 |
-      | failures-feature-failures--failing                              | FAIL   | Unable to find an accessible element with the role "button" and name "Nope" |                 |
-      | failures-feature-failures--undefined                            | FAIL   | Undefined steps:                                                            |                 |
-      | failures-feature-failures--pending                              | FAIL   | Pending steps:                                                              |                 |
-      | checks-feature-checks--skipped                                  | PASS   | Skipped                                                                     |                 |
-      | checks-feature-checks--logging                                  | PASS   | Given a logging step                                                        |                 |
-      | checks-feature-checks--before-all-ran                           | PASS   | Then the BeforeAll hook ran first                                           |                 |
-      | attachments-feature-attachments--attaching                      | PASS   | Given a step that attaches                                                  | log: a log line |
-      | attachments-feature-attachments--attaching-then-failing         | FAIL   | log: a log line                                                             |                 |
-      | attachments-feature-attachments--attaching-then-failing         | FAIL   | attachment: text/plain                                                      |                 |
-      | attachments-feature-attachments--attaching-then-failing         | FAIL   | attachment: application/json                                                |                 |
-      | attachments-feature-attachments--attaching-then-failing         | FAIL   | attachment: image/png                                                       |                 |
-      | attachments-feature-attachments--attaching-then-failing         | FAIL   | attachment: report.txt                                                      |                 |
-      | attachments-feature-attachments--attaching-then-failing         | FAIL   | attachment: pixel.png                                                       |                 |
-      | attachments-feature-attachments--attaching-then-failing         | FAIL   | link: https://example.com/report                                            |                 |
-      | failures-feature-failures--ambiguous                            | FAIL   | Ambiguous steps:                                                            |                 |
-      | hooks-feature-hooks--before-and-after                           | PASS   | Given a logging step                                                        |                 |
-      | hooks-feature-hooks--a-failing-before-hook                      | FAIL   | Before hook failed on purpose                                               |                 |
-      | args-feature-args--greeting-ada                                 | PASS   | Then I see the greeting of the story's name                                 |                 |
-      | args-feature-args--greeting-grace                               | PASS   | Then I see the greeting of the story's name                                 |                 |
-      | story-feature-story--the-running-story                          | PASS   | Then the story is named "The running story"                                 |                 |
-      | story-feature-story--its-own-play                               | PASS   | Then the story's own play didn't run                                        |                 |
-      | story-feature-story--unmounted                                  | PASS   | When I mount the story                                                      |                 |
-      | unnamed-feature-unnamed--scenario                               | PASS   | Given I see the "Log in" button                                             |                 |
-      | unnamed-feature-unnamed--scenario-2                             | PASS   | When I click the "Log in" button                                            |                 |
-      | unnamed-feature-unnamed--scenario-3                             | PASS   | When I click the "Sign up" button                                           |                 |
-      | unnamed-feature-unnamed--scenario-4                             | PASS   | Given I see the "Log in" button                                             |                 |
-      | tags-feature-tags--only-in-storybook                            | PASS   | Given I see the "Log in" button                                             |                 |
+    Then its built files have no path of this machine
+    And its stories show:
+      | STORY                                                                                   | STATUS | SHOWS                                                                       | HIDES           |
+      | cucumber-login-feature-login--log-in                                                    | PASS   | Given I see the "Log in" button                                             |                 |
+      | cucumber-login-feature-login--log-in                                                    | PASS   | Then I see the "Log out" button                                             |                 |
+      | cucumber-login-feature-login--sign-up-then-log-out-with-log-in                          | PASS   | When I click the "Log in" button                                            |                 |
+      | cucumber-login-feature-login--sign-up-then-log-out-with-sign-up                         | PASS   | When I click the "Sign up" button                                           |                 |
+      | cucumber-account-feature-account--log-out-after-log-in                                  | PASS   | When I click the "Log in" button                                            |                 |
+      | cucumber-account-feature-account--a-signed-up-user-can-log-out-log-out-after-signing-up | PASS   | When I click the "Sign up" button                                           |                 |
+      | failures-feature-failures--failing                                                      | FAIL   | Then I see the "Nope" button                                                |                 |
+      | failures-feature-failures--failing                                                      | FAIL   | Unable to find an accessible element with the role "button" and name "Nope" |                 |
+      | failures-feature-failures--undefined                                                    | FAIL   | Undefined steps:                                                            |                 |
+      | failures-feature-failures--pending                                                      | FAIL   | Pending steps:                                                              |                 |
+      | checks-feature-checks--skipped                                                          | PASS   | Skipped                                                                     |                 |
+      | checks-feature-checks--logging                                                          | PASS   | Given a logging step                                                        |                 |
+      | checks-feature-checks--before-all-ran                                                   | PASS   | Then the BeforeAll hook ran first                                           |                 |
+      | attachments-feature-attachments--attaching                                              | PASS   | Given a step that attaches                                                  | log: a log line |
+      | attachments-feature-attachments--attaching-then-failing                                 | FAIL   | log: a log line                                                             |                 |
+      | attachments-feature-attachments--attaching-then-failing                                 | FAIL   | attachment: text/plain                                                      |                 |
+      | attachments-feature-attachments--attaching-then-failing                                 | FAIL   | attachment: application/json                                                |                 |
+      | attachments-feature-attachments--attaching-then-failing                                 | FAIL   | attachment: image/png                                                       |                 |
+      | attachments-feature-attachments--attaching-then-failing                                 | FAIL   | attachment: report.txt                                                      |                 |
+      | attachments-feature-attachments--attaching-then-failing                                 | FAIL   | attachment: pixel.png                                                       |                 |
+      | attachments-feature-attachments--attaching-then-failing                                 | FAIL   | link: https://example.com/report                                            |                 |
+      | failures-feature-failures--ambiguous                                                    | FAIL   | Ambiguous steps:                                                            |                 |
+      | hooks-feature-hooks--before-and-after                                                   | PASS   | Given a logging step                                                        |                 |
+      | hooks-feature-hooks--a-failing-before-hook                                              | FAIL   | Before hook failed on purpose                                               |                 |
+      | args-feature-args--greeting-ada                                                         | PASS   | Then I see the greeting of the story's name                                 |                 |
+      | args-feature-args--greeting-grace                                                       | PASS   | Then I see the greeting of the story's name                                 |                 |
+      | story-feature-story--the-running-story                                                  | PASS   | Then the story is named "The running story"                                 |                 |
+      | story-feature-story--its-own-play                                                       | PASS   | Then the story's own play didn't run                                        |                 |
+      | story-feature-story--unmounted                                                          | PASS   | When I mount the story                                                      |                 |
+      | unnamed-feature-unnamed--scenario                                                       | PASS   | Given I see the "Log in" button                                             |                 |
+      | unnamed-feature-unnamed--example                                                        | PASS   | When I click the "Sign up" button                                           |                 |
+      | unnamed-feature-unnamed--rule-in-a-rule                                                 | PASS   | Given I see the "Log in" button                                             |                 |
+      | tags-feature-tags--only-in-storybook                                                    | PASS   | Given I see the "Log in" button                                             |                 |
     And its index lists:
-      | STORY                                                      | TITLE                                                                                   | NAME                     |
-      | cucumber-login-feature-login--log-in                       | Cucumber/Login/Feature: Login/Log in                                                    | Log in                   |
-      | cucumber-account-feature-account--sign-up                  | Cucumber/Account/Feature: Account/Sign up                                               | Sign up                  |
-      | cucumber-account-feature-account--log-out-after-log-in     | Cucumber/Account/Feature: Account/Log out after <button>                                | Log out after Log in     |
-      | cucumber-account-feature-account--log-out-after-signing-up | Cucumber/Account/Feature: Account/A signed-up user can log out/Log out after signing up | Log out after signing up |
-      | unnamed-feature-unnamed--scenario                          | Unnamed/Feature: Unnamed/Scenario                                                       | Scenario                 |
-      | unnamed-feature-unnamed--scenario-2                        | Unnamed/Feature: Unnamed/Scenario Outline                                               | Example                  |
-      | unnamed-feature-unnamed--scenario-4                        | Unnamed/Feature: Unnamed/Rule/Scenario                                                  | Scenario                 |
+      | STORY                                                                                   | TITLE                                                                                   | NAME                     |
+      | cucumber-login-feature-login--log-in                                                    | Cucumber/Login/Feature: Login/Log in                                                    | Log in                   |
+      | cucumber-account-feature-account--sign-up                                               | Cucumber/Account/Feature: Account/Sign up                                               | Sign up                  |
+      | cucumber-account-feature-account--log-out-after-log-in                                  | Cucumber/Account/Feature: Account/Log out after <button>                                | Log out after Log in     |
+      | cucumber-account-feature-account--a-signed-up-user-can-log-out-log-out-after-signing-up | Cucumber/Account/Feature: Account/A signed-up user can log out/Log out after signing up | Log out after signing up |
+      | unnamed-feature-unnamed--scenario                                                       | Unnamed/Feature: Unnamed/Scenario                                                       | Scenario                 |
+      | unnamed-feature-unnamed--example                                                        | Unnamed/Feature: Unnamed/Scenario Outline                                               | Example                  |
+      | unnamed-feature-unnamed--rule-in-a-rule                                                 | Unnamed/Feature: Unnamed/Rule/In a rule                                                 | In a rule                |
     # Storybook's own tags, as its index has them: a story with `dev` is listed in the sidebar, one
     # with `test` is run by the Vitest addon.
     And its index tags:
-      | STORY                                  | DEV | TEST |
-      | tags-feature-tags--everywhere          | yes | yes  |
-      | tags-feature-tags--only-in-story-tests | no  | yes  |
-      | tags-feature-tags--only-in-storybook   | yes | no   |
-      | tags-feature-tags--listed-all-the-same | yes | yes  |
+      | STORY                                         | DEV | TEST |
+      | tags-feature-tags--everywhere                 | yes | yes  |
+      | tags-feature-tags--only-in-story-tests        | no  | yes  |
+      | tags-feature-tags--only-in-storybook          | yes | no   |
+      | tags-feature-tags--hidden-listed-all-the-same | yes | yes  |

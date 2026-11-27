@@ -15,6 +15,15 @@ test("a stories file's features, by its path as Storybook writes it (`./`) or wi
   expect(featuresIn(features, "src/Header.stories.ts")).toEqual(header);
 });
 
+test("a stories file outside Storybook's folder (`../`), or in a folder named with a dot: as Storybook writes them", () => {
+  const card = [{ fileName: "./src/Card.feature", source: "Feature: Card\n" }];
+  const outside = { "../shared/Card.stories.tsx": card };
+  expect(featuresIn(outside, "../shared/Card.stories.tsx")).toEqual(card);
+  const dotted = { "./.design/Card.stories.tsx": card };
+  expect(featuresIn(dotted, "./.design/Card.stories.tsx")).toEqual(card);
+  expect(featuresIn(dotted, ".design/Card.stories.tsx")).toEqual(card);
+});
+
 test("a stories file no feature runs on: none", () => {
   expect(featuresIn(features, "./src/Page.stories.ts")).toEqual([]);
 });

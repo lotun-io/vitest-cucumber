@@ -189,12 +189,13 @@ export const buildSupportCode = (
           method,
           location: where,
         });
-        const tags = options.tags as string | undefined;
+        // `null` and `""` no filter, as cucumber's (`PickleTagFilter`): the validation lets both by.
+        const tags: unknown = options.tags;
         (method === "BeforeStep" ? beforeStepHooks : afterStepHooks).push({
           code: wrap(code),
           timeout: options.timeout as number | undefined,
           thisFirst: takesFirst(code, "world"),
-          ...(tags !== undefined && { tags: parse(tags) }),
+          ...(typeof tags === "string" && tags !== "" && { tags: parse(tags) }),
         });
       } else if (method === "BeforeAll" || method === "AfterAll") {
         const { options, code } = hookArgs(false);

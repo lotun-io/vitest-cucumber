@@ -94,6 +94,53 @@ const forPage = (code: string, dir: string) =>
     )
     .replace(/^import fs from 'node:fs'$/m, "");
 
+/**
+ * Outlines whose rows have one name, each given a placeholder that tells them apart (its own line:
+ * every line stays where it is). Storybook makes one story of two of a feature's scenarios with one
+ * name, which the plugin refuses (`src/core/storybook/stories/storyIds.ts`); the samples name these
+ * outlines without one. Cucumber's run and the plugin's both run the files so written.
+ */
+const outlineNames: Record<string, readonly [string, string]> = {
+  "examples-tables": [
+    "Scenario Outline: Eating cucumbers",
+    "Scenario Outline: Eating cucumbers (<start>, <eat>, <left>)",
+  ],
+  "examples-tables-attachment": [
+    "Scenario Outline: Attaching images in an examples table",
+    "Scenario Outline: Attaching images in an examples table (<type>)",
+  ],
+  "examples-tables-undefined": [
+    "Scenario Outline: Eating cucumbers",
+    "Scenario Outline: Eating cucumbers (<start>, <eat>, <left>)",
+  ],
+  "examples-tables-undefined-multiple": [
+    "Scenario Outline: Eating cucumbers",
+    "Scenario Outline: Eating cucumbers (<start>, <eat>, <left>)",
+  ],
+  markdown: [
+    "### Scenario Outline: Ylajali!",
+    "### Scenario Outline: Ylajali! (<what>)",
+  ],
+};
+
+/** Sample `sample`'s feature file `content`, its outline named with a placeholder (`outlineNames`). */
+const withOutlineName = (sample: string, content: string) => {
+  const names = outlineNames[sample];
+  if (!names) {
+    return content;
+  }
+  const [from, to] = names;
+  const lines = content.split("\n");
+  const at = lines.findIndex((line) => line.trim() === from);
+  if (at === -1) {
+    throw new Error(
+      `${sample}: no line "${from}" (the kit's sample changed: see outlineNames)`,
+    );
+  }
+  lines[at] = (lines[at] ?? "").replace(from, to);
+  return lines.join("\n");
+};
+
 /** A sample's files: its feature files, and its step definitions for cucumber and for a page. */
 export const sampleFiles = (sample: string) => {
   const source = path.join(kit, sample);
@@ -102,7 +149,10 @@ export const sampleFiles = (sample: string) => {
   for (const name of readdirSync(source)) {
     const file = path.join(source, name);
     if (/\.feature(\.md)?$/.test(name)) {
-      features.push({ name, content: readFileSync(file, "utf8") });
+      features.push({
+        name,
+        content: withOutlineName(sample, readFileSync(file, "utf8")),
+      });
     } else if (name.endsWith(".ts")) {
       const code = forCucumber(readFileSync(file, "utf8"), file);
       steps.push({

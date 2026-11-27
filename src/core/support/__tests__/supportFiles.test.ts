@@ -71,9 +71,14 @@ test("none given: none, whatever the project has (no default, unlike cucumber)",
   expect(await supportFiles(importing())).toEqual([]);
 });
 
-test("a folder with glob characters: matched as it's written, escaped", async () => {
+test("a folder with glob characters: matched as it's written, escaped (a bracket class anywhere; a `\\` but on Windows, a separator there)", async () => {
   files("app/[id]/steps.ts", "app/i/steps.ts");
-  expect(await supportFiles(importing("app/\\[id\\]"))).toEqual([
+  expect(await supportFiles(importing("app/[[]id[]]"))).toEqual([
     "app/[id]/steps.ts",
   ]);
+  if (process.platform !== "win32") {
+    expect(await supportFiles(importing("app/\\[id\\]"))).toEqual([
+      "app/[id]/steps.ts",
+    ]);
+  }
 });

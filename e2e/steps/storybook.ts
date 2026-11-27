@@ -5,9 +5,10 @@
 // compared with what a table says.
 import type { DataTable } from "@cucumber/cucumber";
 import { Given, Then, When } from "@cucumber/cucumber";
-import { readFile } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { expect } from "vitest";
+import { slash } from "../support/paths.ts";
 import { writeDefaultConfig } from "../support/project.ts";
 import {
   featureStoriesFiles,
@@ -38,6 +39,36 @@ When("I build its Storybook", { timeout: 120_000 }, async (world: E2EWorld) => {
   const { exitCode, output } = await buildStorybook.call(world);
   expect(exitCode, output).toBe(0);
 });
+
+/**
+ * A static build is published: no path of the machine that built it in any of its files. The
+ * repository's folder (the scenario's project is inside it, the plugin too), as Node writes it,
+ * with `/`, and as JSON writes it (Windows' `\` doubled).
+ */
+Then(
+  "its built files have no path of this machine",
+  async (world: E2EWorld) => {
+    const out = path.join(world.dir, "storybook-static");
+    const root = path.resolve();
+    const forms = [
+      ...new Set([root, slash(root), JSON.stringify(root).slice(1, -1)]),
+    ];
+    const found: string[] = [];
+    for (const entry of await readdir(out, {
+      recursive: true,
+      withFileTypes: true,
+    })) {
+      if (entry.isFile()) {
+        const file = path.join(entry.parentPath, entry.name);
+        const text = await readFile(file, "utf8");
+        if (forms.some((form) => text.includes(form))) {
+          found.push(slash(path.relative(out, file)));
+        }
+      }
+    }
+    expect(found).toEqual([]);
+  },
+);
 
 // A build Storybook stops (a broken stories file, or feature file: its index fails), its output with
 // each line of `text` (Storybook's printer wraps a message's lines, each in its frame: `│`, `|` on

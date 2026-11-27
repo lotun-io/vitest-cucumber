@@ -45,9 +45,14 @@ import {
 export const storybookPreviewPlugin = (options: PresetOptions): Plugin => {
   const project = projectOf(options);
   const { root, storybookPlans: plans } = project;
+  /** Whether Vite builds (`storybook build`), not serves (`storybook dev`). */
+  let building = false;
   return {
     name: "vitest-cucumber:storybook-preview",
     enforce: "pre",
+    configResolved: (config) => {
+      building = config.command === "build";
+    },
     // The runtime's packages, pre-bundled at startup (as browser mode's: `../../browserPlugin.ts`; the
     // preview throws the original errors and sends no messages: no Vitest serialization), and the
     // support files for Vite's scanner, which Storybook gives the stories (a feature file among
@@ -133,7 +138,10 @@ export const storybookPreviewPlugin = (options: PresetOptions): Plugin => {
         if ("error" in plan) {
           throw plan.error;
         }
-        return supportModuleCode({ cwd: root, plan });
+        // The root only where it's read: `storybook dev`'s files outside it, served from their
+        // whole paths (`/@fs/…`: `../../../worker/storybook/preview/locate.ts`). A static build's
+        // frames are its assets', and it's published: no path of the machine that built it.
+        return supportModuleCode({ cwd: building ? "." : root, plan });
       }
       return undefined;
     },

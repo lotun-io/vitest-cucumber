@@ -1,10 +1,15 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { sanitize } from "storybook/internal/csf";
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
 import { planOf } from "../../../feature/plan.ts";
 import { featureLinksOf } from "../featureLinks.ts";
-import { type LinkedFeature, linkedFeatureOf } from "../linkedFeature.ts";
+import {
+  type LinkedFeature,
+  linkedFeatureOf,
+  type SameLabel,
+} from "../linkedFeature.ts";
 import { storybookStepsOfFiles } from "../supportSteps.ts";
 
 let root: string;
@@ -53,13 +58,13 @@ const linkOf = (linked: LinkedFeature) => {
 /**
  * Feature file `uri` (its content written), linked; `autoTitle`, Storybook's automatic title of
  * its stories file (none: no `stories` pattern matches it); `sameLabel`, the other features on
- * its stories file with its label (here "Its label").
+ * its stories file whose labels give its label's id (here "Its label").
  */
 const linkedOf = async (
   uri: string,
   lines: string[],
   autoTitle?: string,
-  sameLabel: string[] = [],
+  sameLabel: SameLabel[] = [],
 ) => {
   write({ [uri]: lines.join("\n") });
   const { gherkin } = planOf(lines.join("\n"), uri, "en");
@@ -83,6 +88,7 @@ const linkedOf = async (
     label: "Its label",
     sameLabel,
     autoTitleOf: () => Promise.resolve(autoTitle),
+    idOf: sanitize,
   });
 };
 
@@ -172,12 +178,14 @@ describe("a feature file, linked to its stories file", () => {
     });
   });
 
-  test("another feature on its stories file with its label: an error, after its links' own", async () => {
+  test("another feature on its stories file with its label: an error, after its links' own, the id named", async () => {
     write({
       "steps/stories.ts": stepsFile,
       "src/Button.stories.ts": buttonStories,
     });
-    const others = [path.join(root, "features/other.feature")];
+    const others = [
+      { file: path.join(root, "features/other.feature"), label: "Its label" },
+    ];
     expect(
       await linkedOf(
         "src/Button.feature",
@@ -188,7 +196,29 @@ describe("a feature file, linked to its stories file", () => {
     ).toEqual({
       errors: [
         'src/Button.feature:3: src/Button.stories.ts has no story "Primry" (its stories: Primary, Secondary)',
-        'src/Button.feature: src/Button.stories.ts already has a "Its label" (features/other.feature): give one of them another name',
+        'src/Button.feature: src/Button.stories.ts already has a "Its label" (features/other.feature), the same id "button-its-label": give one of them another name',
+      ],
+    });
+  });
+
+  test("another feature on its stories file whose label differs in case or punctuation only: an error, its label and the id named", async () => {
+    write({
+      "steps/stories.ts": stepsFile,
+      "src/Button.stories.ts": buttonStories,
+    });
+    const others = [
+      { file: path.join(root, "features/other.feature"), label: "its label!" },
+    ];
+    expect(
+      await linkedOf(
+        "src/Button.feature",
+        ["Feature: Button", "  Scenario: A", "    Given the Primary story"],
+        undefined,
+        others,
+      ),
+    ).toEqual({
+      errors: [
+        `src/Button.feature: src/Button.stories.ts already has a "Its label" (features/other.feature: "its label!"), the same id "button-its-label" (Storybook's ids ignore case and punctuation): give one of them another name`,
       ],
     });
   });

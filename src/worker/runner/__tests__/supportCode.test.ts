@@ -119,6 +119,23 @@ describe("hooks", () => {
     expect(support.afterStepHooks).toHaveLength(1);
   });
 
+  test('BeforeStep/AfterStep with `null` or `""` tags: no filter, as cucumber\'s', () => {
+    const support = build([
+      {
+        method: "BeforeStep",
+        args: [{ tags: null }, () => undefined],
+        location: at(1),
+      },
+      {
+        method: "AfterStep",
+        args: [{ tags: "" }, () => undefined],
+        location: at(2),
+      },
+    ]);
+    expect(support.beforeStepHooks[0]?.tags).toBeUndefined();
+    expect(support.afterStepHooks[0]?.tags).toBeUndefined();
+  });
+
   test("BeforeAll/AfterAll: core's run hooks", () => {
     const support = build([
       {

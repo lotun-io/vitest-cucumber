@@ -108,6 +108,11 @@ describe("usedMissingTypes", () => {
     ).toEqual([airport]);
   });
 
+  test("a name no parameter type may have (`{order.id}`): listed, as cucumber lists it", () => {
+    const order = { name: "order.id", expression: "an order of {order.id}" };
+    expect(usedOf(runOf(["an order of 42"]), [order])).toEqual([order]);
+  });
+
   test("a built-in type next to it keeps its own pattern", () => {
     const fruit = { name: "fruit", expression: "I have {int} {fruit}" };
     expect(usedOf(runOf(["I have 3 apples"]), [fruit])).toEqual([fruit]);

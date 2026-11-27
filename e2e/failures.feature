@@ -198,7 +198,7 @@ Feature: Failures
           Given a passing step
           And a failing step
 
-        Scenario Outline: an outline
+        Scenario Outline: an outline with <value>
           Given a value of <value> that fails
 
           Examples:
@@ -268,7 +268,8 @@ Feature: Failures
       | storybook |
 
   # Vitest names a failed test by its file's Gherkin line and its suites: an Outline's examples, of
-  # the same name, are told apart by their lines.
+  # the same name, are told apart by their lines. Not in Storybook, where they'd be one story: an
+  # error (`e2e/storybookErrors.feature`).
   Scenario Outline: A failing Outline's examples are told apart by their lines (<mode>)
     Given a file named "features/steps.ts" with:
       """
@@ -303,10 +304,9 @@ Feature: Failures
       """
 
     Examples:
-      | mode      |
-      | node      |
-      | browser   |
-      | storybook |
+      | mode    |
+      | node    |
+      | browser |
 
   # A timed-out step's promise rejecting later, while its scenario still runs (an After hook): not
   # its error (cucumber's timeout is), not an uncaught one either (cucumber's race handles it).

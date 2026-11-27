@@ -18,6 +18,7 @@
 import type { GherkinDocument } from "@cucumber/messages";
 import path from "node:path";
 import type { FeatureSuite } from "../../../types/feature.ts";
+import { asRelative } from "../../../utils/asRelative.ts";
 import { slash } from "../../../utils/slash.ts";
 import { featureBase } from "../../feature/featureFile.ts";
 import { placesOf } from "../../feature/featureTree.ts";
@@ -52,35 +53,27 @@ export const featureLabelOf = (document: GherkinDocument, feature: string) => {
   return segmentOf(label);
 };
 
-/** A scenario's name as an export's (PascalCase, a valid identifier). */
-const exportNameOf = (name: string) => {
+/**
+ * A story's name as its export's: PascalCase, a valid identifier (its words' characters a name
+ * may have, `ID_Continue`: `²`, `½`, `①` dropped; it starts with one a name may start with,
+ * `ID_Start`, else `Scenario`). Two stories may get one: their ids are then one too, the
+ * feature's error (`./storyIds.ts`), which is checked before the module is used.
+ */
+export const exportNameOf = (name: string) => {
   const pascal = name
     .split(/[^\p{L}\p{N}]+/u)
+    .map((word) => word.replaceAll(/[^\p{ID_Continue}]/gu, ""))
     .filter(Boolean)
     .map((word) => (word[0] ?? "").toUpperCase() + word.slice(1))
     .join("");
-  return /^\p{L}/u.test(pascal) ? pascal : `Scenario${pascal}`;
-};
-
-/** The scenarios' exports, each a unique identifier (a repeated name numbered: `Kinds`, `Kinds2`). */
-export const exportNamesOf = (links: readonly { name: string }[]) => {
-  const used = new Set<string>();
-  return links.map(({ name }) => {
-    const base = exportNameOf(name);
-    let exportName = base;
-    for (let n = 2; used.has(exportName); n += 1) {
-      exportName = `${base}${String(n)}`;
-    }
-    used.add(exportName);
-    return exportName;
-  });
+  return /^\p{ID_Start}/u.test(pascal) ? pascal : `Scenario${pascal}`;
 };
 
 /**
  * The export of a feature's own story (its id `…--vitest-cucumber-feature`), and its tags: out of
  * the sidebar, story tests, docs pages and component manifests (a feature file isn't a stories file).
  */
-const featureStoryExport = "__vitestCucumberFeature";
+export const featureStoryExport = "__vitestCucumberFeature";
 const featureStoryTags = ["!dev", "!test", "!autodocs", "!manifest"];
 
 /** A scenario's story, as the module exports it and Storybook indexes it. */
@@ -131,18 +124,25 @@ export const featureStoriesOf = ({
 }) => {
   const label = featureLabelOf(document, feature);
   const title = `${storiesTitle}/${label}`;
-  const exportNames = exportNamesOf(links);
   const places = placesOf(tree);
-  const scenarios: ScenarioStory[] = links.map((link, index) => {
+  const scenarios: ScenarioStory[] = links.map((link) => {
     const place = places.get(link.line);
     // A scenario's part of its title (an example has none: its title ends at its outline), and
     // its story's name: the same text, so the sidebar shows the story alone.
     const scenarioPart =
       place && !place.test.isExample ? segmentOf(place.test.name) : undefined;
+    const name = scenarioPart ?? place?.test.name ?? link.name;
+    // Its rule's name (an example's place ends at its outline, left out: its name is the outline's).
+    const rule = place?.test.isExample
+      ? place.suites.slice(0, -1)
+      : (place?.suites ?? []);
     return {
       ...link,
-      export: exportNames[index] ?? "",
-      name: scenarioPart ?? place?.test.name ?? link.name,
+      // From its rule's name and its own as shown (an unnamed scenario's `Scenario`, an unnamed
+      // Outline's row's `Example`, an unnamed rule's `Rule`): its id theirs, as its title has them
+      // (the same name in two rules, two stories).
+      export: exportNameOf([...rule, name].join(" ")),
+      name,
       title: [
         title,
         ...(place?.suites ?? []).map(segmentOf),
@@ -158,10 +158,10 @@ export const featureStoriesOf = ({
       ],
     };
   });
-  let relative = slash(path.relative(path.dirname(feature), storiesFile));
-  if (!relative.startsWith(".")) {
-    relative = `./${relative}`;
-  }
+  // An import's path: relative, or it would be a package's (`.design/…` too).
+  const relative = asRelative(
+    slash(path.relative(path.dirname(feature), storiesFile)),
+  );
   const json = JSON.stringify;
   const code = [
     `import * as __cucumberStories from ${json(relative)};`,
