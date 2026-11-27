@@ -23,6 +23,9 @@ Feature: Retries
     Given a file named "features/a.feature" with:
       """
       Feature: A
+        Background:
+          Given the stories of "./a.stories.tsx"
+          And the "default" story
         Scenario: flaky
           Given a step that passes on its second attempt
       """
@@ -46,6 +49,9 @@ Feature: Retries
     Given a file named "features/a.feature" with:
       """
       Feature: A
+        Background:
+          Given the stories of "./a.stories.tsx"
+          And the "default" story
         Scenario: failing
           Given a failing step
       """
@@ -70,6 +76,9 @@ Feature: Retries
     Given a file named "features/a.feature" with:
       """
       Feature: A
+        Background:
+          Given the stories of "./a.stories.tsx"
+          And the "default" story
         Scenario: flaky
           Given a step that passes on its second attempt
       """
@@ -107,6 +116,9 @@ Feature: Retries
     And a file named "features/a.feature" with:
       """
       Feature: A
+        Background:
+          Given the stories of "./a.stories.tsx"
+          And the "default" story
         @flaky
         Scenario: tagged
           Given a step that passes on its second attempt
@@ -154,6 +166,9 @@ Feature: Retries
     And a file named "features/a.feature" with:
       """
       Feature: A
+        Background:
+          Given the stories of "./a.stories.tsx"
+          And the "default" story
         Scenario: undefined
           Given a step nobody wrote
 

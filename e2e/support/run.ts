@@ -169,12 +169,6 @@ export const runResult = (
 };
 
 /**
- * Starts Vitest in the scenario's project, as `vitest [filters]` in its directory would, with
- * Vitest's command line options (`root` from the scenario's project), its runs' messages into
- * `messages` if given (`./messages.ts`: a reporter of its own); its output is recorded until `end`, which restores this
- * process.
- */
-/**
  * Vitest couldn't start (its config failed to load, a project to be set up): its output, then the
  * error as Vitest's command line prints it ("Startup Error", then `console.error`'s inspection).
  */
@@ -186,6 +180,12 @@ export class StartupError extends Error {
   }
 }
 
+/**
+ * Starts Vitest in the scenario's project, as `vitest [filters]` in its directory would, with
+ * Vitest's command line options (`root` from the scenario's project), its runs' messages into
+ * `messages` if given (`./messages.ts`: a reporter of its own); its output is recorded until `end`, which restores this
+ * process.
+ */
 export async function startSession(
   this: E2EWorld,
   {

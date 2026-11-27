@@ -1,7 +1,8 @@
 Feature: Simple scenarios
 
-  Scenario: Without steps
-
+  Background:
+    Given the stories of "src/Empty.stories.ts"
+    And the "default" story
 
   Scenario: A single passing step
     Given a value of 42

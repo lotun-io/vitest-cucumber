@@ -5,7 +5,9 @@ story on the meta of `Account.stories.ts`.
 
 ## Background:
 
-* Given I see the "Log in" button
+* Given the stories of "./Account.stories.ts"
+* And the "default" story
+* And I see the "Log in" button
 
 ## Scenario: Sign up
 

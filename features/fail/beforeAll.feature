@@ -6,6 +6,10 @@ Feature: A failing BeforeAll hook
 
   pnpm test --project node features/fail/beforeAll.feature
 
+  Background:
+    Given the stories of "src/Empty.stories.ts"
+    And the "default" story
+
   Scenario: Skipped, its worker's BeforeAll hook failed
     Given a value of 1
     Then the value should be 1

@@ -17,6 +17,9 @@ Feature: Running feature files
     Given a file named "features/a.feature" with:
       """
       Feature: A
+        Background:
+          Given the stories of "./a.stories.tsx"
+          And the "default" story
         Scenario: first
           Given a passing step
 
@@ -56,6 +59,9 @@ Feature: Running feature files
     Given a file named "features/a.feature" with:
       """
       Feature:
+        Background:
+          Given the stories of "./a.stories.tsx"
+          And the "default" story
         Scenario:
           Given a passing step
 
@@ -109,6 +115,9 @@ Feature: Running feature files
     Given a file named "features/a.feature" with:
       """
       Feature: A
+        Background:
+          Given the stories of "./a.stories.tsx"
+          And the "default" story
         Scenario: failing
           Given a failing step
 
@@ -118,6 +127,9 @@ Feature: Running feature files
     And a file named "features/b.feature" with:
       """
       Feature: B
+        Background:
+          Given the stories of "./b.stories.tsx"
+          And the "default" story
         Scenario: passing
           Given a passing step
       """
@@ -162,6 +174,9 @@ Feature: Running feature files
     And a file named "features/a.feature" with:
       """
       Feature: A
+        Background:
+          Given the stories of "./a.stories.tsx"
+          And the "default" story
         Scenario: greeting
           Then the World greets
 
@@ -206,6 +221,9 @@ Feature: Running feature files
       """
       @concurrent
       Feature: A
+        Background:
+          Given the stories of "./a.stories.tsx"
+          And the "default" story
         Scenario: first
           Given a step that waits alone
 
@@ -265,6 +283,9 @@ Feature: Running feature files
     Given a file named "features/a.feature" with:
       """
       Feature: A
+        Background:
+          Given the stories of "./a.stories.tsx"
+          And the "default" story
         Scenario: failing
           Given a failing step
 
@@ -274,6 +295,9 @@ Feature: Running feature files
     And a file named "features/b.feature" with:
       """
       Feature: B
+        Background:
+          Given the stories of "./b.stories.tsx"
+          And the "default" story
         Scenario: not run
           Given a passing step
       """
@@ -382,9 +406,9 @@ Feature: Running feature files
         1) BeforeAll # inner/inner-steps.mjs:3
       """
 
-  # In the page, cucumber's runner doesn't exist (it runs in main): importing its API fails the step
-  # with the plugin's reason, not at link time with none.
-  Scenario: Cucumber's own API, imported from a step in browser mode, fails it with the reason
+  # In the page (browser mode's, Storybook's), cucumber's runner doesn't exist (it runs in main):
+  # importing its API fails the step with the plugin's reason, not at link time with none.
+  Scenario Outline: Cucumber's own API, imported from a step in a page, fails it with the reason (<mode>)
     Given a file named "features/steps.ts" with:
       """
       import { Given } from "@cucumber/cucumber";
@@ -396,15 +420,23 @@ Feature: Running feature files
     And a file named "features/a.feature" with:
       """
       Feature: A
+        Background:
+          Given the stories of "./a.stories.tsx"
+          And the "default" story
         Scenario: importing the API
           Given a step importing cucumber's API
       """
-    When I run vitest in browser mode
+    When I run vitest in <mode> mode
     Then it fails
     And the test "A > importing the API" fails with:
       """
-      [@lotun/vitest-cucumber] cucumber's API (`@cucumber/cucumber/api`, `@cucumber/cucumber/lib/…`) isn't available in browser mode
+      [@lotun/vitest-cucumber] cucumber's API (`@cucumber/cucumber/api`, `@cucumber/cucumber/lib/…`) isn't available in a browser's page
       """
+
+    Examples:
+      | mode      |
+      | browser   |
+      | storybook |
 
   # One `cucumber()` in the root config, every project inheriting it (`extends: true`): a node project
   # and a browser project each run their feature files with the same support code.
@@ -561,6 +593,9 @@ Feature: Running feature files
     And a file named "features/a.feature" with:
       """
       Feature: A
+        Background:
+          Given the stories of "./a.stories.tsx"
+          And the "default" story
         Scenario: first
           Given a counted step
 
@@ -648,6 +683,7 @@ Feature: Running feature files
       """
       import { Given } from "@cucumber/cucumber";
 
+      Given("the stories of {storybook:storiesFile}", (_file: string) => {});
       Given("the {storybook:story} story", (_story: string) => {});
       """
     And a file named "src/a.stories.ts" with:
@@ -658,8 +694,10 @@ Feature: Running feature files
     And a file named "src/a.feature" with:
       """
       Feature: A
+        Background:
+          Given the stories of "./a.stories.ts"
         Scenario: on a story
-          Given the First story
+          Given the "First" story
       """
     When I open vitest without a watcher in storybook mode
     And I run its tests

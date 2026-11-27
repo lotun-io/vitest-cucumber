@@ -38,6 +38,9 @@ Feature: Storybook with steps from a package
     And a file named "features/packaged.feature" with:
       """
       Feature: Packaged
+        Background:
+          Given the stories of "./packaged.stories.tsx"
+          And the "default" story
         Scenario: From a package
           Then the package's step gets the World, and "its argument"
       """

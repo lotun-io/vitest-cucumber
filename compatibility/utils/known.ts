@@ -26,3 +26,14 @@ export const leftOut: Record<string, string> = {
 
 /** Known differences, by sample and mode, with why: e2e's `@knownFailure`. */
 export const knownFailures: Record<string, Partial<Record<Mode, string>>> = {};
+
+/**
+ * Modes a sample is left out of, with why: its feature file has no row for them (the reason in its
+ * description).
+ */
+export const leftOutModes: Record<string, Partial<Record<Mode, string>>> = {
+  empty: {
+    storybook:
+      "its scenario has no steps: in a Storybook project, a scenario names its story in a step",
+  },
+};

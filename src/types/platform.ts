@@ -89,12 +89,6 @@ export interface ScenarioToRun {
 export interface LoadRun {
   cwd: string;
   options: RunOptions;
-  /**
-   * Storybook's hosts: whether a support file has a Storybook step (main's scan:
-   * `../core/storybook/stories/storybookSteps.ts`), so the host defines their parameter types
-   * (`../worker/storybook/story.ts`). Never set in node and browser mode.
-   */
-  storybookSteps?: boolean;
 }
 
 /**
@@ -157,8 +151,8 @@ export interface Host {
     stacks: (string | undefined)[],
     cwd: string,
   ): Promise<SupportCall["location"][]>;
-  /** The runtime's environment, for `run`: what it takes from its host. */
-  environment(run: LoadRun): RuntimeEnvironment;
+  /** The runtime's environment: what it takes from its host. */
+  environment(): RuntimeEnvironment;
   /** Whether a summary has colors (Vitest's output's; none without Vitest: Storybook's preview). */
   colors(): boolean;
   /**

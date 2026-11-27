@@ -1,17 +1,19 @@
 Feature: Storybook
   A Storybook project as a user's (its files below, in `tmp/e2e/<scenario>/`; Storybook, React and the
   plugin from `src/` through `storybook/`'s `node_modules`): its feature files are its stories (listed
-  in Storybook's `stories`), each a stories module of its own, on the stories file next to it: a story
-  per scenario and Outline row, on the story its Storybook step names (`Given the LogIn story`), else on
-  the meta, listed under the stories file's title then the feature's (`Cucumber/Login/Feature:
-  Login`). The stories files are ordinary ones, never changed. `Checks` end a scenario one way without
+  in Storybook's `stories`), each a stories module of its own, on the stories file its Background
+  names (`Given the stories of "./Login.stories.ts"`): a story per scenario and Outline row, on the
+  story its story step names (`Given the "LogIn" story`; `"default"`: the meta), listed under the
+  stories file's title then the feature's (`Cucumber/Login/Feature: Login`). The stories files are ordinary ones, never
+  changed. `Checks` end a scenario one way without
   failing (skipped, logging, after BeforeAll); `Failures` fail one way each (failing, undefined,
   pending, ambiguous); `Attachments` attach, `Hooks` run Before and After hooks (one failing), `Args`
   are an Outline's rows, each on its own story (its `args`), `Account` a Markdown feature, `Story`
   a step reading its story, a story's own `play` not run, an unmounted story a step mounts, `Unnamed`
   a feature whose names are empty (each fallback once: two stories of one name would have one id,
-  `e2e/storybookErrors.feature`), `Tags` Storybook's own tags written as Gherkin tags (`@!dev`:
-  not in the sidebar; `@!test`: not a story test; `@dev` after a rule's `@!dev`: listed again). Each story is listed in
+  `e2e/storybookErrors.feature`), `Tags` Storybook's own tags written as Gherkin tags (`@tag(!dev)`:
+  not in the sidebar; `@tag(!test)`: not a story test; `@tag(dev)` after a rule's `@tag(!dev)`:
+  listed again). Each story is listed in
   Storybook's sidebar as Vitest's tree
   has its test: its title the feature's, then its rule's, then its outline's (an example's) or its
   own (a scenario's: the sidebar shows the story alone), its id the feature's title's. Every case
@@ -212,15 +214,17 @@ Feature: Storybook
         renders the story, its play runs this.
 
         Background:
-          Given I see the "Log in" button
+          Given the stories of "./Login.stories.ts"
+          And I see the "Log in" button
 
         Scenario: Log in
-          Given the LogIn story
+          Given the "LogIn" story
           When I click the "Log in" button
           Then I see the "Log out" button
           And I see the text "Jane Doe"
 
         Scenario Outline: Sign up then log out with <first>
+          Given the "default" story
           When I click the "<first>" button
           And I click the "Log out" button
           Then I see the "Log in" button
@@ -239,7 +243,9 @@ Feature: Storybook
 
       ## Background:
 
-      * Given I see the "Log in" button
+      * Given the stories of "./Account.stories.ts"
+      * And the "default" story
+      * And I see the "Log in" button
 
       ## Scenario: Sign up
 
@@ -277,6 +283,10 @@ Feature: Storybook
         Each scenario is one way a story's scenario fails; the e2e suite (`e2e/storybook.feature`)
         compares what Vitest and Storybook's preview show for each with what's expected.
 
+        Background:
+          Given the stories of "./Failures.stories.ts"
+          And the "default" story
+
         Scenario: Failing
           Given I see the "Log in" button
           Then I see the "Nope" button
@@ -297,6 +307,10 @@ Feature: Storybook
         (`e2e/storybook.feature`) compares what Vitest and Storybook's preview show for each with what's
         expected. The ones that fail on purpose: `Failures.feature`.
 
+        Background:
+          Given the stories of "./Checks.stories.ts"
+          And the "default" story
+
         Scenario: Skipped
           Given a skipped step
 
@@ -315,6 +329,10 @@ Feature: Storybook
         annotations; in Storybook's preview a failed story's notes, after its steps (a passing story's
         aren't shown).
 
+        Background:
+          Given the stories of "./Attachments.stories.ts"
+          And the "default" story
+
         Scenario: Attaching
           Given a step that attaches
 
@@ -327,6 +345,10 @@ Feature: Storybook
       Feature: Hooks
         A scenario's Before and After hooks run in its story's play, around its steps (tagged hooks:
         `features/hooks.ts`); a failing Before hook fails the story, its steps skipped.
+
+        Background:
+          Given the stories of "./Hooks.stories.ts"
+          And the "default" story
 
         @hooks
         Scenario: Before and After
@@ -343,8 +365,11 @@ Feature: Storybook
         column), with its own `args`: its steps read the running story's (`story()`), each story's
         component rendered with its own.
 
+        Background:
+          Given the stories of "./Args.stories.ts"
+
         Scenario Outline: Greeting <name>
-          Given the <story> story
+          Given the "<story>" story
           Then I see the greeting of the story's name
 
           Examples:
@@ -358,15 +383,19 @@ Feature: Storybook
         A step reads its story (`story()`); a story's own `play` doesn't run in a scenario on it; an
         unmounted story is rendered by a step, not before the steps.
 
+        Background:
+          Given the stories of "./Story.stories.ts"
+
         Scenario: The running story
+          Given the "default" story
           Then the story is named "The running story"
 
         Scenario: Its own play
-          Given the WithItsOwnPlay story
+          Given the "WithItsOwnPlay" story
           Then the story's own play didn't run
 
         Scenario: Unmounted
-          Given the unmounted ThePage story
+          Given the unmounted "ThePage" story
           Then I see no button
           When I mount the story
           Then I see the "Log in" button
@@ -374,6 +403,10 @@ Feature: Storybook
     And a file named "src/Unnamed.feature" with:
       """
       Feature:
+
+        Background:
+          Given the stories of "./Unnamed.stories.ts"
+          And the "default" story
 
         Scenario:
           Given I see the "Log in" button
@@ -394,26 +427,30 @@ Feature: Storybook
     And a file named "src/Tags.feature" with:
       """
       Feature: Tags
-        Storybook's own tags, written as Gherkin tags: `@!dev` keeps a scenario's story out of
-        Storybook's sidebar, `@!test` out of story tests, and a `@dev` after its rule's `@!dev` lists
-        it again. The e2e suite (`e2e/storybook.feature`) compares Vitest's tests and Storybook's
-        index with what's expected.
+        Storybook's own tags, written as Gherkin tags: `@tag(!dev)` keeps a scenario's story out of
+        Storybook's sidebar, `@tag(!test)` out of story tests, and a `@tag(dev)` after its rule's
+        `@tag(!dev)` lists it again. The e2e suite (`e2e/storybook.feature`) compares Vitest's
+        tests and Storybook's index with what's expected.
+
+        Background:
+          Given the stories of "./Tags.stories.ts"
+          And the "default" story
 
         Scenario: Everywhere
           Given I see the "Log in" button
 
-        @!dev
+        @tag(!dev)
         Scenario: Only in story tests
           Given I see the "Log in" button
 
-        @!test
+        @tag(!test)
         Scenario: Only in Storybook
           Given I see the "Log in" button
 
-        @!dev
+        @tag(!dev)
         Rule: Hidden
 
-          @dev
+          @tag(dev)
           Scenario: Listed all the same
             Given I see the "Log in" button
       """
@@ -435,8 +472,8 @@ Feature: Storybook
     And a file named "features/steps.ts" with:
       """
       // The story is already rendered by Storybook (unless it's unmounted): steps drive it through its
-      // context. The Storybook steps link a scenario to a story (the plugin's parameter types: they do
-      // nothing here). Arrow functions taking the World, as the docs write them: a static build
+      // context. The Storybook steps link a scenario to its stories file and story (the plugin's
+      // placeholders: they do nothing here). Arrow functions taking the World, as the docs write them: a static build
       // minifies them, their `world` parameter renamed. One's code is a helper's
       // (`../helpers/text.ts`, a file the plugin's `import` doesn't list).
       import { Given, Then, When } from "@cucumber/cucumber";
@@ -444,6 +481,7 @@ Feature: Storybook
       import { seeingText } from "../helpers/text.ts";
       import type { StoryWorld } from "./world.ts";
 
+      Given("the stories of {storybook:storiesFile}", (_file: string) => {});
       Given("the {storybook:story} story", (_story: string) => {});
       Given("the unmounted {storybook:storyUnmounted} story", (_story: string) => {});
 
@@ -654,7 +692,7 @@ Feature: Storybook
     Then its built files have no path of this machine
     And its stories show:
       | STORY                                                                                   | STATUS | SHOWS                                                                       | HIDES           |
-      | cucumber-login-feature-login--log-in                                                    | PASS   | Given I see the "Log in" button                                             |                 |
+      | cucumber-login-feature-login--log-in                                                    | PASS   | And I see the "Log in" button                                               |                 |
       | cucumber-login-feature-login--log-in                                                    | PASS   | Then I see the "Log out" button                                             |                 |
       | cucumber-login-feature-login--sign-up-then-log-out-with-log-in                          | PASS   | When I click the "Log in" button                                            |                 |
       | cucumber-login-feature-login--sign-up-then-log-out-with-sign-up                         | PASS   | When I click the "Sign up" button                                           |                 |

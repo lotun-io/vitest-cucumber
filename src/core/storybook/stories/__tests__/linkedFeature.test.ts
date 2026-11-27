@@ -102,11 +102,11 @@ describe("a feature file, linked to its stories file", () => {
       await linkedOf("features/button.feature", [
         "Feature: Button",
         "  Background:",
-        "    Given the stories of src/Button.stories.ts",
+        '    Given the stories of "src/Button.stories.ts"',
         "  Scenario: Secondary",
-        "    Given the Secondary story",
+        '    Given the "Secondary" story',
         "  Scenario: Primary",
-        "    Given the Primary story",
+        '    Given the "Primary" story',
       ]),
     );
     expect(linked.storiesFile).toBe(path.join(root, "src/Button.stories.ts"));
@@ -121,27 +121,29 @@ describe("a feature file, linked to its stories file", () => {
     ]);
   });
 
-  test("a stories file that writes no title: Storybook's automatic one; none either (no `stories` pattern matches it): the feature's error, at its stories file step if it has one", async () => {
+  test("a stories file that writes no title: Storybook's automatic one; none either (no `stories` pattern matches it): the feature's error, at its stories file step", async () => {
     write({
       "steps/stories.ts": stepsFile,
       "src/Card.stories.ts": "export default {};\nexport const Plain = {};\n",
     });
-    const sibling = [
+    const card = [
       "Feature: Card",
+      "  Background:",
+      '    Given the stories of "./Card.stories.ts"',
       "  Scenario: A",
-      "    Given the Plain story",
+      '    Given the "Plain" story',
     ];
-    const listed = await linkedOf("src/Card.feature", sibling, "parts/Card");
+    const listed = await linkedOf("src/Card.feature", card, "parts/Card");
     expect(linkOf(listed).title).toBe("parts/Card");
-    const unlisted = await linkedOf("src/Card.feature", sibling);
+    const unlisted = await linkedOf("src/Card.feature", card);
     expect(errorsOf(unlisted)).toEqual([
-      'src/Card.feature: src/Card.stories.ts has no title: none is written in its meta, and no pattern of Storybook\'s "stories" matches it (give its meta a "title", or list the file in "stories")',
+      'src/Card.feature:3: src/Card.stories.ts has no title: none is written in its meta, and no pattern of Storybook\'s "stories" matches it (give its meta a "title", or list the file in "stories")',
     ]);
     const named = await linkedOf("features/card.feature", [
       "Feature: Card",
       "  Scenario: A",
-      "    Given the stories of src/Card.stories.ts",
-      "    Given the Plan story",
+      '    Given the stories of "src/Card.stories.ts"',
+      '    Given the "Plan" story',
     ]);
     // Every error of its links, the title's among them.
     expect(errorsOf(named)).toEqual([
@@ -150,24 +152,29 @@ describe("a feature file, linked to its stories file", () => {
     ]);
   });
 
-  test("no stories file: the feature's error, unless its links' errors already say why", async () => {
-    write({ "steps/stories.ts": stepsFile });
+  test("no stories file: its links' errors say why (none named, or one that doesn't exist)", async () => {
+    write({
+      "steps/stories.ts": stepsFile,
+      // Next to it, but not named: not its stories file.
+      "features/plain.stories.ts": buttonStories,
+    });
     expect(
       await linkedOf("features/plain.feature", [
         "Feature: Plain",
         "  Scenario: A",
-        "    When I click",
+        '    Given the "Primary" story',
       ]),
     ).toEqual({
       errors: [
-        "features/plain.feature has no stories file: none is next to it (a stories file of its name), and none is named by a stories file step",
+        "features/plain.feature names no stories file: a feature file names its stories file once, in its Background, with a stories file step",
       ],
     });
     expect(
       await linkedOf("features/plain.feature", [
         "Feature: Plain",
         "  Scenario: A",
-        "    Given the stories of src/Gone.stories.ts",
+        '    Given the stories of "src/Gone.stories.ts"',
+        '    And the "Primary" story',
       ]),
     ).toEqual({
       errors: [
@@ -189,13 +196,19 @@ describe("a feature file, linked to its stories file", () => {
     expect(
       await linkedOf(
         "src/Button.feature",
-        ["Feature: Button", "  Scenario: A", "    Given the Primry story"],
+        [
+          "Feature: Button",
+          "  Background:",
+          '    Given the stories of "./Button.stories.ts"',
+          "  Scenario: A",
+          '    Given the "Primry" story',
+        ],
         undefined,
         others,
       ),
     ).toEqual({
       errors: [
-        'src/Button.feature:3: src/Button.stories.ts has no story "Primry" (its stories: Primary, Secondary)',
+        'src/Button.feature:5: src/Button.stories.ts has no story "Primry" (its stories: Primary, Secondary)',
         'src/Button.feature: src/Button.stories.ts already has a "Its label" (features/other.feature), the same id "button-its-label": give one of them another name',
       ],
     });
@@ -212,7 +225,13 @@ describe("a feature file, linked to its stories file", () => {
     expect(
       await linkedOf(
         "src/Button.feature",
-        ["Feature: Button", "  Scenario: A", "    Given the Primary story"],
+        [
+          "Feature: Button",
+          "  Background:",
+          '    Given the stories of "./Button.stories.ts"',
+          "  Scenario: A",
+          '    Given the "Primary" story',
+        ],
         undefined,
         others,
       ),
@@ -230,17 +249,19 @@ describe("a feature file, linked to its stories file", () => {
     });
     const linked = await linkedOf("src/Button.feature", [
       "Feature: Button",
+      "  Background:",
+      '    Given the stories of "./Button.stories.ts"',
       "  Scenario: Clicking",
-      "    Given the Primry story",
+      '    Given the "Primry" story',
       "  Scenario: Secondary",
-      "    Given the Secondary story",
+      '    Given the "Secondary" story',
     ]);
     expect(errorsOf(linked)).toEqual([
-      'src/Button.feature:3: src/Button.stories.ts has no story "Primry" (its stories: Primary, Secondary)',
+      'src/Button.feature:5: src/Button.stories.ts has no story "Primry" (its stories: Primary, Secondary)',
     ]);
   });
 
-  test("two stories files in one feature file: an error", async () => {
+  test("two stories file steps in one feature file: an error", async () => {
     write({
       "steps/stories.ts": stepsFile,
       "src/Button.stories.ts": buttonStories,
@@ -250,17 +271,17 @@ describe("a feature file, linked to its stories file", () => {
       "Feature: Forms",
       "  Rule: Button",
       "    Background:",
-      "      Given the stories of src/Button.stories.ts",
+      '      Given the stories of "src/Button.stories.ts"',
       "    Scenario: A",
-      "      When I click",
+      '      Given the "Primary" story',
       "  Rule: Input",
       "    Background:",
-      "      Given the stories of src/Input.stories.ts",
+      '      Given the stories of "src/Input.stories.ts"',
       "    Scenario: B",
-      "      When I type",
+      '      Given the "Primary" story',
     ]);
     expect(errorsOf(linked)).toEqual([
-      "features/forms.feature names 2 stories files (src/Button.stories.ts: line 4; src/Input.stories.ts: line 9): a feature file runs on one stories file, split it into one per stories file",
+      "features/forms.feature has 2 stories file steps (lines 4, 9): a feature file names its stories file once, in its Background",
     ]);
   });
 
@@ -275,8 +296,10 @@ describe("a feature file, linked to its stories file", () => {
     });
     const linked = await linkedOf("src/Button.feature", [
       "Feature: Button",
+      "  Background:",
+      '    Given the stories of "./Button.stories.ts"',
       "  Scenario: A",
-      "    Given the Primary story",
+      '    Given the "Primary" story',
     ]);
     expect(errorsOf(linked)).toEqual([
       "src/Button.stories.ts uses CSF factories, which the plugin doesn't support yet: src/Button.feature's scenarios need its stories in CSF 3",
@@ -292,8 +315,8 @@ describe("a feature file, linked to its stories file", () => {
       await linkedOf("features/component.feature", [
         "Feature: Component",
         "  Scenario: A",
-        "    Given the stories of src/Button.tsx",
-        "    Given the Primary story",
+        '    Given the stories of "src/Button.tsx"',
+        '    Given the "Primary" story',
       ]),
     );
     expect(component).toHaveLength(1);
@@ -306,7 +329,8 @@ describe("a feature file, linked to its stories file", () => {
       await linkedOf("features/folder.feature", [
         "Feature: Folder",
         "  Scenario: A",
-        "    Given the stories of src",
+        '    Given the stories of "src"',
+        '    And the "default" story',
       ]),
     );
     expect(folder).toHaveLength(1);
@@ -316,7 +340,7 @@ describe("a feature file, linked to its stories file", () => {
     expect(folder[0]).not.toContain(root);
   });
 
-  test("the stories file next to it, broken (no default export): the feature's error", async () => {
+  test("its stories file, broken (no default export): the feature's error", async () => {
     write({
       "steps/stories.ts": stepsFile,
       "src/Card.stories.ts": "export const Primary = {};\n",
@@ -324,13 +348,15 @@ describe("a feature file, linked to its stories file", () => {
     const errors = errorsOf(
       await linkedOf("src/Card.feature", [
         "Feature: Card",
+        "  Background:",
+        '    Given the stories of "./Card.stories.ts"',
         "  Scenario: A",
-        "    Given the Primary story",
+        '    Given the "Primary" story',
       ]),
     );
     expect(errors).toHaveLength(1);
     expect(errors[0]).toMatch(
-      /^src\/Card\.feature: src\/Card\.stories\.ts can't be read as a stories file \(CSF: missing default export .*\)$/,
+      /^src\/Card\.feature:3: src\/Card\.stories\.ts can't be read as a stories file \(CSF: missing default export .*\)$/,
     );
   });
 });

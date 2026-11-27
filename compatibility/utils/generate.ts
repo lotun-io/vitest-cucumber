@@ -8,26 +8,36 @@
 import { readdirSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { samples } from "./kit.ts";
-import { knownFailures, leftOut, type Mode, modes } from "./known.ts";
+import {
+  knownFailures,
+  leftOut,
+  leftOutModes,
+  type Mode,
+  modes,
+} from "./known.ts";
 
 /** The generated feature files' folder: `compatibility/`. */
 export const featuresDir = path.join(import.meta.dirname, "..");
 
-/** An Examples table of `rows`' modes, with its tags and name. */
-const examples = (rows: readonly Mode[], header: string) =>
-  [
+/** An Examples table of `rows`' modes, with its tags and name (its column as wide as its widest cell). */
+const examples = (rows: readonly Mode[], header: string) => {
+  const width = Math.max("mode".length, ...rows.map((mode) => mode.length));
+  return [
     `    ${header}`,
-    "      | mode      |",
-    ...rows.map((mode) => `      | ${mode.padEnd(9)} |`),
+    `      | ${"mode".padEnd(width)} |`,
+    ...rows.map((mode) => `      | ${mode.padEnd(width)} |`),
   ].join("\n");
+};
 
 /** A sample's feature file. */
 export const featureOf = (sample: string) => {
   const reason = leftOut[sample];
   const known = knownFailures[sample] ?? {};
-  const expected = modes.filter((mode) => !known[mode]);
+  const outOf = leftOutModes[sample] ?? {};
+  const run = modes.filter((mode) => !outOf[mode]);
+  const expected = run.filter((mode) => !known[mode]);
   // One example per known difference: its reason its name, as the report shows it.
-  const failures = modes.flatMap((mode) => {
+  const failures = run.flatMap((mode) => {
     const why = known[mode];
     return why ? [examples([mode], `@knownFailure\n    Examples: ${why}`)] : [];
   });
@@ -37,6 +47,9 @@ export const featureOf = (sample: string) => {
     `Feature: Compatibility: ${sample}`,
     `  Cucumber's compatibility kit sample \`${sample}\`: the plugin reports what cucumber does.`,
     ...(reason ? [`  Left out: ${reason}.`] : []),
+    ...Object.entries(outOf).map(
+      ([mode, why]) => `  Not in ${mode} mode: ${why}.`,
+    ),
     "",
     "  Scenario Outline: The plugin reports what cucumber does (<mode>)",
     `    Given the compatibility kit's sample "${sample}"`,

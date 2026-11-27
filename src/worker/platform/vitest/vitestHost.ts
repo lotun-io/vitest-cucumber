@@ -6,7 +6,7 @@
 // cucumber's default timeouts Vitest's (`./vitestTimeouts.ts`); and its command to main. Page-safe.
 import { inject } from "vitest";
 import type { Command } from "../../../types/commands.ts";
-import type { Host, LoadRun } from "../../../types/platform.ts";
+import type { Host } from "../../../types/platform.ts";
 import type {} from "../../../types/providedContext.ts";
 import type { ModeEnvironment } from "../../../types/runtimeEnvironment.ts";
 import { vitestTimeouts } from "./vitestTimeouts.ts";
@@ -14,7 +14,7 @@ import { vitestTimeouts } from "./vitestTimeouts.ts";
 /** The host of `own` pieces, its runtime on `own.environment`, its command `own.command`. */
 export const vitestHost = (
   own: Pick<Host, "env" | "importSupport" | "locate" | "throwable"> & {
-    environment: (run: LoadRun) => ModeEnvironment;
+    environment: () => ModeEnvironment;
     command: Command;
   },
 ): Host => {
@@ -31,8 +31,8 @@ export const vitestHost = (
       totalWorkers: provided().totalWorkers,
       projectName: provided().projectName,
     }),
-    environment: (run) => ({
-      ...own.environment(run),
+    environment: () => ({
+      ...own.environment(),
       defaultTimeouts: vitestTimeouts(),
     }),
     colors: () => provided().colors,

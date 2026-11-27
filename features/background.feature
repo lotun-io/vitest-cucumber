@@ -1,6 +1,8 @@
 Feature: Background steps are shared across scenarios
 
   Background:
+    Given the stories of "src/Empty.stories.ts"
+    And the "default" story
     Given a value of 10
 
   Scenario: Background sets up initial state

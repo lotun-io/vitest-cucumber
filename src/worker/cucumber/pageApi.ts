@@ -8,7 +8,7 @@ import { pluginError } from "../../utils/errors.ts";
 
 const unavailable = (): never => {
   throw pluginError(
-    "cucumber's API (`@cucumber/cucumber/api`, `@cucumber/cucumber/lib/…`) isn't available in browser mode (the page runs the plugin's own copy of cucumber's runtime)",
+    "cucumber's API (`@cucumber/cucumber/api`, `@cucumber/cucumber/lib/…`) isn't available in a browser's page (the page runs the plugin's own copy of cucumber's runtime)",
     { quiet: true },
   );
 };

@@ -169,6 +169,83 @@ export const sampleFiles = (sample: string) => {
   return { features, steps };
 };
 
+/**
+ * A sample in storybook mode: in a Storybook project, each feature names its stories file (the one
+ * the harness writes next to it, a meta only: `e2e/support/storybookProject.ts`) and each scenario
+ * its story, in the feature's Background (the plugin's rule: `src/core/storybook/stories/
+ * featureLinks.ts`). Cucumber's run and the plugin's both run the files so written, and their
+ * steps: native cucumber's with cucumber's `{string}`, the page's with the plugin's placeholders,
+ * which Storybook's hosts define as `{string}` (the same pattern, file and lines: the same messages).
+ */
+export const storybookSample = {
+  /** Feature file `name`'s `content` with the Storybook steps in its Background (one added if it has none). */
+  feature: (name: string, content: string) => {
+    const storiesFile = `./${name.replace(/\.feature(\.md)?$/, "")}.stories.tsx`;
+    const lines = content.split("\n");
+    const markdown = name.endsWith(".md");
+    const steps = markdown
+      ? [`* Given the stories of "${storiesFile}"`, '* And the "default" story']
+      : [`Given the stories of "${storiesFile}"`, 'And the "default" story'];
+    const featureAt = lines.findIndex((line) =>
+      /^\s*(#\s*)?Feature:/.test(line),
+    );
+    const childAt = lines.findIndex(
+      (line, at) =>
+        at > featureAt &&
+        (markdown
+          ? /^##\s/.test(line)
+          : /^\s*(@|(Background|Scenario|Scenario Outline|Scenario Template|Example|Rule)\b.*:)/.test(
+              line,
+            )),
+    );
+    if (featureAt === -1 || childAt === -1) {
+      throw new Error(
+        `${name}: no feature's first child to put a Background before`,
+      );
+    }
+    const child = lines[childAt] ?? "";
+    const indent = /^\s*/.exec(child)?.[0] ?? "";
+    if (/^\s*(##\s*)?Background:/.test(child)) {
+      // Its own Background: the Storybook steps first in it.
+      const stepIndent = markdown ? "" : `${indent}  `;
+      lines.splice(
+        childAt + (markdown ? 2 : 1),
+        0,
+        ...steps.map((step) => `${stepIndent}${step}`),
+      );
+    } else {
+      lines.splice(
+        childAt,
+        0,
+        ...(markdown
+          ? ["## Background:", "", ...steps, ""]
+          : [
+              `${indent}Background:`,
+              ...steps.map((step) => `${indent}  ${step}`),
+              "",
+            ]),
+      );
+    }
+    return lines.join("\n");
+  },
+  /** The Storybook steps' file (`features/steps/`): native cucumber's, and the page's. */
+  steps: (() => {
+    const code = (storiesFile: string, story: string) =>
+      [
+        'import { Given } from "@cucumber/cucumber";',
+        "",
+        `Given("the stories of ${storiesFile}", (_file: string) => undefined);`,
+        `Given("the ${story} story", (_story: string) => undefined);`,
+        "",
+      ].join("\n");
+    return {
+      name: "storybook.ts",
+      native: code("{string}", "{string}"),
+      page: code("{storybook:storiesFile}", "{storybook:story}"),
+    };
+  })(),
+};
+
 /** Cucumber's statuses, least severe first. */
 const severity = [
   "UNKNOWN",

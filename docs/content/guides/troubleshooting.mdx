@@ -93,6 +93,32 @@ so it's optimized before the run:
 optimizeDeps: { include: ["react"] },
 ```
 
+### A feature that can't be linked
+
+```text
+Error: [@lotun/vitest-cucumber] feature file can't be linked to stories:
+  - src/Greeting.feature names no stories file: a feature file names its stories file once, in its Background, with a stories file step
+  - src/Greeting.feature:7 ("Saying hello") names no story: a story step names its story (its stories file's, or "default": its meta)
+```
+
+The plugin links each scenario of a feature file to a story from its
+[Storybook steps](/modes/storybook/features#storybook-steps), before anything runs. A link it can't
+make fails the feature's stories, with every such error listed (in Storybook's own process, it stops
+its index: `storybook dev` lists the error, `storybook build` fails). Each error, and what to do:
+
+| The error says | Do this |
+| --- | --- |
+| `names no stories file` | Name it in the feature's Background: `Given the stories of "./Greeting.stories.ts"` |
+| `has 2 stories file steps` | Keep one, in the Background: a feature runs on one stories file |
+| `the stories file "…" doesn't exist` | Fix the path: from the feature's folder with `./` or `../`, else from the project's root |
+| `names no story` | Give the scenario a story step: `Given the "Ada" story`, or `Given the "default" story` for the meta |
+| `names no stories file` (a scenario) | Move the stories file step to the Background, so it reaches every scenario |
+| `it has no steps` | A scenario without steps gets no Background steps: give it its own story step |
+| `names a story twice` | Keep one story step per scenario, the Background's counted |
+| `has no story "…"` | Name one of the stories it lists, as exported (`Ada`, not `ada`) |
+| `matches 2 Storybook steps` | Word your Storybook step definitions so that one step matches only one |
+| `can't be read: write its expression as a string literal` | Write the expression as a string literal, the first argument of `Given(…)` |
+
 ### No component is mounted in your story
 
 ```text

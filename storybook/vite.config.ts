@@ -1,8 +1,8 @@
 /// <reference types="vitest/config" />
 // The repo's root features as Storybook stories (`../notes/storybook.md`): the plugin from the repo's
 // `src/` (this is a package of the repo's pnpm workspace, `"@lotun/vitest-cucumber": "workspace:*"`),
-// each feature file a stories module of its own, on the stories file next to it (a meta only, virtual:
-// `../vitest.utils.ts`'s `virtualFeatureStories`), with the features' own support code: the root suite's `storybook`
+// each feature file a stories module of its own, on the stories file its Background names (one for
+// all, a meta only: `./src/Empty.stories.ts`, from this project's root), with the features' own support code: the root suite's `storybook`
 // project, next to `node` and `browser` (the scenarios' Storybook projects, in `tmp/e2e/`, link this
 // package's `node_modules`). The plugin comes from its addon in `.storybook/main.ts` (with its
 // options), whose preset gives this project its plugins. Storybook's builder reads its Vite options

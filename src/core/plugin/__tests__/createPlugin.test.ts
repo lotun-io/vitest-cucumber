@@ -59,7 +59,14 @@ const settled = () => new Promise((resolve) => setTimeout(resolve, 30));
  * The plugin set up for a Vitest (watching or not) and its one project, both fakes: what the
  * plugin read of them and did to them.
  */
-const setUp = async ({ watch = false } = {}) => {
+const setUp = async ({
+  watch = false,
+  testTags,
+}: {
+  watch?: boolean;
+  /** A plugin built on this one's declared tags (`declaredTagsWith`), given before the project is set up. */
+  testTags?: (tags: readonly string[]) => Promise<readonly string[]>;
+} = {}) => {
   const fileWatcher = new EventEmitter();
   const closing: (() => void)[] = [];
   const takenAsChanged: string[] = [];
@@ -110,6 +117,9 @@ const setUp = async ({ watch = false } = {}) => {
     { import: ["support"] },
     { platform: "platform.ts" },
   );
+  if (testTags) {
+    plugin.declaredTagsWith(testTags);
+  }
   plugin.configResolved({ root });
   await plugin.configureVitest({
     vitest,
@@ -173,6 +183,29 @@ test("a run's start: what was read for the last one is read again, each of its f
   await runStart([cart, other]);
   expect(invalidated).toEqual([cart]);
   expect(tagNames()).toEqual(["@smoke", "@slow", "@checkout"]);
+});
+
+test("the declared tags of a plugin built on this one (`declaredTagsWith`: Storybook's, every tag its tests may have): as the project is set up and as a run starts", async () => {
+  // As the fixture is (an earlier test edits it).
+  writeFileSync(
+    cart,
+    "@smoke\nFeature: Cart\n  Scenario: s\n    Given a step\n",
+  );
+  const { runStart, tagNames } = await setUp({
+    testTags: (tags) =>
+      Promise.resolve(tags.filter((tag) => !tag.startsWith("@s"))),
+  });
+  expect(tagNames()).toEqual([]);
+  writeFileSync(
+    cart,
+    "@smoke @checkout\nFeature: Cart\n  Scenario: s\n    Given a step\n",
+  );
+  await runStart([cart]);
+  expect(tagNames()).toEqual(["@checkout"]);
+  writeFileSync(
+    cart,
+    "@smoke\nFeature: Cart\n  Scenario: s\n    Given a step\n",
+  );
 });
 
 test("a watching Vitest: the support files' list another, every feature file of its projects is taken as changed; any other event, none", async () => {

@@ -1,4 +1,5 @@
 import { DecodedMap, getOriginalPosition } from "@vitest/utils/source-map";
+import { Tag } from "storybook/preview-api";
 import { expect, test } from "vitest";
 import { defaultRunOptions } from "../../../../utils/runOptions.ts";
 import { errorCode } from "../../../utils/errorCode.ts";
@@ -62,22 +63,20 @@ test("a stories module: its code, in story tests then the feature's tests as cal
   const made = {
     uri: "a.feature",
     content:
-      "Feature: A\n\n  @smoke @!dev\n  Scenario: One\n    Given a step\n",
+      "Feature: A\n\n  @smoke @tag(!dev)\n  Scenario: One\n    Given a step\n",
     tags: [],
     featureTree: {
       name: "A",
       line: 1,
       column: 1,
-      // `@!dev` is its story's (Storybook's own tag), not its test's.
-      children: [
-        { name: "One", line: 4, column: 3, tags: ["@smoke", "@!dev"] },
-      ],
+      // The plan's Vitest tags: `@tag(!dev)` is its story's (Storybook's own), not its test's
+      // (left out as the plan is made: `../storybookPlan.ts`).
+      children: [{ name: "One", line: 4, column: 3, tags: ["@smoke"] }],
     },
     gherkin: { document: { comments: [] }, pickles: [] },
     link: { key: "" },
     options: defaultRunOptions,
     supportFiles: ["/p/steps.ts"],
-    storybookSteps: false,
     stories: {
       code: "the code",
       title: "T/Feature: A",
@@ -85,7 +84,7 @@ test("a stories module: its code, in story tests then the feature's tests as cal
     },
   };
   const file = "/p/a.feature";
-  const { code, map } = storiesModule({ file, plan: made });
+  const { code, map } = storiesModule({ file, plan: made, tag: Tag });
   expect(code).toBe(
     [
       "the code",
@@ -117,9 +116,15 @@ test("a stories module: its code, in story tests then the feature's tests as cal
   // The stories' code: no mapping.
   expect(getOriginalPosition(decoded, { line: 1, column: 0 })).toBeNull();
   expect(storiesModulePreview(made)).toBe("the code");
-  const failed = storiesModule({ file, plan: { error } });
+  // A broken feature's: its suite throwing, then its own story alone, hidden by its meta's tags.
+  const failed = storiesModule({ file, plan: { error }, tag: Tag });
   expect(failed.code).toBe(
-    [describeImport, ...failingSuite, "export default {};"].join("\n"),
+    [
+      describeImport,
+      ...failingSuite,
+      'export default { tags: ["!dev","!test","!autodocs","!manifest"] };',
+      "export const __vitestCucumberFeature = {};",
+    ].join("\n"),
   );
   expect(failed.map).toBeUndefined();
   expect(storiesModulePreview({ error })).toBe(
@@ -140,7 +145,6 @@ test("a feature module, from its feature's plan: story tests' exports the runtim
     link: { key: "" },
     options: defaultRunOptions,
     supportFiles: ["/p/steps.ts"],
-    storybookSteps: true,
     stories: {
       code: "the code",
       title: "T/Feature: A",
@@ -159,7 +163,7 @@ test("a feature module, from its feature's plan: story tests' exports the runtim
       "export const { testStory, storyTests, convertToFilePath, vitest } = storyTestsModule({",
       "  testStory: addonTestStory,",
       "  convertToFilePath: addonConvertToFilePath,",
-      `  run: {"cwd":"/p","options":${JSON.stringify(defaultRunOptions)},"storybookSteps":true},`,
+      `  run: {"cwd":"/p","options":${JSON.stringify(defaultRunOptions)}},`,
       "});",
       `export default createFeature(${JSON.stringify(model)});`,
     ].join("\n"),
@@ -175,16 +179,15 @@ test("a feature module, from its feature's plan: story tests' exports the runtim
   expect(featureModulePreview(failed)).toBe(thrown);
 });
 
-test("the support module, from its support plan: the support files' import, the run's options, whether they have a Storybook step; its hot update reloads the page", () => {
+test("the support module, from its support plan: the support files' import, the run's options; its hot update reloads the page", () => {
   const code = supportModuleCode({
     cwd: "/p",
     plan: {
       options: { ...defaultRunOptions, strict: false },
       supportFiles: ["/p/steps.ts"],
-      storybookSteps: true,
     },
   });
-  expect(code).toContain("export const storybookSteps = true;");
+  expect(code).not.toContain("storybookSteps");
   expect(code).toContain('await import("/p/steps.ts");');
   expect(code).toContain(
     'export const options = {"strict":false,"dryRun":false,"worldParameters":{}};',

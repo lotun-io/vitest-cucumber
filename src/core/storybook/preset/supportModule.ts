@@ -1,7 +1,6 @@
 // The code of Storybook's preview's support module: the support files' import, and what the page's
 // cucumber needs from main, written in as it builds (the preview, dev or a static build, needs no
-// server): the project's root, the run's options, whether the support files have a Storybook step
-// (the page then defines their parameter types), and cucumber's version. The page imports the
+// server): the project's root, the run's options, and cucumber's version. The page imports the
 // placeholder module (`../../../worker/storybook/preview/support.ts`, its exports' types); the preset's
 // plugin resolves that import to an id of its own (`previewSupportId`) and serves this code for it.
 // Not the placeholder's path: a file in `node_modules`, Vite would serve it with its dependencies'
@@ -41,8 +40,7 @@ const reloadOnUpdate =
 /**
  * The support module's code, for the project at `cwd`, from its support plan
  * (`../stories/storybookPlans.ts`'s `storybookSupportPlanOf`; one that failed is thrown by the preview's
- * plugin, not written: `./previewPlugin.ts`): the support files' import, the run's options, and
- * whether the support files have a Storybook step.
+ * plugin, not written: `./previewPlugin.ts`): the support files' import, the run's options.
  */
 export const supportModuleCode = ({
   cwd,
@@ -55,7 +53,6 @@ export const supportModuleCode = ({
   return [
     `export const importSupport = ${importSupportCode(plan.supportFiles)};`,
     `export const options = ${json(plan.options)};`,
-    `export const storybookSteps = ${json(plan.storybookSteps)};`,
     `export const cwd = ${json(cwd)};`,
     `export const version = ${json(cucumberVersion)};`,
     reloadOnUpdate,

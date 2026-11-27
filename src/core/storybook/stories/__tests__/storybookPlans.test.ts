@@ -25,7 +25,25 @@ const stories = (name: string, exports: string[]) =>
     `export default { title: "T" };\n${exports.map((story) => `export const ${story} = {};`).join("\n")}\n`,
   );
 
-const tagged = "@smoke\nFeature: A\n  @one\n  Scenario: s\n    Given a step\n";
+/** The project's Storybook steps: always there (every Storybook feature names its stories file and story). */
+const storybookSteps = file(
+  "support/storybook.ts",
+  [
+    `Given("the {storybook:story} story", () => {});`,
+    `Given("the stories of {storybook:storiesFile}", () => {});`,
+  ].join("\n"),
+);
+
+/**
+ * A feature `name`, its Background naming `storiesFile`, then `scenarios` (one on the meta by
+ * default).
+ */
+const linked = (
+  name: string,
+  storiesFile: string,
+  scenarios = '  Scenario: s\n    Given the "default" story\n',
+) =>
+  `Feature: ${name}\n  Background:\n    Given the stories of "${storiesFile}"\n${scenarios}`;
 
 /**
  * A project's feature plans and its Storybook plans on them (its support code the `support`
@@ -60,11 +78,8 @@ const nothing = {
   staleFeatures: [],
 };
 
-test("storybookPlanOf: a feature next to its stories file: its plan from the parts as read, until one is read again", async () => {
-  const id = file(
-    "src/Login.feature",
-    "Feature: Login\n  Scenario: s\n    Given a step\n",
-  );
+test("storybookPlanOf: a feature on its stories file: its plan from the parts as read, until one is read again", async () => {
+  const id = file("src/Login.feature", linked("Login", "./Login.stories.ts"));
   const storiesFile = stories("src/Login.stories.ts", ["LogIn"]);
   const { plans, storybook, counted, fileChanged } = project();
   const plan = await storybook.storybookPlanOf(id);
@@ -126,40 +141,28 @@ test("a feature that can't be planned is the feature plans' failed plan, for Sto
   }
 });
 
-test("a feature without a stories file is stopped by its links' error, and linked to none; a stories file added: tried again", async () => {
-  const id = file("c.feature", tagged);
+test("a feature naming no stories file is stopped by its links' error, and linked to none: a stories file next to it, added, isn't its", async () => {
+  const id = file(
+    "c.feature",
+    '@smoke\nFeature: A\n  @one\n  Scenario: s\n    Given the "default" story\n',
+  );
   const { storybook, fileChanged } = project();
   const plan = await storybook.storybookPlanOf(id);
   expect("error" in plan && plan.error.message).toContain(
-    "feature file can't be linked to stories:\n  - c.feature has no stories file",
+    "feature file can't be linked to stories:\n  - c.feature names no stories file",
   );
-  expect(storybook.links.featuresOf(undefined)).toEqual([id]);
-  // A stories file added next to it (`c.stories.ts`): it runs on it now.
+  expect(storybook.links.has(id)).toBe(true);
+  expect(storybook.links.storiesFileOf(id)).toBeUndefined();
   const added = stories("c.stories.ts", ["A"]);
-  expect(await fileChanged("add", added)).toEqual({
-    ...nothing,
-    staleFeatures: [id],
-  });
-  expect(await storybook.storybookPlanOf(id)).toMatchObject({
-    uri: "c.feature",
-  });
-  expect(storybook.links.featuresOf(added)).toEqual([id]);
-  // Another stories file added: no feature of it, none without a stories file any more.
-  expect(await fileChanged("add", stories("other.stories.ts", ["A"]))).toEqual(
-    nothing,
-  );
+  expect(await fileChanged("add", added)).toEqual(nothing);
   rmSync(added);
-  rmSync(path.join(root, "other.stories.ts"));
 });
 
 test("a stories file's event: really changed, or deleted, the features that run on it; with the text it had, or any other file, none", async () => {
-  const id = file(
-    "watch/Page.feature",
-    "Feature: Page\n  Scenario: s\n    Given a step\n",
-  );
+  const id = file("watch/Page.feature", linked("Page", "./Page.stories.ts"));
   const other = file(
     "watch/Other.feature",
-    "Feature: Other\n  Scenario: s\n    Given a step\n",
+    linked("Other", "./Other.stories.ts"),
   );
   const storiesFile = stories("watch/Page.stories.ts", ["A"]);
   stories("watch/Other.stories.ts", ["A"]);
@@ -189,7 +192,11 @@ test("a stories file's event: really changed, or deleted, the features that run 
 test("storybookIndexPlanOf: its Storybook plan and its index entries, with the title Storybook makes; its feature read at each ask", async () => {
   const id = file(
     "index/Login.feature",
-    "Feature: Login\n  Scenario: Sign in\n    Given a step\n",
+    linked(
+      "Login",
+      "./Login.stories.ts",
+      '  Scenario: Sign in\n    Given the "default" story\n',
+    ),
   );
   stories("index/Login.stories.ts", ["LogIn"]);
   const { storybook } = project();
@@ -221,7 +228,14 @@ test("storybookIndexPlanOf: its Storybook plan and its index entries, with the t
     { exportName: "SignIn", title: "Other/T/Feature: Login/Sign in" },
   ]);
   // The file changed, its event not there yet (Storybook's own watcher asks first): read now.
-  writeFileSync(id, "Feature: Login\n  Scenario: Sign out\n    Given a step\n");
+  writeFileSync(
+    id,
+    linked(
+      "Login",
+      "./Login.stories.ts",
+      '  Scenario: Sign out\n    Given the "default" story\n',
+    ),
+  );
   const changed = await storybook.storybookIndexPlanOf(id, makeTitle);
   expect(entriesOf(changed)).toEqual([
     { exportName: "__vitestCucumberFeature", title: "Prefix/T/Feature: Login" },
@@ -231,41 +245,27 @@ test("storybookIndexPlanOf: its Storybook plan and its index entries, with the t
   expect(changed).toMatchObject(await storybook.storybookPlanOf(id));
 });
 
-test("the Storybook steps: whether the support files have one, on the Storybook plan and the support plan; their expressions others, every Storybook feature out of date", async () => {
-  const id = file(
-    "sb/Card.feature",
-    "Feature: Card\n  Scenario: s\n    Given a step\n",
-  );
+test("the Storybook steps: their expressions others, every Storybook feature out of date; the support plan, the support files and the options", async () => {
+  const id = file("sb/Card.feature", linked("Card", "./Card.stories.ts"));
   stories("sb/Card.stories.ts", ["A"]);
   const steps = file("support/card.ts", `Given("a step", () => {});\n`);
   const { plans, storybook, fileChanged } = project();
   expect(await storybook.storybookPlanOf(id)).toMatchObject({
-    storybookSteps: false,
+    uri: "sb/Card.feature",
   });
-  expect(await storybook.storybookSupportPlanOf()).toMatchObject({
-    options: {},
-    supportFiles: [steps],
-    storybookSteps: false,
+  expect(await storybook.storybookSupportPlanOf()).toEqual({
+    options: plans.options,
+    supportFiles: [steps, storybookSteps],
   });
   // A support file's code edited, its Storybook steps the same (none): nothing.
   file("support/card.ts", `Given("a step", () => { /* edited */ });\n`);
   expect(await fileChanged("change", steps)).toEqual(nothing);
-  // A Storybook step written in, the watcher's event not there yet: what was read.
-  const withStep = `Given("a step", () => {});\nGiven("the {storybook:story} story", () => {});\n`;
+  // A Storybook step written in: every Storybook feature.
+  const withStep = `Given("a step", () => {});\nGiven("the {storybook:story} card", () => {});\n`;
   file("support/card.ts", withStep);
-  expect(await storybook.storybookPlanOf(id)).toMatchObject({
-    storybookSteps: false,
-  });
-  // The watcher's event: every Storybook feature; its plan with the steps read again.
   expect(await fileChanged("change", steps)).toEqual({
     ...nothing,
     staleFeatures: [id],
-  });
-  expect(await storybook.storybookPlanOf(id)).toMatchObject({
-    storybookSteps: true,
-  });
-  expect(await storybook.storybookSupportPlanOf()).toMatchObject({
-    storybookSteps: true,
   });
   // A run started since (the cache cleared, nothing asked): the last ones read are still what
   // an event is compared with.
@@ -308,14 +308,10 @@ test("the Storybook steps: whether the support files have one, on the Storybook 
   rmSync(steps);
 });
 
-test("a feature naming its stories file in a step: out of date as that file is deleted, and as it's created again", async () => {
-  const steps = file(
-    "support/named.ts",
-    `Given("the stories of {storybook:storiesFile}", () => {});\n`,
-  );
+test("a feature's stories file: out of date as that file is deleted, and as it's created again (still linked to it)", async () => {
   const id = file(
     "named/Flow.feature",
-    "Feature: Flow\n  Scenario: s\n    Given the stories of ./parts/Page.stories.ts\n",
+    linked("Flow", "./parts/Page.stories.ts"),
   );
   const storiesFile = stories("named/parts/Page.stories.ts", ["A"]);
   const { storybook, fileChanged } = project();
@@ -331,28 +327,31 @@ test("a feature naming its stories file in a step: out of date as that file is d
   expect(await storybook.storybookPlanOf(id)).toMatchObject({
     error: { message: expect.stringContaining("doesn't exist") as string },
   });
-  expect(storybook.links.featuresOf(undefined)).toEqual([id]);
-  // Created again: not next to it by its name, but it has no stories file, so it's tried again.
+  // Still linked to the file it names: the file's event concerns it.
+  expect(storybook.links.featuresOf(storiesFile)).toEqual([id]);
   stories("named/parts/Page.stories.ts", ["A"]);
   expect((await fileChanged("add", storiesFile)).staleFeatures).toEqual([id]);
   expect(await storybook.storybookPlanOf(id)).toMatchObject({
     uri: "named/Flow.feature",
   });
-  rmSync(steps);
 });
 
 test("a touch changes nothing: a stories file's event with its text as read, and a feature's with its text as read", async () => {
-  const id = file(
-    "echo/Card.feature",
-    "Feature: Card\n  Scenario: s\n    Given a step\n",
-  );
+  const id = file("echo/Card.feature", linked("Card", "./Card.stories.ts"));
   const storiesFile = stories("echo/Card.stories.ts", ["A"]);
   const { storybook, fileChanged } = project();
   await storybook.storybookPlanOf(id);
   // The feature edited, its label the same: nothing of the plans' (its own module is its
   // host's, what shows its text too); its stories file's event, its text as read (a touch, a
   // save as it was): no feature out of date.
-  writeFileSync(id, "Feature: Card\n  Scenario: edited\n    Given a step\n");
+  writeFileSync(
+    id,
+    linked(
+      "Card",
+      "./Card.stories.ts",
+      '  Scenario: edited\n    Given the "default" story\n',
+    ),
+  );
   expect(await fileChanged("change", id)).toEqual(nothing);
   expect(await fileChanged("change", storiesFile)).toEqual(nothing);
   // The stories file edited: its feature out of date; the feature's own event then: nothing.
@@ -365,13 +364,10 @@ test("a touch changes nothing: a stories file's event with its text as read, and
 });
 
 test("two features on one stories file with the same label: refused, each naming the other once both are linked; one renamed or deleted, the other is the host's to make again", async () => {
-  const one = file(
-    "src/Dup.feature",
-    "Feature: Login\n  Scenario: s\n    Given a step\n",
-  );
+  const one = file("src/Dup.feature", linked("Login", "./Dup.stories.ts"));
   const two = file(
     "src/Dup.feature.md",
-    "# Feature: Login\n\n## Scenario: s\n* Given a step\n",
+    '# Feature: Login\n\n## Background:\n* Given the stories of "./Dup.stories.ts"\n\n## Scenario: s\n* Given the "default" story\n',
   );
   stories("src/Dup.stories.ts", ["S"]);
   const { storybook, fileChanged } = project();
@@ -396,13 +392,17 @@ test("two features on one stories file with the same label: refused, each naming
     refused("src/Dup.feature", "src/Dup.feature.md"),
   );
   // Its text edited, its label the same: no other to make again.
-  file("src/Dup.feature", "Feature: Login\n  Scenario: t\n    Given a step\n");
-  expect(await fileChanged("change", one)).toEqual(nothing);
-  // Renamed: the other to make again; neither refused.
   file(
     "src/Dup.feature",
-    "Feature: Login again\n  Scenario: t\n    Given a step\n",
+    linked(
+      "Login",
+      "./Dup.stories.ts",
+      '  Scenario: t\n    Given the "default" story\n',
+    ),
   );
+  expect(await fileChanged("change", one)).toEqual(nothing);
+  // Renamed: the other to make again; neither refused.
+  file("src/Dup.feature", linked("Login again", "./Dup.stories.ts"));
   expect(await fileChanged("change", one)).toEqual({
     ...nothing,
     staleFeatures: [two],
@@ -410,7 +410,14 @@ test("two features on one stories file with the same label: refused, each naming
   expect(await planErrorOf(one)).toBeUndefined();
   expect(await planErrorOf(two)).toBeUndefined();
   // The same label again, then the other deleted: the one left to make again, not refused.
-  file("src/Dup.feature", "Feature: Login\n  Scenario: t\n    Given a step\n");
+  file(
+    "src/Dup.feature",
+    linked(
+      "Login",
+      "./Dup.stories.ts",
+      '  Scenario: t\n    Given the "default" story\n',
+    ),
+  );
   await fileChanged("change", one);
   expect(await planErrorOf(two)).toContain("already has");
   rmSync(two);
@@ -418,4 +425,27 @@ test("two features on one stories file with the same label: refused, each naming
     staleFeatures: [one],
   });
   expect(await planErrorOf(one)).toBeUndefined();
+});
+
+test("its tests' Vitest tags: their pickles' but Storybook's built-in ones (`@tag(dev)`, `@tag(!test)`), its stories' all of them", async () => {
+  const id = file(
+    "tags/Tagged.feature",
+    linked(
+      "Tagged",
+      "./Tagged.stories.ts",
+      '  @tag(!dev) @tag(slow) @tag(!test) @smoke\n  Scenario: s\n    Given the "default" story\n',
+    ),
+  );
+  stories("tags/Tagged.stories.ts", []);
+  const { storybook } = project();
+  const plan = await storybook.storybookPlanOf(id);
+  if ("error" in plan) {
+    throw plan.error;
+  }
+  expect(plan.featureTree.children).toMatchObject([
+    { tags: ["slow", "@smoke"] },
+  ]);
+  expect(plan.stories.code).toContain(
+    'tags: ["!dev","slow","!test","@smoke","!autodocs","!manifest"]',
+  );
 });

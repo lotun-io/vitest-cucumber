@@ -29,6 +29,10 @@ import {
 import { storiesModule } from "./storybook/stories/featureStoriesModule.ts";
 import { autoTitleOfStorybook } from "./storybook/stories/storiesTitle.ts";
 import { createStorybookPlans } from "./storybook/stories/storybookPlans.ts";
+import {
+  declaredTagsOf,
+  storybookTagsOf,
+} from "./storybook/stories/storybookTags.ts";
 import { vitestFromFeature } from "./storybook/vitest/vitestImport.ts";
 import { withoutQuery } from "./utils/withoutQuery.ts";
 
@@ -46,6 +50,10 @@ export const createStorybookPlugin = (options: PresetOptions): Plugin[] => {
     autoTitleOf: autoTitleOfStorybook(options),
   });
   core.watchWith(plans.onFileChange);
+  // Its tests have their Gherkin tags but Storybook's: its declared ones, every one a test may have.
+  core.declaredTagsWith(async (tags) =>
+    declaredTagsOf(tags, await storybookTagsOf()),
+  );
 
   /** A feature file as its stories module, and its feature module. */
   const storiesPlugin: Plugin = {
@@ -80,6 +88,7 @@ export const createStorybookPlugin = (options: PresetOptions): Plugin[] => {
       const { code, map } = storiesModule({
         file: id,
         plan: await plans.storybookPlanOf(id),
+        tag: await storybookTagsOf(),
       });
       return { code, map: map ?? null };
     },

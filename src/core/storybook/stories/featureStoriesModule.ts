@@ -10,16 +10,19 @@ import { treeCalls } from "../../feature/treeCalls.ts";
 import { importSupportCode } from "../../support/importSupportCode.ts";
 import { failingSuiteCode, throwCode } from "../../utils/errorCode.ts";
 import { featureModuleOf } from "./featureRuntimeModule.ts";
+import { brokenFeatureStories } from "./featureStories.ts";
 import type { StorybookPlan } from "./storybookPlans.ts";
-import { testTagsOf } from "./storybookTags.ts";
+import type { StorybookTags } from "./storybookTags.ts";
 
 /**
  * The code of feature file `file`'s stories module in story tests, one of two blocks. A feature
  * that can't be made (`error`: its parse errors, its links): a suite whose body throws the error, so
  * its file fails with it and no tests (as the suite is collected, not as the module is imported,
  * which Vitest's browser tester would wrap: "Failed to import test file <path>"; the suite's name is
- * never shown), and a meta (the addon's transform reads the module as CSF, which needs one) with no
- * story; no map. Else its `stories`' code, then the feature's tests, as the feature's text gives
+ * never shown), then the feature's own story alone, hidden (`brokenFeatureStories`: the addon's
+ * transform reads the module as CSF, and its index has that story, so a docs page attached to the
+ * feature still finds it); no map. `tag`: Storybook's own tags (`./storybookTags.ts`). Else its
+ * `stories`' code, then the feature's tests, as the feature's text gives
  * them:
  *
  *   <its stories module: its stories file's meta, a story per scenario>
@@ -32,7 +35,8 @@ import { testTagsOf } from "./storybookTags.ts";
  * `storyTests` gives the page its support code to load (the support files' import written here,
  * in the test file's own module: whoever follows a test file's imports finds them) and gives back
  * the calls (`../../../worker/storybook/vitest/tests.ts`): a suite's `describe`, a scenario's
- * `storyTest` (with its Gherkin tags but Storybook's own, its story's: `./storybookTags.ts`),
+ * `storyTest` (with its Vitest tags: the plan's, its Gherkin tags but Storybook's own,
+ * `./storybookTags.ts`),
  * whose test is the addon's story test of the scenario at that line (the addon's
  * transform, which runs next, declares one per story after these). Its map (`magic-string`'s)
  * gives each call its Gherkin line and column and nothing else: where Vitest places every suite
@@ -44,13 +48,17 @@ import { testTagsOf } from "./storybookTags.ts";
 export const storiesModule = ({
   file,
   plan,
+  tag,
 }: {
   file: string;
   plan: StorybookPlan | FailedPlan;
+  tag: StorybookTags;
 }): { code: string; map?: ReturnType<MagicString["generateMap"]> } => {
   if ("error" in plan) {
     return {
-      code: [failingSuiteCode(plan.error), "export default {};"].join("\n"),
+      code: [failingSuiteCode(plan.error), brokenFeatureStories(tag)].join(
+        "\n",
+      ),
     };
   }
   const { content, featureTree, supportFiles, stories } = plan;
@@ -63,7 +71,7 @@ export const storiesModule = ({
       describe: (suite) =>
         `describe(${JSON.stringify(suite.name)}, ${place(suite)}, () => {`,
       test: (test) =>
-        `storyTest(${JSON.stringify(test.name)}, { tags: ${JSON.stringify(testTagsOf(test.tags))} }, ${place(test)});`,
+        `storyTest(${JSON.stringify(test.name)}, { tags: ${JSON.stringify(test.tags)} }, ${place(test)});`,
     },
   });
   code.prepend(

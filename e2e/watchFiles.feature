@@ -15,6 +15,9 @@ Feature: Watch mode: files
     And a file named "features/a.feature" with:
       """
       Feature: A
+        Background:
+          Given the stories of "./a.stories.tsx"
+          And the "default" story
         Scenario: changing
           Given a changing step
       """
@@ -72,6 +75,9 @@ Feature: Watch mode: files
     When I change the file "features/a.feature" to:
       """
       Feature: A
+        Background:
+          Given the stories of "./a.stories.tsx"
+          And the "default" story
         Scenario: renamed
           Given a changing step
 
@@ -87,6 +93,9 @@ Feature: Watch mode: files
     When I change the file "features/a.feature" to:
       """
       Feature: A
+        Background:
+          Given the stories of "./a.stories.tsx"
+          And the "default" story
         Scenario: added
           Given an added step
       """
@@ -112,6 +121,9 @@ Feature: Watch mode: files
     When I change the file "features/a.feature" to:
       """
       Feature: A
+        Background:
+          Given the stories of "./a.stories.tsx"
+          And the "default" story
         Scenario: broken
           Given a changing step
         this line is not gherkin
@@ -120,6 +132,9 @@ Feature: Watch mode: files
     When I change the file "features/a.feature" to:
       """
       Feature: A
+        Background:
+          Given the stories of "./a.stories.tsx"
+          And the "default" story
         @new
         Scenario: tagged
           Given a changing step
@@ -203,6 +218,7 @@ Feature: Watch mode: files
       """
       import { Given } from "@cucumber/cucumber";
 
+      Given("the stories of {storybook:storiesFile}", (_file: string) => {});
       Given("the {storybook:story} story", (_story: string) => {});
       """
     And a file named "src/a.stories.ts" with:
@@ -213,8 +229,10 @@ Feature: Watch mode: files
     And a file named "src/a.feature" with:
       """
       Feature: A
+        Background:
+          Given the stories of "./a.stories.ts"
         Scenario: on a story
-          Given the First story
+          Given the "First" story
       """
     When I start vitest in watch mode in storybook mode
     Then the feature file "src/a.feature" passes

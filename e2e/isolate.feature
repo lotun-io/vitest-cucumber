@@ -22,12 +22,18 @@ Feature: Vitest workers
     And a file named "features/a.feature" with:
       """
       Feature: A
+        Background:
+          Given the stories of "./a.stories.tsx"
+          And the "default" story
         Scenario: a
           Given a passing step
       """
     And a file named "features/b.feature" with:
       """
       Feature: B
+        Background:
+          Given the stories of "./b.stories.tsx"
+          And the "default" story
         Scenario: b
           Given a passing step
       """
@@ -119,6 +125,9 @@ Feature: Vitest workers
     And a file named "features/c.feature" with:
       """
       Feature: C
+        Background:
+          Given the stories of "./c.stories.tsx"
+          And the "default" story
         Scenario: c
           Given the worker's variables were set at import
       """

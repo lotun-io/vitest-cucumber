@@ -21,6 +21,9 @@ Feature: Plugin options
     And a file named "features/a.feature" with:
       """
       Fonctionnalité: A
+        Contexte:
+          Soit the stories of "./a.stories.tsx"
+          Et the "default" story
         Scénario: en français
           Soit a passing step
       """
@@ -43,6 +46,9 @@ Feature: Plugin options
     Given a file named "features/a.feature" with:
       """
       Feature: A
+        Background:
+          Given the stories of "./a.stories.tsx"
+          And the "default" story
         Scenario: failing
           Given a failing step
       """
@@ -71,6 +77,9 @@ Feature: Plugin options
     And a file named "features/a.feature" with:
       """
       Feature: A
+        Background:
+          Given the stories of "./a.stories.tsx"
+          And the "default" story
         Scenario: failing
           Given a failing step
       """
@@ -101,6 +110,9 @@ Feature: Plugin options
     And a file named "features/a.feature" with:
       """
       Feature: A
+        Background:
+          Given the stories of "./a.stories.tsx"
+          And the "default" story
         Scenario: failing
           Given a failing step
       """
@@ -187,6 +199,7 @@ Feature: Plugin options
       """
       import { Given } from "@cucumber/cucumber";
 
+      Given("the stories of {storybook:storiesFile}", (_file: string) => {});
       Given("the {storybook:story} story", (_story: string) => {});
       """
     And a file named "src/Page.stories.ts" with:
@@ -197,8 +210,10 @@ Feature: Plugin options
     And a file named "src/Page.feature" with:
       """
       Feature: Page
+        Background:
+          Given the stories of "./Page.stories.ts"
         Scenario: on a story
-          Given the Primary story
+          Given the "Primary" story
           And a passing step
       """
     When I run vitest
@@ -233,6 +248,9 @@ Feature: Plugin options
     And a file named "features/a.feature" with:
       """
       Feature: A
+        Background:
+          Given the stories of "./a.stories.tsx"
+          And the "default" story
         Scenario: passing
           Given a passing step
       """
@@ -260,6 +278,9 @@ Feature: Plugin options
     And a file named "features/a.feature" with:
       """
       Feature: A
+        Background:
+          Given the stories of "./a.stories.tsx"
+          And the "default" story
         Scenario: passing
           Given a passing step
       """
@@ -320,6 +341,9 @@ Feature: Plugin options
     And a file named "features/a.feature" with:
       """
       Feature: A
+        Background:
+          Given the stories of "./a.stories.tsx"
+          And the "default" story
         Scenario: a
           Given a step
       """
@@ -330,10 +354,33 @@ Feature: Plugin options
       | a    | undefined |
 
     Examples:
-      | mode      |
-      | node      |
-      | browser   |
-      | storybook |
+      | mode    |
+      | node    |
+      | browser |
+
+  # In a Storybook project, a feature file is linked to its stories by the support code's Storybook
+  # steps: without support code, it can't be.
+  Scenario: With no `import` globs, a Storybook feature file can't be linked to its stories (storybook)
+    Given the plugin options:
+      """
+      { "import": [] }
+      """
+    And a file named "features/a.feature" with:
+      """
+      Feature: A
+        Background:
+          Given the stories of "./a.stories.tsx"
+          And the "default" story
+        Scenario: a
+          Given a step
+      """
+    When I run vitest in storybook mode
+    Then it fails
+    And it runs no scenarios
+    And the output contains:
+      """
+      features/a.feature names no stories file
+      """
 
   # A glob made from a path (`path.join`, `path.resolve`, `fileURLToPath` in the config) has `\` on
   # Windows: there a path's separator, as cucumber reads it (Node's `fs.glob`), not a glob's escape
@@ -414,6 +461,9 @@ Feature: Plugin options
     And a file named "features/parameters.feature" with:
       """
       Feature: Parameters
+        Background:
+          Given the stories of "./parameters.stories.tsx"
+          And the "default" story
         Scenario: changing them
           Given I change the parameters
 
@@ -458,12 +508,18 @@ Feature: Plugin options
     And a file named "features/a.feature" with:
       """
       Feature: A
+        Background:
+          Given the stories of "./a.stories.tsx"
+          And the "default" story
         Scenario: changing them
           Given I change the parameters
       """
     And a file named "features/b.feature" with:
       """
       Feature: B
+        Background:
+          Given the stories of "./b.stories.tsx"
+          And the "default" story
         Scenario: the next file
           Then the parameters are the BeforeAll hook's
       """
@@ -553,6 +609,9 @@ Feature: Plugin options
     And a file named "features/a.feature" with:
       """
       Feature: A
+        Background:
+          Given the stories of "./a.stories.tsx"
+          And the "default" story
         Scenario: first
           Then the parameters keep their types
 
@@ -587,6 +646,9 @@ Feature: Plugin options
     And a file named "features/dry.feature" with:
       """
       Feature: Dry
+        Background:
+          Given the stories of "./dry.stories.tsx"
+          And the "default" story
         Scenario: failing
           Given a failing step
 
@@ -632,6 +694,9 @@ Feature: Plugin options
     And a file named "features/pending.feature" with:
       """
       Feature: Pending
+        Background:
+          Given the stories of "./pending.stories.tsx"
+          And the "default" story
         Scenario: pending
           Given a passing step
           When a pending step
@@ -666,6 +731,9 @@ Feature: Plugin options
     And a file named "features/a.feature" with:
       """
       Feature: A
+        Background:
+          Given the stories of "./a.stories.tsx"
+          And the "default" story
         Scenario: slow
           Given a step taking 200 ms
       """
@@ -696,6 +764,9 @@ Feature: Plugin options
     And a file named "features/a.feature" with:
       """
       Feature: A
+        Background:
+          Given the stories of "./a.stories.tsx"
+          And the "default" story
         Scenario: quick
           Given a step
       """
@@ -752,6 +823,9 @@ Feature: Plugin options
       """
       @slow
       Feature: Tagged
+        Background:
+          Given the stories of "./tagged.stories.tsx"
+          And the "default" story
         Scenario: timed out
           Given a step taking 300 ms
 
@@ -762,6 +836,9 @@ Feature: Plugin options
     And a file named "features/untagged.feature" with:
       """
       Feature: Untagged
+        Background:
+          Given the stories of "./untagged.stories.tsx"
+          And the "default" story
         Scenario: untimed
           Given a step taking 300 ms
       """

@@ -23,6 +23,9 @@ Feature: Hooks
     Given a file named "features/skip.feature" with:
       """
       Feature: Skip
+        Background:
+          Given the stories of "./skip.stories.tsx"
+          And the "default" story
         Scenario: runs
           Given a passing step
 
@@ -85,6 +88,9 @@ Feature: Hooks
     And a file named "features/skip.feature" with:
       """
       Feature: Skip
+        Background:
+          Given the stories of "./skip.stories.tsx"
+          And the "default" story
         Scenario: from a step
           Given a passing step
           And a step that skips
@@ -121,6 +127,9 @@ Feature: Hooks
     Given a file named "features/rewrite.feature" with:
       """
       Feature: Rewrite
+        Background:
+          Given the stories of "./rewrite.stories.tsx"
+          And the "default" story
         @rewrite
         Scenario: rewritten
           Given a failing step
@@ -193,6 +202,9 @@ Feature: Hooks
     And a file named "features/rewrite.feature" with:
       """
       Feature: Rewrite
+        Background:
+          Given the stories of "./rewrite.stories.tsx"
+          And the "default" story
         @rewriteStep
         Scenario: rewritten step
           Given a failing step
@@ -242,14 +254,17 @@ Feature: Hooks
     And a file named "features/stepHooks.feature" with:
       """
       Feature: Step hooks
+        Background:
+          Given the stories of "./stepHooks.stories.tsx"
+          And the "default" story
         Scenario: untagged
           Given a recording step
-          Then the events are "before, step, after PASSED, before"
+          Then the events are "before, after PASSED, before, after PASSED, before, step, after PASSED, before"
 
         @tagged
         Scenario: tagged
           Given a recording step
-          Then the events are "before, tagged, step, after PASSED, before, tagged"
+          Then the events are "before, tagged, after PASSED, before, tagged, after PASSED, before, tagged, step, after PASSED, before, tagged"
       """
     When I run vitest in <mode> mode
     Then it passes
@@ -280,6 +295,9 @@ Feature: Hooks
     And a file named "features/stepHooks.feature" with:
       """
       Feature: Step hooks
+        Background:
+          Given the stories of "./stepHooks.stories.tsx"
+          And the "default" story
         @before
         Scenario: before
           Given a passing step

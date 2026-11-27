@@ -23,11 +23,15 @@ import {
   nativeResults,
   retryOf,
   sampleFiles,
+  storybookSample,
 } from "../utils/kit.ts";
 
 const repo = path.resolve(import.meta.dirname, "../..");
 
-/** Native cucumber's run of a sample, by sample: the same in each of its mode rows, run once. */
+/**
+ * Native cucumber's run of a sample, by sample: the same in each of its node and browser rows, run
+ * once; its storybook row's (its files as a Storybook project has them: `storybookSample`) apart.
+ */
 const nativeRuns = new Map<
   string,
   { exitCode: number; output: string; ndjson: string }
@@ -40,6 +44,8 @@ const runs = new WeakMap<
     sample: string;
     /** The sample's steps for a page, by file name (`features/steps/`). */
     pageSteps: { name: string; page: string }[];
+    /** The sample's feature files, by file name (`features/`). */
+    features: { name: string; content: string }[];
     mode?: string;
     native?: { exitCode: number; ndjson: string };
     /** The plugin's messages (its stream's: `e2e/support/messages.ts`), of the run's one project. */
@@ -123,7 +129,7 @@ Given(
     for (const { name, node } of steps) {
       await world.write(`features/steps/${name}`, node);
     }
-    runs.set(world, { sample, pageSteps: steps });
+    runs.set(world, { sample, pageSteps: steps, features });
   },
 );
 
@@ -133,9 +139,23 @@ When(
   async (world: E2EWorld, mode: string) => {
     const run = runOf(world);
     const retry = retryOf(run.sample);
-    const native =
-      nativeRuns.get(run.sample) ?? (await runNative(world.dir, retry));
-    nativeRuns.set(run.sample, native);
+    // In a Storybook project, its feature files name their stories (for both runs).
+    const storybook = mode === "storybook";
+    if (storybook) {
+      for (const { name, content } of run.features) {
+        await world.write(
+          `features/${name}`,
+          storybookSample.feature(name, content),
+        );
+      }
+      await world.write(
+        `features/steps/${storybookSample.steps.name}`,
+        storybookSample.steps.native,
+      );
+    }
+    const key = storybook ? `${run.sample} (storybook)` : run.sample;
+    const native = nativeRuns.get(key) ?? (await runNative(world.dir, retry));
+    nativeRuns.set(key, native);
     // Each row's project has native cucumber's outputs, its run's or the sample's first row's.
     await writeFile(path.join(world.dir, "native.txt"), native.output);
     await writeFile(path.join(world.dir, "native.ndjson"), native.ndjson);
@@ -143,7 +163,10 @@ When(
     run.mode = mode;
     // The plugin: the sample's steps, cucumber's copy in node mode, the page's in the others.
     if (mode !== "node") {
-      for (const { name, page } of run.pageSteps) {
+      for (const { name, page } of [
+        ...run.pageSteps,
+        ...(storybook ? [storybookSample.steps] : []),
+      ]) {
         await world.write(`features/steps/${name}`, page);
       }
     }

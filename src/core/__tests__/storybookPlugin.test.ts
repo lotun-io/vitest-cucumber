@@ -14,7 +14,7 @@ const write = (name: string, content: string) => {
 };
 write(
   "steps/stories.ts",
-  `Given("the {storybook:story} story", (story) => {});`,
+  `Given("the {storybook:story} story", (story) => {});\nGiven("the stories of {storybook:storiesFile}", (file) => {});`,
 );
 const storiesFile = write(
   "src/stories/Auto.stories.ts",
@@ -22,7 +22,7 @@ const storiesFile = write(
 );
 const feature = write(
   "src/stories/Auto.feature",
-  "Feature: Auto\n  Scenario: Plain\n    Given the Plain story\n",
+  'Feature: Auto\n  Background:\n    Given the stories of "./Auto.stories.ts"\n  Scenario: Plain\n    Given the "Plain" story\n',
 );
 afterAll(() => {
   rmSync(project, { recursive: true, force: true });

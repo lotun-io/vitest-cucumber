@@ -1,5 +1,6 @@
 import { Script } from "node:vm";
 import { sanitize } from "storybook/internal/csf";
+import { Tag } from "storybook/preview-api";
 import { expect, test } from "vitest";
 import { planOf } from "../../../feature/plan.ts";
 import {
@@ -63,15 +64,15 @@ const storiesOf = (source: string, storiesFile = "/p/src/Login.stories.ts") => {
     storiesTitle: "Example/Login",
     stories: { exports: [], factories: false, metaTags: [], tags: {} },
     links: gherkin.pickles.map(({ name, location, tags }) => ({
-      feature: "/p/src/Login.feature",
       line: location?.line ?? 0,
       name,
       tags: tags.map((tag) => tag.name),
-      storiesFile,
       unmounted: false,
+      storyLine: location?.line ?? 0,
     })),
     featureModule: "/p/feature",
     idOf: sanitize,
+    tag: Tag,
   });
 };
 
@@ -85,20 +86,20 @@ test("the meta is the stories file's (its parameters spread with it), its id and
   expect(code).not.toContain("parameters");
 });
 
-test("a scenario's story's tags: its Gherkin tags, Storybook's own among them without the `@` (a feature's before its own), then what a scenario's story never has", () => {
-  const { code } = storiesOf(`@!dev @smoke
+test("a scenario's story's tags: its pickle's (`@tag(<name>)` as `<name>`, Storybook's own among them; a feature's before its own), then what a scenario's story never has", () => {
+  const { code } = storiesOf(`@tag(!dev) @smoke
 Feature: Login
 
   Scenario: Hidden
     Given a step
 
-  @dev @!test
+  @tag(dev) @tag(!test) @!dev
   Scenario: Shown, not tested
     Given a step
 `);
   expect(code).toContain('  tags: ["!dev","@smoke","!autodocs","!manifest"],');
   expect(code).toContain(
-    '  tags: ["!dev","@smoke","dev","!test","!autodocs","!manifest"],',
+    '  tags: ["!dev","@smoke","dev","!test","@!dev","!autodocs","!manifest"],',
   );
 });
 

@@ -46,6 +46,9 @@ Feature: Coverage
     And a file named "features/calculator.feature" with:
       """
       Feature: Calculator
+        Background:
+          Given the stories of "./calculator.stories.tsx"
+          And the "default" story
         Scenario: adding
           Given I calculate 1 + 2
           Then the result is 3

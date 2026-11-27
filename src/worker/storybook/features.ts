@@ -1,7 +1,6 @@
 // The feature files of a stories file, for docs (a docs page's own block: `featuresOf` with the
-// page's stories file, `useOf("meta").preparedMeta.parameters.fileName`): every feature whose
-// scenarios run on its stories, next to it or naming it in a stories file step, with its Gherkin as
-// written. From the preset's map (`./featuresMap.ts`): in Storybook's preview (dev and static
+// page's stories file, `useOf("meta").preparedMeta.parameters.fileName`): every feature naming it
+// in its stories file step, with its Gherkin as written. From the preset's map (`./featuresMap.ts`): in Storybook's preview (dev and static
 // builds); none in story tests. In `storybook dev` the map changes as features do, and
 // `onFeaturesChange` tells: with `featuresOf`, what React's `useSyncExternalStore` takes (a
 // block's hook is the user's: nothing of React here). Page code.

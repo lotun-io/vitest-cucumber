@@ -28,13 +28,14 @@ const steps = [
 const storiesFile = (title?: string) =>
   `export default {${title === undefined ? "" : ` title: ${JSON.stringify(title)} `}};\nexport const Plain = {};\n`;
 
-/** A feature named `name`, its scenario "Plain" on the story `Plain` (of `stories`, if named). */
-const feature = (name: string, stories?: string) =>
+/** A feature named `name` on stories file `stories`, its scenario "Plain" on the story `Plain`. */
+const feature = (name: string, stories: string) =>
   [
     `Feature: ${name}`,
+    "  Background:",
+    `    Given the stories of "${stories}"`,
     "  Scenario: Plain",
-    ...(stories === undefined ? [] : [`    Given the stories of ${stories}`]),
-    "    Given the Plain story",
+    '    Given the "Plain" story',
     "",
   ].join("\n");
 
@@ -101,7 +102,7 @@ describe("a stories file that writes its title", () => {
   test("the feature next to it: its title, then the feature's label, then the scenario's own (its place in the tree)", async () => {
     const { indexOf, titleOf } = storybookProject(stories, {
       "src/Button.stories.ts": storiesFile("Example/Button"),
-      "src/Button.feature": feature("Button"),
+      "src/Button.feature": feature("Button", "./Button.stories.ts"),
     });
     expect(titleOf("src/Button.stories.ts", "Example/Button")).toBe(
       "Example/Button",
@@ -143,12 +144,15 @@ describe("a stories file that writes its title", () => {
 describe("a stories file that writes no title: Storybook's automatic one", () => {
   const files = {
     "src/parts/Card.stories.ts": storiesFile(),
-    "src/parts/Card.feature": feature("Card"),
+    "src/parts/Card.feature": feature("Card", "./Card.stories.ts"),
     "src/parts/Card.feature.md": [
       "# Feature: Card in Markdown",
       "",
+      "## Background:",
+      '* Given the stories of "./Card.stories.ts"',
+      "",
       "## Scenario: Plain",
-      "* Given the Plain story",
+      '* Given the "Plain" story',
       "",
     ].join("\n"),
     "features/away/Away.feature": feature("Away", "src/parts/Card.stories.ts"),
@@ -227,9 +231,9 @@ describe("a stories file that writes no title: Storybook's automatic one", () =>
 describe("a `titlePrefix` on Storybook's `stories`", () => {
   const files = {
     "src/Button.stories.ts": storiesFile("Example/Button"),
-    "src/Button.feature": feature("Button"),
+    "src/Button.feature": feature("Button", "./Button.stories.ts"),
     "src/parts/Card.stories.ts": storiesFile(),
-    "src/parts/Card.feature": feature("Card"),
+    "src/parts/Card.feature": feature("Card", "./Card.stories.ts"),
   };
   const prefixed = (pattern: string): StoriesEntry => ({
     directory: "../src",

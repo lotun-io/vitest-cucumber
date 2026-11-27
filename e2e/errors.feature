@@ -4,6 +4,9 @@ Feature: Errors before the run
     Given a file named "features/a.feature" with:
       """
       Feature: A
+        Background:
+          Given the stories of "./a.stories.tsx"
+          And the "default" story
         Scenario: broken
           Given a step
           This is not a step
@@ -17,7 +20,7 @@ Feature: Errors before the run
       """
     And the output contains:
       """
-      (4:5): expected:
+      (7:5): expected:
       """
     # The file's own error in every mode (a page's import isn't what fails: no Vitest wrapper).
     And the output doesn't contain:
@@ -42,6 +45,9 @@ Feature: Errors before the run
     And a file named "features/broken.feature" with:
       """
       Feature: Broken
+        Background:
+          Given the stories of "./broken.stories.tsx"
+          And the "default" story
         Scenario: broken
           Given a step
           This is not a step
@@ -49,6 +55,9 @@ Feature: Errors before the run
     And a file named "features/good.feature" with:
       """
       Feature: Good
+        Background:
+          Given the stories of "./good.stories.tsx"
+          And the "default" story
         Scenario: passing
           Given a step
       """
@@ -65,7 +74,7 @@ Feature: Errors before the run
       """
     And the output contains:
       """
-      (4:5): expected:
+      (7:5): expected:
       """
     # The file's own error in every mode (a page's import isn't what fails: no Vitest wrapper).
     And the output doesn't contain:
@@ -93,6 +102,9 @@ Feature: Errors before the run
     And a file named "features/a.feature" with:
       """
       Feature: A
+        Background:
+          Given the stories of "./a.stories.tsx"
+          And the "default" story
         Scenario: passing
           Given a passing step
       """
@@ -129,6 +141,9 @@ Feature: Errors before the run
     And a file named "features/a.feature" with:
       """
       Feature: A
+        Background:
+          Given the stories of "./a.stories.tsx"
+          And the "default" story
         Scenario: passing
           Given a passing step
       """
@@ -166,6 +181,9 @@ Feature: Errors before the run
     And a file named "features/a.feature" with:
       """
       Feature: A
+        Background:
+          Given the stories of "./a.stories.tsx"
+          And the "default" story
         Scenario: passing
           Given a passing step
       """
@@ -202,6 +220,9 @@ Feature: Errors before the run
     And a file named "features/a.feature" with:
       """
       Feature: A
+        Background:
+          Given the stories of "./a.stories.tsx"
+          And the "default" story
         Scenario: formatting
           Given a step using a formatter
       """
@@ -229,6 +250,9 @@ Feature: Errors before the run
     And a file named "features/a.feature" with:
       """
       Feature: A
+        Background:
+          Given the stories of "./a.stories.tsx"
+          And the "default" story
         Scenario: passing
           Given a step
       """

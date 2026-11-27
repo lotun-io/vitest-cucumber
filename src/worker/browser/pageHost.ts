@@ -5,7 +5,7 @@
 // as text (its browser RPC is JSON), and its command to main. Page-safe.
 /// <reference types="vite/client" />
 import { inject } from "vitest";
-import type { Host, LoadRun } from "../../types/platform.ts";
+import type { Host } from "../../types/platform.ts";
 import type {} from "../../types/providedContext.ts";
 import type { ModeEnvironment } from "../../types/runtimeEnvironment.ts";
 import { bigIntsAsText } from "../platform/errors/bigIntsAsText.ts";
@@ -21,9 +21,7 @@ import { importPageSupport } from "./importPageSupport.ts";
 const env = import.meta.env;
 
 /** A Vitest page's pieces, its runtime on `environment`. */
-export const pageHost = (
-  environment: (run: LoadRun) => ModeEnvironment,
-): Host =>
+export const pageHost = (environment: () => ModeEnvironment): Host =>
   vitestHost({
     env,
     importSupport: (importSupport) =>

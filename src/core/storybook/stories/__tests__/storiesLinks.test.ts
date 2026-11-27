@@ -4,7 +4,7 @@ import { createStoriesLinks } from "../storiesLinks.ts";
 const header = "/p/src/Header.stories.ts";
 const button = "/p/src/Button.stories.tsx";
 
-test("read both ways: a feature's stories file, a stories file's features; none: the features that have none", () => {
+test("read both ways: a feature's stories file, a stories file's features; a feature naming none is kept", () => {
   const links = createStoriesLinks();
   links.link("/p/src/Header.feature", header);
   links.link("/p/features/Session.feature", header);
@@ -15,7 +15,6 @@ test("read both ways: a feature's stories file, a stories file's features; none:
     "/p/src/Header.feature",
     "/p/features/Session.feature",
   ]);
-  expect(links.featuresOf(undefined)).toEqual(["/p/src/Card.feature"]);
   expect(links.featuresOf(button)).toEqual([]);
   expect(links.has("/p/src/Card.feature")).toBe(true);
   expect(links.has("/p/src/Other.feature")).toBe(false);

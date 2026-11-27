@@ -72,9 +72,9 @@ export const featureModule = ({
   if ("error" in plan) {
     return throwCode(plan.error);
   }
-  const { uri, gherkin, options, storybookSteps } = plan;
+  const { uri, gherkin, options } = plan;
   const model: FeatureModel = { uri, gherkin };
-  const run: LoadRun = { cwd, options, storybookSteps };
+  const run: LoadRun = { cwd, options };
   return [
     `import { createFeature } from ${JSON.stringify(ownModule("worker/storybook/feature"))};`,
     "import {",

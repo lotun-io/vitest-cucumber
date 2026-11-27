@@ -6,6 +6,9 @@ Feature: Failing BeforeAll and AfterAll hooks
     Given a file named "features/a.feature" with:
       """
       Feature: A
+        Background:
+          Given the stories of "./a.stories.tsx"
+          And the "default" story
         Scenario: first
           Given a passing step
 
@@ -343,6 +346,9 @@ Feature: Failing BeforeAll and AfterAll hooks
     And a file named "features/b.feature" with:
       """
       Feature: B
+        Background:
+          Given the stories of "./b.stories.tsx"
+          And the "default" story
         Scenario: third
           Given a passing step
       """

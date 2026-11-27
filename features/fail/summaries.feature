@@ -4,6 +4,10 @@ Feature: Summaries
 
   pnpm test --project node features/fail/summaries.feature
 
+  Background:
+    Given the stories of "src/Empty.stories.ts"
+    And the "default" story
+
   Scenario: An undefined step
     Given a value of 10
     When I triple it

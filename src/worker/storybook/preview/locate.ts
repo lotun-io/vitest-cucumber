@@ -25,7 +25,7 @@ const v8Frame = /^\s*at /;
 const locationOf = /^(.+):(\d+):(\d+)$/;
 
 /** A frame as the page's stack has it: the script's URL, its line and column (1-based). */
-export interface RawFrame {
+interface RawFrame {
   url: string;
   line: number;
   column: number;

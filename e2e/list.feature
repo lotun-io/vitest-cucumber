@@ -19,6 +19,8 @@ Feature: Listing the scenarios without running them
       Feature: Cart
 
         Background:
+          Given the stories of "./cart.stories.tsx"
+          And the "default" story
           Given a step
 
         @smoke
@@ -38,20 +40,20 @@ Feature: Listing the scenarios without running them
     When I list its tests in <mode> mode
     Then it lists the tests:
       | NAME                                                         | LOCATION                   |
-      | Cart > Adding an item                                        | features/cart.feature:8:3  |
-      | Cart > Discounts > A coupon for <item> > A coupon for apples | features/cart.feature:18:9 |
-      | Cart > Discounts > A coupon for <item> > A coupon for pears  | features/cart.feature:19:9 |
-    When I list its tests in <mode> mode with "features/cart.feature:19"
+      | Cart > Adding an item                                        | features/cart.feature:10:3 |
+      | Cart > Discounts > A coupon for <item> > A coupon for apples | features/cart.feature:20:9 |
+      | Cart > Discounts > A coupon for <item> > A coupon for pears  | features/cart.feature:21:9 |
+    When I list its tests in <mode> mode with "features/cart.feature:21"
     Then it lists the tests:
       | NAME                                                        | LOCATION                   |
-      | Cart > Discounts > A coupon for <item> > A coupon for pears | features/cart.feature:19:9 |
+      | Cart > Discounts > A coupon for <item> > A coupon for pears | features/cart.feature:21:9 |
     When I list its tests in <mode> mode with options:
       """
       { "tagsFilter": ["@smoke"] }
       """
     Then it lists the tests:
-      | NAME                  | LOCATION                  |
-      | Cart > Adding an item | features/cart.feature:8:3 |
+      | NAME                  | LOCATION                   |
+      | Cart > Adding an item | features/cart.feature:10:3 |
 
     Examples:
       | mode      |
@@ -74,6 +76,10 @@ Feature: Listing the scenarios without running them
       """
       Feature: Cart
 
+        Background:
+          Given the stories of "./cart.stories.tsx"
+          And the "default" story
+
         @smoke
         Scenario: Adding an item
           Given a step
@@ -92,6 +98,10 @@ Feature: Listing the scenarios without running them
       """
       Feature: Other
 
+        Background:
+          Given the stories of "./other.stories.tsx"
+          And the "default" story
+
         @other
         Scenario: Another
           Given a step
@@ -99,16 +109,16 @@ Feature: Listing the scenarios without running them
     When I collect its tests in <mode> mode with "features/cart.feature"
     Then it lists the tests:
       | NAME                                                         | LOCATION                   |
-      | Cart > Adding an item                                        | features/cart.feature:4:3  |
-      | Cart > Discounts > A coupon for <item> > A coupon for apples | features/cart.feature:14:9 |
-      | Cart > Discounts > A coupon for <item> > A coupon for pears  | features/cart.feature:15:9 |
+      | Cart > Adding an item                                        | features/cart.feature:8:3  |
+      | Cart > Discounts > A coupon for <item> > A coupon for apples | features/cart.feature:18:9 |
+      | Cart > Discounts > A coupon for <item> > A coupon for pears  | features/cart.feature:19:9 |
     When I collect its tests in <mode> mode with "features/cart.feature" and options:
       """
       { "tagsFilter": ["@smoke"] }
       """
     Then it lists the tests:
       | NAME                  | LOCATION                  |
-      | Cart > Adding an item | features/cart.feature:4:3 |
+      | Cart > Adding an item | features/cart.feature:8:3 |
     When I collect its tests in <mode> mode with "features/cart.feature" and options:
       """
       { "tagsFilter": ["@other"] }

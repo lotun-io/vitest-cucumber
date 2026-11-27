@@ -8,9 +8,8 @@ const featureExtension = /\.feature(\.md)?$/;
 export const isFeatureFile = (id: string) => featureExtension.test(id);
 
 /**
- * `file` without its feature extension (`Login.feature`, `Login.feature.md` → `Login`): its
- * sibling stories file's base, in Storybook. Only that: `Login.stories.feature` is `Login.stories`,
- * a feature with no stories file next to it (a stories file step names its one).
+ * `file` without its feature extension (`Login.feature`, `Login.feature.md` → `Login`): in
+ * Storybook, an unnamed feature's label (`../storybook/stories/featureStories.ts`).
  */
 export const featureBase = (file: string) => file.replace(featureExtension, "");
 

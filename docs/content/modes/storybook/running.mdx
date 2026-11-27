@@ -33,9 +33,9 @@ what it did (hooks aren't listed). A static build (`storybook build`) plays them
 no server.
 
 In the sidebar, each feature is a group of its own under the stories file's component, after that
-file's docs page and stories. Here two features run on `Header.stories.ts`:
-`Header.feature` next to it, and `features/header/Session.feature`, which names it with a
-[stories file step](/modes/storybook/features#storybook-steps):
+file's docs page and stories. Here two features run on `Header.stories.ts`, each naming it with a
+[stories file step](/modes/storybook/features#storybook-steps): `Header.feature` next to it, and
+`features/header/Session.feature`:
 
 <StorybookSidebar
   tree={[
@@ -89,8 +89,8 @@ npx vitest run --tagsFilter "@smoke"             # by Gherkin tag
 npx vitest run -t "Saying hello"                 # by name
 ```
 
-In Storybook, Gherkin tags are Storybook tags too (with their `@`), so they work in the sidebar's
-tag filter and in the addon's `tags` option:
+`--tagsFilter` reads a scenario's test tags. Storybook's sidebar tag filter and the addon's `tags`
+option read its story's tags ([Storybook tags](#storybook-tags), below):
 
 ```ts
 storybookTest({ configDir, tags: { include: ["@smoke"] } }),
@@ -100,67 +100,95 @@ A scenario the addon's `tags` leave out is a skipped test in Vitest.
 
 ## Storybook tags
 
-Storybook has two tags of its own that say where a story is: `dev` lists it in the sidebar, `test`
-has the Vitest addon run it. Every story has both, and a tag that starts with `!` takes one away.
-In a feature file you write them as Gherkin tags, and the plugin gives them to Storybook without the
-`@`:
+In a Storybook project a scenario has two sets of tags, both made from its Gherkin tags (the
+feature's, the rule's, the scenario's own and its `Examples` block's, in that order):
 
-| In a feature file | Storybook gets |
-| --- | --- |
-| `@dev` | `dev` |
-| `@!dev` | `!dev` |
-| `@test` | `test` |
-| `@!test` | `!test` |
+- **Its story's tags**, which Storybook reads: its sidebar's tag filter, the addon's `tags` option,
+  and Storybook's own tags, such as `dev` (listed in the sidebar) and `test` (run by the addon).
+- **Its test's tags**, which Vitest reads: `--tagsFilter`, and a tag's options in `test.tags`.
 
-- **Only these four are converted.** Any other Gherkin tag is a Storybook tag as it's written
-  (`@smoke`), and a Vitest tag too.
-- **They aren't Vitest tags** in a Storybook project: a scenario's test has its other Gherkin tags,
-  and `--tagsFilter` can't select by these four.
-- **In node and browser mode** they're Gherkin tags like any other.
+### Writing them
+
+A plain Gherkin tag keeps its `@` (`@smoke`). Written `@tag(<name>)`
+([Plain tag names](/guides/running#plain-tag-names)), it's `<name>`, as Storybook names tags, and
+`@tag(!<name>)` takes a tag off, as in a stories file. So `@dev` is just a tag named `@dev`, while
+Storybook's `dev` is `@tag(dev)`. Every story has `dev` and `test`, so `@tag(!dev)` and
+`@tag(!test)` are the ones you'll write most.
+
+### What the test doesn't get
+
+The story gets every tag. The test gets them without Storybook's, which say what a story is in
+Storybook, not what a test is:
+
+- Storybook's [built-in tags](https://storybook.js.org/docs/writing-stories/tags) (`dev`, `test`,
+  `autodocs`, …), with or without `!`;
+- a tag the scenario takes off with `@tag(!smoke)`: the test has neither `smoke` nor `!smoke`, even
+  if a later `@tag(smoke)` puts it back on the story.
+
+Every other tag is the test's too:
+
+| A scenario's tags | Its story's tags | Its test's tags |
+| --- | --- | --- |
+| `@tag(smoke)`, `@tag(slow)` | `smoke`, `slow` | `smoke`, `slow` |
+| `@tag(smoke)`, `@tag(slow)`, then `@tag(!smoke)` | `slow` | `slow` |
+| `@tag(!smoke)`, then `@tag(smoke)` | `smoke` (put back) | none |
+
+`@tag(!smoke)` takes off only a tag written `@tag(smoke)`: a plain `@smoke` is another tag. In node
+and browser mode there are no stories, so no Storybook tags: every tag is a test tag,
+`@tag(<name>)` as `<name>`.
 
 ### Only in Storybook's UI
 
-`@!test`: the scenario is listed in Storybook (`storybook dev`, a static build), and opening it
+`@tag(!test)`: the scenario is listed in Storybook (`storybook dev`, a static build), and opening it
 there plays it. In Vitest it's a skipped test.
 
 ```gherkin filename="src/stories/Greeting.feature"
 Feature: Greeting
 
-  @!test
+  Background:
+    Given the stories of "./Greeting.stories.ts"
+
+  @tag(!test)
   Scenario: A greeting still being designed
-    Given the Ada story
+    Given the "Ada" story
     Then I see "Hello, Ada!"
 ```
 
 ### Only in Vitest
 
-`@!dev`: Vitest runs the scenario as a story test, and Storybook's sidebar doesn't list it.
+`@tag(!dev)`: Vitest runs the scenario as a story test, and Storybook's sidebar doesn't list it.
 
 ```gherkin filename="src/stories/Greeting.feature"
 Feature: Greeting
 
-  @!dev
+  Background:
+    Given the stories of "./Greeting.stories.ts"
+
+  @tag(!dev)
   Scenario: A name with a thousand characters
-    Given the LongName story
+    Given the "LongName" story
     Then the greeting fits its box
 ```
 
 ### On a feature or a rule
 
 The tags work wherever Gherkin tags do (a feature, a rule, a scenario, an `Examples` block), and
-the closest one wins. Tag a feature `@!dev` to keep all of it out of the sidebar, then one of its
-scenarios `@dev` to list that one:
+the closest one wins. Tag a feature `@tag(!dev)` to keep all of it out of the sidebar, then one of
+its scenarios `@tag(dev)` to list that one:
 
 ```gherkin filename="src/stories/Checkout.feature"
-@!dev
+@tag(!dev)
 Feature: Checkout edge cases
 
-  Scenario: An empty cart
-    Given the Empty story
+  Background:
+    Given the stories of "./Checkout.stories.ts"
 
-  @dev
+  Scenario: An empty cart
+    Given the "Empty" story
+
+  @tag(dev)
   Scenario: The usual order
-    Given the Filled story
+    Given the "Filled" story
 ```
 
 A scenario's tag also wins over the tags of the story it runs on and of the stories file's meta:

@@ -37,6 +37,9 @@ Feature: Messages
     Given a file named "features/a.feature" with:
       """
       Feature: A
+        Background:
+          Given the stories of "./a.stories.tsx"
+          And the "default" story
         Scenario: passes
           Given a step
 

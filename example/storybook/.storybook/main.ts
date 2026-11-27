@@ -2,8 +2,9 @@ import { cucumber } from "@lotun/vitest-cucumber/storybook/node";
 import type { StorybookConfig } from "@storybook/react-vite";
 
 const config: StorybookConfig = {
-  // Feature files are stories files of their own: each scenario a story on the stories file next to
-  // it, or the one its stories file step names (`features/header/Session.feature`).
+  // Feature files are stories files of their own: each scenario a story on the stories file its
+  // Background names (`Given the stories of "./Button.stories.ts"`; from another folder:
+  // `features/header/Session.feature`).
   stories: [
     "../src/**/*.mdx",
     "../src/**/*.stories.@(js|jsx|mjs|ts|tsx)",

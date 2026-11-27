@@ -2,9 +2,9 @@
 
 A React + Vite Storybook project where feature files are stories. Storybook's `stories` lists the
 feature files: each is a stories file of its own, a story for each scenario and Outline row, on the
-stories file next to it (`Login.feature` and `Login.stories.ts`), on the story its step names
-(`Given the LoggedIn story`) or else the meta. Each story renders as usual, and its play runs the
-scenario's steps.
+stories file its Background names (`Given the stories of "./Login.stories.ts"`), on the story its
+step names (`Given the "LoggedIn" story`, or `"default"` for the meta). Each story renders as usual,
+and its play runs the scenario's steps.
 
 The same stories run in three places:
 
@@ -39,12 +39,12 @@ pnpm storybook     # Storybook's UI on http://localhost:6006
 
 | Stories | Feature file | What it shows |
 | --- | --- | --- |
-| `Example/Greeting` | [`Greeting.feature`](src/stories/Greeting.feature) | The documentation's example: a Scenario and a Scenario Outline on the stories their steps name (`Ada`, `Grace`), and a scenario that names none, on the meta. |
+| `Example/Greeting` | [`Greeting.feature`](src/stories/Greeting.feature) | The documentation's example: a Scenario and a Scenario Outline on the stories their steps name (`Ada`, `Grace`), and a scenario on `Basic`, the meta's args as they are. |
 | `Example/Login` | [`Login.feature`](src/stories/Login.feature) | A Background, a Scenario and a Scenario Outline. Its `Behavior` page ([`Login.mdx`](src/stories/Login.mdx)) shows the feature as highlighted Gherkin (Vite's `?raw` import). |
 | `Example/Account` | [`Account.feature.md`](src/stories/Account.feature.md) | A feature file in Markdown. Its `Behavior` page ([`Account.mdx`](src/stories/Account.mdx)) renders it as a document (`?raw`). |
-| `Example/Button` | [`Button.feature`](src/stories/Button.feature) | Outline rows on the stories file's own stories, one per row (`Given the <story> story`: `Primary`, …), which give them their `args`. The `@smoke` rows are Storybook tags too. A scenario on an unmounted story (`Given the unmounted Primary story`): its step mounts it with a label of its own (`mount(createElement(component, …))`). |
+| `Example/Button` | [`Button.feature`](src/stories/Button.feature) | Outline rows on the stories file's own stories, one per row (`Given the "<story>" story`: `Primary`, …), which give them their `args`. The `@smoke` rows are Storybook tags too. A scenario on an unmounted story (`Given the unmounted "Primary" story`): its step mounts it with a label of its own (`mount(createElement(component, …))`). |
 | `Example/Header` | [`Header.feature`](src/stories/Header.feature) | Scenarios on the stories their Storybook steps name: those stories' `args`, the meta's spies (`fn()`). |
-| `Example/Header` | [`features/header/Session.feature`](features/header/Session.feature) | A feature file away from its stories file: its stories file step (`Given the stories of src/stories/Header.stories.ts`) names `Header.stories.ts`, a second feature on it next to `Header.feature`, as `Feature: Session`. |
+| `Example/Header` | [`features/header/Session.feature`](features/header/Session.feature) | A feature file away from its stories file: its stories file step (`Given the stories of "src/stories/Header.stories.ts"`) names `Header.stories.ts`, a second feature on it next to `Header.feature`, as `Feature: Session`. |
 | `Example/Form` | [`Form.feature`](src/stories/Form.feature) | A data table, a doc string and a parameter type of its own ([`features/steps/form.ts`](features/steps/form.ts)). |
 | `Example/UserCard` | [`UserCard.feature`](src/stories/UserCard.feature) | `Before` and `After` hooks for `@api` scenarios, logs and attachments ([`features/support/hooks.ts`](features/support/hooks.ts)). |
 | `Example/Page` | none | An ordinary story with its own `play`, next to the others. |
@@ -54,8 +54,8 @@ pnpm storybook     # Storybook's UI on http://localhost:6006
 [`features/`](features/) holds the support code, as `import` in `.storybook/main.ts` lists it
 (`features/**/*.ts`): the step definitions in [`features/steps/`](features/steps/), the World and the
 hooks in [`features/support/`](features/support/). The Storybook steps
-([`features/steps/stories.ts`](features/steps/stories.ts)) link a scenario to its story with the
-plugin's parameter types (`{storybook:story}`); their code does nothing. Storybook has already
+([`features/steps/stories.ts`](features/steps/stories.ts)) link a feature to its stories file and a
+scenario to its story with the plugin's placeholders (`{storybook:story}`); their code does nothing. Storybook has already
 rendered the story when its steps run, so steps don't render anything. They
 use the running story's context (`canvas`, `userEvent`, `args`) through the World:
 

@@ -26,6 +26,9 @@ Feature: Attachments
     And a file named "features/a.feature" with:
       """
       Feature: A
+        Background:
+          Given the stories of "./a.stories.tsx"
+          And the "default" story
         Scenario: attaching
           Given a step that attaches
       """
@@ -65,6 +68,9 @@ Feature: Attachments
     And a file named "features/a.feature" with:
       """
       Feature: A
+        Background:
+          Given the stories of "./a.stories.tsx"
+          And the "default" story
         Scenario: hooked
           Given a step
       """
@@ -101,6 +107,9 @@ Feature: Attachments
     And a file named "features/a.feature" with:
       """
       Feature: A
+        Background:
+          Given the stories of "./a.stories.tsx"
+          And the "default" story
         Scenario: failing
           Given a step that logs and fails
 
@@ -148,6 +157,9 @@ Feature: Attachments
     And a file named "features/a.feature" with:
       """
       Feature: A
+        Background:
+          Given the stories of "./a.stories.tsx"
+          And the "default" story
         Scenario: invalid
           Given a step that attaches an object
       """
@@ -181,6 +193,9 @@ Feature: Attachments
     And a file named "features/a.feature" with:
       """
       Feature: A
+        Background:
+          Given the stories of "./a.stories.tsx"
+          And the "default" story
         Scenario: caught
           Given a step that catches its attachment's error
       """
@@ -215,6 +230,9 @@ Feature: Attachments
     And a file named "features/a.feature" with:
       """
       Feature: A
+        Background:
+          Given the stories of "./a.stories.tsx"
+          And the "default" story
         Scenario: flaky
           Given a flaky step that logs
       """
@@ -264,6 +282,9 @@ Feature: Attachments
     And a file named "features/a.feature" with:
       """
       Feature: A
+        Background:
+          Given the stories of "./a.stories.tsx"
+          And the "default" story
         Scenario: timing out
           Given a step that times out and logs later
 

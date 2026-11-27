@@ -66,11 +66,11 @@ export interface RuntimeEnvironment {
     run: () => Promise<T>,
   ): Promise<T>;
   /**
-   * The host's own parameter types, which the runtime defines before the support code's (a
-   * Storybook host's: the Storybook steps', when a support file has one; none in node and browser
-   * mode).
+   * The host's rewrite of a step definition's cucumber expression (a Storybook host's: its
+   * Storybook steps' placeholders as `{string}`, `../utils/storybookPlaceholders.ts`; none in node
+   * and browser mode).
    */
-  parameterTypes?: readonly { name: string; regexp: RegExp }[];
+  expressionOf?(expression: string): string;
 }
 
 /** A mode's own runtime pieces (node mode's, a page's): its host adds the default timeouts. */

@@ -229,10 +229,10 @@ They're set before your support code loads. Where you read them depends on the m
 
 ```ts
 // Node mode
-const worker = process.env.CUCUMBER_WORKER_ID;
+const workerId = process.env.CUCUMBER_WORKER_ID;
 
 // Browser mode and Storybook: a page has no `process`
-const worker = import.meta.env.CUCUMBER_WORKER_ID;
+const workerId = import.meta.env.CUCUMBER_WORKER_ID;
 ```
 
 Support code that runs in both can pick whichever has them:

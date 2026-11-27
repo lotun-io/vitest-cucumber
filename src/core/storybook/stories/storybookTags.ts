@@ -1,26 +1,58 @@
-// Storybook: its own tags, as a feature file writes them (the user's call, 2026-11-26). Every
-// story has `dev` (it's listed in the sidebar) and `test` (the Vitest addon runs it), and a tag
-// starting with `!` takes one away, in order: a scenario's `@!dev` leaves its story out of the
-// sidebar, `@!test` out of story tests, and `@dev` or `@test` puts back what a feature's tag, the
-// story it runs on or its stories file's meta took away. So these four Gherkin tags are a
-// scenario's story's Storybook tags, without the `@`; any other Gherkin tag is a Storybook tag as
-// it's written (`@smoke`). They aren't its Vitest test's tags: they say where a story is, not
-// what a test is (and Vitest reads a `!` in a tag filter as "not"). Storybook's other system
-// tags aren't a feature's to write: `autodocs` and `manifest` are always taken off a scenario's
-// story (`./featureStories.ts`), the rest Storybook sets itself (`play-fn`, …).
+// Storybook: a scenario's tags as its story's and its test's. A Gherkin tag written `@tag(<name>)`
+// is the tag `<name>` (`../../feature/tagTransform.ts`, the user's call 2026-11-27, replacing the
+// four special `@dev`, `@!dev`, `@test`, `@!test` of 2026-11-26): Storybook's own tags are written
+// so (`@tag(!dev)` leaves a scenario's story out of the sidebar, `@tag(!test)` out of story tests,
+// `@tag(dev)` puts back what a feature's tag, the story it runs on or its stories file's meta took
+// away: Storybook combines them in order); any other is as it's written (`@smoke`). A story has
+// every tag of its scenario's. Its test, every one but Storybook's tags (the user's call,
+// 2026-11-27): a tag the scenario takes off (`!smoke`) and the one it takes off (`smoke`), and
+// Storybook's built-in tags (its `Tag`: `dev`, `test`, `autodocs`, `manifest`, `play-fn`, …),
+// taken off (`!dev`) or not: they say what a story is in Storybook, not what a test is (and
+// Vitest reads a `!` in a tag filter as "not"; a test with `smoke` its story hasn't would run as
+// `smoke`). A tag taken off and put back (`!smoke`, then `smoke`) is the story's, not the test's. `autodocs` and
+// `manifest` are always taken off a scenario's story after its tags (`./featureStories.ts`).
+// Storybook's tags are its own constants, `Tag` (`storybook/preview-api`, public API), never written
+// here.
+import type { Tag } from "storybook/preview-api";
 
-/** Each Gherkin tag that is one of Storybook's own, with that tag. */
-const storybookTags = new Map([
-  ["@dev", "dev"],
-  ["@!dev", "!dev"],
-  ["@test", "test"],
-  ["@!test", "!test"],
-]);
+/** Storybook's built-in tags, by name (`Tag`: `Tag.DEV` is `dev`). */
+export type StorybookTags = typeof Tag;
 
-/** A scenario's Gherkin `tags` as its story's: Storybook's own without the `@`, in their order. */
-export const storyTagsOf = (tags: readonly string[]) =>
-  tags.map((tag) => storybookTags.get(tag) ?? tag);
+/** Storybook's built-in tags (`storybook/preview-api`'s `Tag`: loaded only in Storybook projects). */
+export const storybookTagsOf = async (): Promise<StorybookTags> =>
+  (await import("storybook/preview-api")).Tag;
 
-/** A scenario's Gherkin `tags` as its Vitest test's: without Storybook's own. */
-export const testTagsOf = (tags: readonly string[]) =>
-  tags.filter((tag) => !storybookTags.has(tag));
+/** Storybook tag `tag`, taken off (`!dev`). */
+export const without = (tag: string) => `!${tag}`;
+
+/**
+ * A scenario's `tags` (its pickle's, `@tag(<name>)` as `<name>`) as its Vitest test's: without
+ * Storybook's, the ones it takes off (`!smoke`, and `smoke`) and the built-in ones (`builtIns`),
+ * taken off (`!dev`) or not.
+ */
+export const testTagsOf = (
+  tags: readonly string[],
+  builtIns: StorybookTags,
+) => {
+  const storybook = new Set<string>(Object.values(builtIns));
+  for (const tag of tags) {
+    if (tag.startsWith("!")) {
+      storybook.add(tag.slice(1));
+    }
+  }
+  return tags.filter((tag) => !storybook.has(tag.replace(/^!/, "")));
+};
+
+/**
+ * A project's Gherkin `tags` (every feature file's) as the Vitest tags it declares: every tag a
+ * test may have (`testTagsOf`), so without the `!` forms and Storybook's built-in ones. A tag one
+ * scenario takes off is still declared (another may have it: Vitest refuses a test's tag it
+ * doesn't know; one no test has is no error).
+ */
+export const declaredTagsOf = (
+  tags: readonly string[],
+  builtIns: StorybookTags,
+) => {
+  const storybook = new Set<string>(Object.values(builtIns));
+  return tags.filter((tag) => !tag.startsWith("!") && !storybook.has(tag));
+};

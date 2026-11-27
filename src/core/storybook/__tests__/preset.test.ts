@@ -59,32 +59,39 @@ export const JustThePage: Story = {};
   // No title written: Storybook's automatic one, by its `stories`.
   "src/parts/Card.stories.ts": "export default {};\nexport const Plain = {};\n",
   "src/parts/Card.feature": `Feature: Card
+  Background:
+    Given the stories of "./Card.stories.ts"
   Scenario: Plain
-    Given the Plain story
+    Given the "Plain" story
 `,
   // No title written, and no `stories` pattern matches it.
   "elsewhere/Unlisted.stories.ts": "export default {};\n",
   "src/Unlisted.feature": `Feature: Unlisted
+  Background:
+    Given the stories of "elsewhere/Unlisted.stories.ts"
   Scenario: A
-    Given the stories of elsewhere/Unlisted.stories.ts
+    Given the "default" story
 `,
   "src/Typo.stories.ts":
     'export default { title: "Typo" };\nexport const Primary = {};\n',
   "src/Typo.feature": `Feature: Typo
+  Background:
+    Given the stories of "./Typo.stories.ts"
   Scenario: A typo
-    Given the Primry story
+    Given the "Primry" story
 `,
   "src/Login.feature": `Feature: Login
   Background:
-    Given I see the "Log in" button
+    Given the stories of "./Login.stories.ts"
+    And I see the "Log in" button
 
   @smoke
   Scenario: Log in
-    Given the LogIn story
+    Given the "LogIn" story
     When I click the "Log in" button
 
   Scenario Outline: Sign up then log out with <first>
-    Given the JustThePage story
+    Given the "JustThePage" story
     When I click the "<first>" button
 
     Examples:
@@ -230,11 +237,28 @@ describe("a broken feature file (here a story its stories file doesn't have)", (
     ).rejects.toThrow('src/Typo.stories.ts has no story "Primry"');
   });
 
-  test("in the addon's Vitest runs (`VITEST` set): no entries (its module throws the error, its story tests failing with it); a feature that can be used: its entries there too (a docs page of it needs them)", async () => {
+  test("in the addon's Vitest runs (`VITEST` set): its own story alone, hidden, under Storybook's automatic title (its module throws the error, its story tests failing with it; a docs page of it finds it); a feature that can be used: its entries there too", async () => {
     vi.stubEnv("VITEST", "true");
     try {
       const indexer = await indexerOf();
-      expect(await indexer?.createIndex(typo, { makeTitle })).toEqual([]);
+      const broken = await indexer?.createIndex(typo, { makeTitle });
+      expect(
+        broken?.map(({ type, exportName, name, title, tags }) => ({
+          type,
+          exportName,
+          name,
+          title,
+          tags,
+        })),
+      ).toEqual([
+        {
+          type: "story",
+          exportName: "__vitestCucumberFeature",
+          name: "Vitest Cucumber Feature",
+          title: "Auto",
+          tags: ["!dev", "!test", "!autodocs", "!manifest"],
+        },
+      ]);
       expect(
         await indexer?.createIndex(path.join(project, "src/Login.feature"), {
           makeTitle,
@@ -548,7 +572,7 @@ describe("the features map (`featuresOf`'s, in Storybook's preview)", () => {
     const gone = path.join(project, "src/Gone.feature");
     writeFileSync(
       gone,
-      "Feature: Gone\n  Scenario: A\n    Given the LogIn story\n",
+      'Feature: Gone\n  Background:\n    Given the stories of "./Gone.stories.ts"\n  Scenario: A\n    Given the "LogIn" story\n',
     );
     writeFileSync(
       path.join(project, "src/Gone.stories.ts"),

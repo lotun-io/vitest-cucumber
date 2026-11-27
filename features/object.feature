@@ -1,5 +1,9 @@
 Feature: Object steps
 
+  Background:
+    Given the stories of "src/Empty.stories.ts"
+    And the "default" story
+
   Scenario: Set and verify an object
     Given object is:
       """

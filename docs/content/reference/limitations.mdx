@@ -40,8 +40,9 @@ default `isolate: true`, it's reported as usual.
 
 - Storybook 10, with the [frameworks](/modes/storybook#frameworks) its Vitest addon supports (Vite
   only); classic previews only (not `definePreview`).
-- A feature file needs one stories file (the one next to it, `X.stories.<ext>`, or the one a stories
-  file step names), in CSF 3 written in JavaScript or TypeScript (one with only a meta is enough),
+- A feature file needs one stories file, which its Background names (a stories file step), and
+  each scenario a story step: [Storybook steps](/modes/storybook/features#storybook-steps). The
+  stories file is CSF 3 written in JavaScript or TypeScript (one with only a meta is enough),
   its `tags` and `title` written as literals. Not CSF factories, `.stories.svelte` or `.stories.vue`:
   [Stories files a feature can use](/modes/storybook/features#stories-files-a-feature-can-use).
 - A stories file that no pattern of Storybook's `stories` matches needs a `title` written in its

@@ -11,6 +11,7 @@ import { createVitest } from "vitest/node";
 import { relative } from "./paths.ts";
 import { capture, viteLogger } from "./run.ts";
 import { featureStoriesFiles } from "./storybookProject.ts";
+import { storybookStepsFile } from "./storybookSteps.ts";
 import type { E2EWorld } from "./world.ts";
 
 /**
@@ -28,6 +29,8 @@ export async function listVitest(
   // A Storybook project's: its feature files as stories (see `featureStoriesFiles`).
   if (this.mode === "storybook") {
     await featureStoriesFiles.call(this);
+  } else {
+    await storybookStepsFile.call(this);
   }
   const output = capture();
   const { exitCode } = process;

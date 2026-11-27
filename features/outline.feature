@@ -1,5 +1,9 @@
 Feature: Scenario outline
 
+  Background:
+    Given the stories of "src/Empty.stories.ts"
+    And the "default" story
+
   Scenario Outline: Doubling <input>
     Given a value of <input>
     When I double it

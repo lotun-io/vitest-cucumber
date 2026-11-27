@@ -1,5 +1,4 @@
 import { expect, test, vi } from "vitest";
-import { defaultRunOptions } from "../../../utils/runOptions.ts";
 import { gherkinOf } from "../../__tests__/gherkinOf.ts";
 import {
   runStory,
@@ -8,7 +7,23 @@ import {
   storyEnvironment,
 } from "../story.ts";
 
-const { around } = storyEnvironment({ cwd: "/p", options: defaultRunOptions });
+const { around } = storyEnvironment();
+
+test("a Storybook page's steps: their placeholders as `{string}`, the rest as written", () => {
+  const { expressionOf } = storyEnvironment();
+  expect(expressionOf("the {storybook:story} story")).toBe(
+    "the {string} story",
+  );
+  expect(expressionOf("the unmounted {storybook:storyUnmounted} story")).toBe(
+    "the unmounted {string} story",
+  );
+  expect(
+    expressionOf("the stories of {storybook:storiesFile} with {int}"),
+  ).toBe("the stories of {string} with {int}");
+  expect(expressionOf("the {storybook:other} {word}")).toBe(
+    "the {storybook:other} {word}",
+  );
+});
 
 const target = {
   uri: "a.feature",

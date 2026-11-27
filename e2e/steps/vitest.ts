@@ -19,98 +19,104 @@ import type { E2EWorld } from "../support/world.ts";
 const toFilters = (args: string) => args.split(/\s+/).filter(Boolean);
 const toOptions = (json: string) => JSON.parse(json) as CliOptions;
 
-// Each run step, as is or in a mode (the default config, see `writeDefaultConfig`), with Vitest's
-// file filters or command line options. One function per step: cucumber checks their arity.
-for (const [step, start] of [
-  ["I run vitest", runVitest],
-  ["I start vitest in watch mode", watchVitest],
-] as const) {
-  /** Starts Vitest in the mode's default config, if the step names a mode. */
-  const startIn = async (
-    world: E2EWorld,
-    mode: string | undefined,
-    options: { filters?: string[]; options?: CliOptions } = {},
-  ) => {
-    if (mode) {
-      await writeDefaultConfig.call(world, mode);
-    }
-    return start.call(world, options);
-  };
-  When(step, (world: E2EWorld) => {
-    return startIn(world, undefined);
-  });
-  When(`${step} with {string}`, (world: E2EWorld, filters: string) => {
-    return startIn(world, undefined, { filters: toFilters(filters) });
-  });
-  When(`${step} with options:`, (world: E2EWorld, json: string) => {
-    return startIn(world, undefined, { options: toOptions(json) });
-  });
-  When(`${step} in {word} mode`, (world: E2EWorld, mode: string) => {
-    return startIn(world, mode);
-  });
-  When(
-    `${step} in {word} mode with {string}`,
-    (world: E2EWorld, mode: string, filters: string) => {
-      return startIn(world, mode, { filters: toFilters(filters) });
-    },
-  );
-  When(
-    `${step} in {word} mode with options:`,
-    (world: E2EWorld, mode: string, json: string) => {
-      return startIn(world, mode, { options: toOptions(json) });
-    },
-  );
-  When(
-    `${step} in {word} mode with {string} and options:`,
-    (world: E2EWorld, mode: string, filters: string, json: string) => {
-      return startIn(world, mode, {
-        filters: toFilters(filters),
-        options: toOptions(json),
-      });
-    },
-  );
-}
+/** Starts Vitest (`start`), in the mode's default config if `mode` names one (`writeDefaultConfig`). */
+const startIn = async (
+  world: E2EWorld,
+  start: typeof runVitest | typeof watchVitest,
+  mode: string | undefined,
+  options: { filters?: string[]; options?: CliOptions } = {},
+) => {
+  if (mode) {
+    await writeDefaultConfig.call(world, mode);
+  }
+  return start.call(world, options);
+};
+
+// A run, as is or in a mode (the default config), with Vitest's file filters or command line
+// options. One function per step: cucumber checks their arity. Only the shapes the features use.
+When("I run vitest", (world: E2EWorld) => startIn(world, runVitest, undefined));
+When("I run vitest with options:", (world: E2EWorld, json: string) =>
+  startIn(world, runVitest, undefined, { options: toOptions(json) }),
+);
+When("I run vitest in {word} mode", (world: E2EWorld, mode: string) =>
+  startIn(world, runVitest, mode),
+);
+When(
+  "I run vitest in {word} mode with {string}",
+  (world: E2EWorld, mode: string, filters: string) =>
+    startIn(world, runVitest, mode, { filters: toFilters(filters) }),
+);
+When(
+  "I run vitest in {word} mode with options:",
+  (world: E2EWorld, mode: string, json: string) =>
+    startIn(world, runVitest, mode, { options: toOptions(json) }),
+);
+When(
+  "I run vitest in {word} mode with {string} and options:",
+  (world: E2EWorld, mode: string, filters: string, json: string) =>
+    startIn(world, runVitest, mode, {
+      filters: toFilters(filters),
+      options: toOptions(json),
+    }),
+);
+
+// Watch mode (`../support/watch.ts`), as is or in a mode.
+When("I start vitest in watch mode", (world: E2EWorld) =>
+  startIn(world, watchVitest, undefined),
+);
+When(
+  "I start vitest in watch mode in {word} mode",
+  (world: E2EWorld, mode: string) => startIn(world, watchVitest, mode),
+);
+When(
+  "I start vitest in watch mode in {word} mode with {string}",
+  (world: E2EWorld, mode: string, filters: string) =>
+    startIn(world, watchVitest, mode, { filters: toFilters(filters) }),
+);
+When(
+  "I start vitest in watch mode in {word} mode with options:",
+  (world: E2EWorld, mode: string, json: string) =>
+    startIn(world, watchVitest, mode, { options: toOptions(json) }),
+);
 
 // `vitest list` in the mode's default config (see `../support/listVitest.ts`): as its command line
 // runs it by default (Vitest's static collection: the files parsed, not run), or as `vitest list
 // --staticParse=false` (the files imported, their tests collected, none run).
-for (const [step, staticParse] of [
-  ["I list its tests", true],
-  ["I collect its tests", false],
-] as const) {
-  When(`${step} in {word} mode`, async (world: E2EWorld, mode: string) => {
-    await writeDefaultConfig.call(world, mode);
-    await listVitest.call(world, { staticParse });
-  });
-  When(
-    `${step} in {word} mode with {string}`,
-    async (world: E2EWorld, mode: string, filters: string) => {
-      await writeDefaultConfig.call(world, mode);
-      await listVitest.call(world, {
-        filters: toFilters(filters),
-        staticParse,
-      });
-    },
-  );
-  When(
-    `${step} in {word} mode with options:`,
-    async (world: E2EWorld, mode: string, json: string) => {
-      await writeDefaultConfig.call(world, mode);
-      await listVitest.call(world, { options: toOptions(json), staticParse });
-    },
-  );
-  When(
-    `${step} in {word} mode with {string} and options:`,
-    async (world: E2EWorld, mode: string, filters: string, json: string) => {
-      await writeDefaultConfig.call(world, mode);
-      await listVitest.call(world, {
-        filters: toFilters(filters),
-        options: toOptions(json),
-        staticParse,
-      });
-    },
-  );
-}
+const listIn = async (
+  world: E2EWorld,
+  mode: string,
+  options: { filters?: string[]; options?: CliOptions; staticParse: boolean },
+) => {
+  await writeDefaultConfig.call(world, mode);
+  await listVitest.call(world, options);
+};
+When("I list its tests in {word} mode", (world: E2EWorld, mode: string) =>
+  listIn(world, mode, { staticParse: true }),
+);
+When(
+  "I list its tests in {word} mode with {string}",
+  (world: E2EWorld, mode: string, filters: string) =>
+    listIn(world, mode, { filters: toFilters(filters), staticParse: true }),
+);
+When(
+  "I list its tests in {word} mode with options:",
+  (world: E2EWorld, mode: string, json: string) =>
+    listIn(world, mode, { options: toOptions(json), staticParse: true }),
+);
+When(
+  "I collect its tests in {word} mode with {string}",
+  (world: E2EWorld, mode: string, filters: string) =>
+    listIn(world, mode, { filters: toFilters(filters), staticParse: false }),
+);
+When(
+  "I collect its tests in {word} mode with {string} and options:",
+  (world: E2EWorld, mode: string, filters: string, json: string) =>
+    listIn(world, mode, {
+      filters: toFilters(filters),
+      options: toOptions(json),
+      staticParse: false,
+    }),
+);
 
 // The scenario's own config, in a fresh Vitest (not a kept one): e.g. a run that fails as Vitest
 // starts (the plugin refusing its options), which Vitest reports as its command line does.

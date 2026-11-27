@@ -41,6 +41,9 @@ Feature: The support code's API
     And a file named "features/types.feature" with:
       """
       Feature: Types
+        Background:
+          Given the stories of "./types.stories.tsx"
+          And the "default" story
         Scenario: custom types
           Given a red box of 20cm
       """
@@ -85,6 +88,9 @@ Feature: The support code's API
     And a file named "features/world.feature" with:
       """
       Feature: World
+        Background:
+          Given the stories of "./world.stories.tsx"
+          And the "default" story
         Scenario: first
           Given I add 2
           Then the count is 3
@@ -143,6 +149,9 @@ Feature: The support code's API
     And a file named "features/arguments.feature" with:
       """
       Feature: Arguments
+        Background:
+          Given the stories of "./arguments.stories.tsx"
+          And the "default" story
         Scenario: arguments
           Given the users:
             | name | role  |
@@ -198,6 +207,9 @@ Feature: The support code's API
     And a file named "features/expressions.feature" with:
       """
       Feature: Expressions
+        Background:
+          Given the stories of "./expressions.stories.tsx"
+          And the "default" story
         Scenario: expressions
           Given -3, 2.5, plain, "quoted text", anything here and 12345678901234567890
           And I have 1 cucumber in my belly
@@ -244,6 +256,9 @@ Feature: The support code's API
     And a file named "features/async.feature" with:
       """
       Feature: Async
+        Background:
+          Given the stories of "./async.stories.tsx"
+          And the "default" story
         Scenario: async and callback
           Given an async step
           And a callback step
@@ -281,6 +296,9 @@ Feature: The support code's API
     And a file named "features/cucumber.feature" with:
       """
       Feature: Cucumber
+        Background:
+          Given the stories of "./cucumber.stories.tsx"
+          And the "default" story
         Scenario: its exports
           Given cucumber's version is logged
           And a slow action times out
@@ -323,6 +341,9 @@ Feature: The support code's API
     And a file named "features/a.feature" with:
       """
       Feature: Wrapper
+        Background:
+          Given the stories of "./a.stories.tsx"
+          And the "default" story
         Scenario: wrapped
           Given a labelled step
           And a plain step
@@ -436,6 +457,9 @@ Feature: The support code's API
     And a file named "features/a.feature" with:
       """
       Feature: Transformer
+        Background:
+          Given the stories of "./a.stories.tsx"
+          And the "default" story
         Scenario: broken
           Given a broken value
       """
@@ -447,7 +471,7 @@ Feature: The support code's API
       """
     And the output contains:
       """
-       ❯ features/a.feature:3:5
+       ❯ features/a.feature:6:5
       """
 
     Examples:
@@ -511,6 +535,9 @@ Feature: The support code's API
     And a file named "features/a.feature" with:
       """
       Feature: Late
+        Background:
+          Given the stories of "./a.stories.tsx"
+          And the "default" story
         Scenario: late
           Given a step that defines another
       """
@@ -546,6 +573,9 @@ Feature: The support code's API
     And a file named "features/a.feature" with:
       """
       Feature: World
+        Background:
+          Given the stories of "./a.stories.tsx"
+          And the "default" story
         Scenario: broken
           Given a step that doesn't use its World
       """
@@ -587,6 +617,9 @@ Feature: The support code's API
     And a file named "features/a.feature" with:
       """
       Feature: A
+        Background:
+          Given the stories of "./a.stories.tsx"
+          And the "default" story
         Scenario: exports
           Given a step defined with defineStep
           And a passing step
@@ -629,7 +662,7 @@ Feature: The support code's API
       });
       After((world: Cart, { result }, done: () => void) => {
         expect(result?.status).toBe("PASSED");
-        expect(world.trail).toEqual(["Before arrows", "PASSED", "PASSED", "PASSED", "PASSED", "PASSED"]);
+        expect(world.trail).toEqual(["Before arrows", ...Array.from({ length: 7 }, () => "PASSED")]);
         setTimeout(done, 10);
       });
       Given("a cart with {string}", (world: Cart, item: string) => {
@@ -660,6 +693,9 @@ Feature: The support code's API
     And a file named "features/a.feature" with:
       """
       Feature: A
+        Background:
+          Given the stories of "./a.stories.tsx"
+          And the "default" story
         Scenario: arrows
           Given a cart with "apple"
           When I add 2 of each:
@@ -754,6 +790,9 @@ Feature: The support code's API
     And a file named "features/a.feature" with:
       """
       Feature: A
+        Background:
+          Given the stories of "./a.stories.tsx"
+          And the "default" story
         Scenario: packaged
           When the package adds "apple"
           And the package adds each of:
@@ -804,6 +843,9 @@ Feature: The support code's API
     And a file named "features/a.feature" with:
       """
       Feature: A
+        Background:
+          Given the stories of "./a.stories.tsx"
+          And the "default" story
         Scenario: shouting
           Then "pear" shouted is "PEAR"
       """
@@ -828,7 +870,7 @@ Feature: The support code's API
   Scenario Outline: Step definitions in a monorepo package's `dist/` are located there (<mode>)
     Given the plugin options:
       """
-      { "import": ["packages/steps/dist/**/*.js"] }
+      { "import": ["packages/steps/dist/**/*.js", "features/**/*.ts"] }
       """
     And a file named "packages/steps/dist/steps.js" with:
       """
@@ -839,6 +881,9 @@ Feature: The support code's API
     And a file named "features/shared.feature" with:
       """
       Feature: Shared
+        Background:
+          Given the stories of "./shared.stories.tsx"
+          And the "default" story
         Scenario: shared step
           Given a pending step
       """

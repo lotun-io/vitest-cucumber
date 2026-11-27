@@ -1,10 +1,12 @@
 // A feature file's Gherkin tags, for Vitest's tag definitions (`../plugin/tags.ts`): read from its
 // Gherkin document, as cucumber parses it. A file outside a run is parsed for its document alone
 // (`tagsOf`: no pickles, no test tree); a planned one's come from its plan's document
-// (`tagsOfDocument`). Kept with the file's plan (`./plans.ts`).
+// (`tagsOfDocument`). Kept with the file's plan (`./plans.ts`). Each as its tests have it
+// (`./tagTransform.ts`).
 import { generateMessages } from "@cucumber/gherkin";
 import type { GherkinDocument } from "@cucumber/messages";
 import { mediaTypeOf } from "./plan.ts";
+import { tagOf } from "./tagTransform.ts";
 
 /**
  * The tags of a feature file's `document`: its feature's, its rules', its scenarios' and their
@@ -14,8 +16,9 @@ import { mediaTypeOf } from "./plan.ts";
 export const tagsOfDocument = (document: GherkinDocument | undefined) => {
   const tags = new Set<string>();
   const add = (named: readonly { name: string }[] = []) => {
+    // As the tests have them (`@tag(<name>)`'s name: `./tagTransform.ts`).
     for (const { name } of named) {
-      tags.add(name);
+      tags.add(tagOf(name));
     }
   };
   const feature = document?.feature;

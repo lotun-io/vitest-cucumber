@@ -1,69 +1,38 @@
 // Storybook: which story each scenario of a feature file runs on, from its Storybook steps
-// (`./storybookSteps.ts`; `notes/storybook.md`, "Scenarios as tests of stories"). A feature file runs on
-// one stories file (its module, which Storybook indexes and tests, has one meta: the stories file's):
-// the one its stories file steps name (from the project's root, or from the feature file's folder
-// with `./` or `../`; usually once, in its Background), else the one next to it; with neither, its
-// scenarios aren't Storybook's. Every scenario of the feature runs on it, also one its stories file
-// step doesn't reach (a scenario without steps of its own gets no Background steps). Per pickle (a
-// scenario, or an Outline row, its Backgrounds' steps included), a Storybook step names its export (and
-// whether it's unmounted); without one, or one naming `default` (the meta's export: an Outline's rows
-// on stories and on the meta), the stories file's meta (its component, args, decorators). A scenario
-// has at most one of each.
+// (`./storybookSteps.ts`; `notes/storybook.md`, "Scenarios as tests of stories"); the user's calls,
+// 2026-11-27: nothing taken for granted (no stories file found next to the feature, no story
+// meaning the meta). Each scenario (or Outline row: a pickle, its Backgrounds' steps included)
+// names its stories file and its story, once each. A feature file has one stories file step, so
+// it's written in its Background (it reaches each scenario), naming its stories file from the
+// project's root, or from the feature file's folder with `./` or `../`: a feature runs on one (its
+// module, which Storybook indexes and tests, has one meta: the stories file's). The story is one of
+// the stories file's, or `default` (no story can be named so), its meta (its component, args,
+// decorators), mounted or not; scenarios may name others. A scenario without steps of its own gets
+// no Background steps, so it names neither: an error.
 // What can be checked from the feature file and the file system is checked here (the export, against
 // the stories file's stories: `./linkedFeature.ts`).
 import type { GherkinDocument, Pickle } from "@cucumber/messages";
 import { existsSync } from "node:fs";
 import path from "node:path";
-import { slash } from "../../../utils/slash.ts";
-import { featureBase } from "../../feature/featureFile.ts";
-import { storiesExtensions } from "./featureStories.ts";
 import type { StepLink, StorybookSteps } from "./storybookSteps.ts";
 
 /** A scenario (or an Outline row) that runs on a story. */
 export interface ScenarioLink {
-  /** The feature file's path. */
-  feature: string;
   /** The pickle's line (a scenario's, or an Outline row's). */
   line: number;
   name: string;
   /** The pickle's tags. */
   tags: string[];
-  /** The stories file's path. */
-  storiesFile: string;
-  /** The story's export, or none: the meta. */
+  /** The story's export, or none: the meta (the story `default`). */
   exportName?: string;
   /** Whether the scenario mounts the story itself. */
   unmounted: boolean;
-  /** The Storybook step's line, if any (the error messages'). */
-  storyLine?: number;
+  /** The story step's line (the error messages'). */
+  storyLine: number;
 }
 
 /** The story a Storybook step names for the meta (its export: no story can be named so). */
-export const metaStory = "default";
-
-/** A stories file's name: its base, then `.stories.` and a script extension. */
-const storiesSuffix = new RegExp(
-  String.raw`\.stories\.(?:${storiesExtensions.join("|")})$`,
-);
-
-/** Whether `file` is a stories file, by its name. */
-export const isStoriesFile = (file: string) => storiesSuffix.test(file);
-
-/**
- * The names a feature file next to stories file `file` may have (`Button.stories.tsx` →
- * `Button.feature`, `Button.feature.md`: `featureBase`'s): the feature that runs on it unless a
- * stories file step names another.
- */
-export const siblingFeaturesOf = (file: string) => {
-  const base = file.replace(storiesSuffix, "");
-  return [".feature", ".feature.md"].map((extension) => `${base}${extension}`);
-};
-
-/** The stories file next to `feature` (`Button.feature` → `Button.stories.tsx`), if any. */
-export const siblingStoriesOf = (feature: string) =>
-  storiesExtensions
-    .map((extension) => `${featureBase(feature)}.stories.${extension}`)
-    .find((file) => existsSync(file));
+const metaStory = "default";
 
 /** Each step's line in `document`, by its id (Backgrounds', scenarios', rules'). */
 const stepLines = (document: GherkinDocument) => {
@@ -88,7 +57,9 @@ const stepLines = (document: GherkinDocument) => {
 
 /**
  * The scenarios of feature file `feature` (`uri`, its path from `root`; its Gherkin `document` and
- * `pickles`) that run on a story, by `steps`, and the errors in their links.
+ * `pickles`) that run on a story, by `steps`, and the errors in their links: its stories file (one
+ * that exists; `named`, the one it names, whether it exists or not: what a watcher's event on it
+ * concerns), the line naming it, each scenario's story.
  */
 export const featureLinksOf = ({
   feature,
@@ -107,17 +78,27 @@ export const featureLinksOf = ({
 }) => {
   const errors: string[] = [];
   const lines = stepLines(document);
-  /** Each pickle's Storybook step, and the stories file its stories file step names (resolved). */
+  /** The stories file steps, by line (an Outline's step: each row's file). */
+  const storiesSteps = new Map<number, Set<string>>();
+  /** Each pickle's story step. */
   const linked: {
     pickle: Pickle;
     line: number;
-    storybookStep?: StepLink & { line: number };
-    named?: { file: string; line: number };
+    storyStep: StepLink & { line: number };
+  }[] = [];
+  /** The pickles that miss the stories file step, the story step or both (their messages after). */
+  const lacking: {
+    scenario: string;
+    stories: boolean;
+    story: boolean;
+    steps: boolean;
   }[] = [];
   for (const pickle of pickles) {
     const line = pickle.location?.line ?? 0;
+    const scenario = `${uri}:${String(line)} ("${pickle.name}")`;
     const story: (StepLink & { line: number })[] = [];
-    const stories: (StepLink & { line: number })[] = [];
+    let named = false;
+    let ambiguous = false;
     for (const step of pickle.steps) {
       const stepLine = lines.get(step.astNodeIds[0] ?? "") ?? line;
       const matches = steps.match(step.text);
@@ -125,6 +106,7 @@ export const featureLinksOf = ({
         errors.push(
           `${uri}:${String(stepLine)}: "${step.text}" matches ${String(matches.length)} Storybook steps (${matches.map(({ at }) => at).join(", ")})`,
         );
+        ambiguous = true;
         continue;
       }
       const [match] = matches;
@@ -132,103 +114,145 @@ export const featureLinksOf = ({
         story.push({ ...match, line: stepLine });
       }
       if (match?.storiesFile !== undefined) {
-        stories.push({ ...match, line: stepLine });
+        named = true;
+        const files = storiesSteps.get(stepLine) ?? new Set();
+        storiesSteps.set(stepLine, files.add(match.storiesFile));
       }
     }
-    const scenario = `${uri}:${String(line)} ("${pickle.name}")`;
-    const twice = (what: string, found: { line: number }[]) =>
-      `${scenario} names ${what} twice (lines ${found.map(({ line: at }) => String(at)).join(" and ")}): a scenario has one, its Backgrounds' steps included`;
+    if (ambiguous) {
+      continue;
+    }
+    const [storyStep] = story;
     if (story.length > 1) {
-      errors.push(twice("a story", story));
-      continue;
-    }
-    if (stories.length > 1) {
-      errors.push(twice("a stories file", stories));
-      continue;
-    }
-    const [storybookStep] = story;
-    const [storiesStep] = stories;
-    let named: { file: string; line: number } | undefined;
-    if (storiesStep?.storiesFile !== undefined) {
-      const written = storiesStep.storiesFile;
-      if (written.startsWith("/")) {
-        errors.push(
-          `${uri}:${String(storiesStep.line)}: the stories file "${written}" starts with "/": write it from the project's root, or from the feature file's folder with "./" or "../"`,
-        );
-        continue;
-      }
-      const relative = written.startsWith("./") || written.startsWith("../");
-      const file = path.resolve(
-        relative ? path.dirname(feature) : root,
-        written,
+      errors.push(
+        `${scenario} names a story twice (lines ${story.map(({ line: at }) => String(at)).join(" and ")}): a scenario has one, its Backgrounds' steps included`,
       );
-      if (!existsSync(file)) {
-        errors.push(
-          `${uri}:${String(storiesStep.line)}: the stories file "${written}" doesn't exist (${file}, from ${relative ? "the feature file's folder" : "the project's root"})`,
-        );
-        continue;
-      }
-      named = { file, line: storiesStep.line };
     }
-    linked.push({ pickle, line, storybookStep, named });
+    if (!named || !storyStep) {
+      lacking.push({
+        scenario,
+        stories: !named,
+        story: !storyStep,
+        steps: pickle.steps.length > 0,
+      });
+    } else if (story.length === 1) {
+      linked.push({ pickle, line, storyStep });
+    }
   }
-  // One stories file per feature file: the feature's module has one meta, its stories file's.
-  const files = [
-    ...new Set(linked.flatMap(({ named }) => (named ? [named.file] : []))),
-  ];
-  if (files.length > 1) {
-    errors.push(
-      `${uri} names ${String(files.length)} stories files (${files
-        .map(
-          (file) =>
-            `${slash(path.relative(root, file))}: line ${[
-              ...new Set(
-                linked.flatMap(({ named }) =>
-                  named?.file === file ? [String(named.line)] : [],
-                ),
-              ),
-            ].join(", ")}`,
-        )
-        .join(
-          "; ",
-        )}): a feature file runs on one stories file, split it into one per stories file`,
-    );
+  // A scenario that doesn't name both (without any stories file step: the feature's error, below).
+  for (const { scenario, stories, story, steps: hasSteps } of lacking) {
+    const what = [
+      ...(stories && storiesSteps.size > 0 ? ["stories file"] : []),
+      ...(story ? ["story"] : []),
+    ];
+    const why = hasSteps
+      ? [
+          ...(what.includes("stories file")
+            ? [
+                "the feature's stories file step reaches each scenario in its Background",
+              ]
+            : []),
+          ...(story
+            ? [
+                `a story step names its story (its stories file's, or "${metaStory}": its meta)`,
+              ]
+            : []),
+        ]
+      : [
+          "it has no steps (a Background's steps reach only a scenario with steps of its own)",
+        ];
+    if (what.length > 0) {
+      errors.push(
+        `${scenario} names no ${what.join(" and no ")}: ${why.join("; ")}`,
+      );
+    }
+  }
+  // Its stories file: one step naming it, once.
+  const named = storiesFileOf({ feature, uri, root, storiesSteps });
+  if ("error" in named) {
+    errors.push(named.error);
     return {
+      named: undefined,
       storiesFile: undefined,
       storiesLine: undefined,
       links: [],
       errors,
     };
   }
-  const storiesFile = files[0] ?? siblingStoriesOf(feature);
-  const links: ScenarioLink[] = [];
-  for (const { pickle, line, storybookStep } of linked) {
-    const scenario = `${uri}:${String(line)} ("${pickle.name}")`;
-    if (!storiesFile) {
-      if (storybookStep) {
-        errors.push(
-          `${scenario} names the story "${storybookStep.exportName ?? ""}" (line ${String(storybookStep.line)}), but has no stories file: none is next to the feature file, add a stories file step`,
-        );
-      }
-      continue;
-    }
-    links.push({
-      feature,
-      line,
-      name: pickle.name,
-      tags: pickle.tags.map(({ name }) => name),
-      storiesFile,
-      unmounted: storybookStep?.unmounted ?? false,
-      ...(storybookStep?.exportName !== undefined &&
-        storybookStep.exportName !== metaStory && {
-          exportName: storybookStep.exportName,
-          storyLine: storybookStep.line,
-        }),
-    });
+  const exists = existsSync(named.file);
+  if (!exists) {
+    errors.push(
+      `${uri}:${String(named.line)}: the stories file "${named.written}" doesn't exist (${named.file}, from ${named.relative ? "the feature file's folder" : "the project's root"})`,
+    );
   }
-  // The line of the stories file step naming it (the first; none: the one next to the feature).
-  const storiesLine = linked.find(({ named }) => named)?.named?.line;
-  return { storiesFile, storiesLine, links, errors };
+  const storiesFile = exists ? named.file : undefined;
+  const links: ScenarioLink[] = storiesFile
+    ? linked.map(({ pickle, line, storyStep }) => ({
+        line,
+        name: pickle.name,
+        tags: pickle.tags.map(({ name }) => name),
+        unmounted: storyStep.unmounted,
+        storyLine: storyStep.line,
+        ...(storyStep.exportName !== undefined &&
+          storyStep.exportName !== metaStory && {
+            exportName: storyStep.exportName,
+          }),
+      }))
+    : [];
+  return {
+    named: named.file,
+    storiesFile,
+    storiesLine: named.line,
+    links,
+    errors,
+  };
+};
+
+/**
+ * The stories file of feature file `feature` (`uri`, from `root`) its stories file steps name
+ * (`storiesSteps`: each step's line, the files it names), resolved; or why it has none: no step,
+ * two, one naming two (an Outline's rows), a path that starts with `/`.
+ */
+const storiesFileOf = ({
+  feature,
+  uri,
+  root,
+  storiesSteps,
+}: {
+  feature: string;
+  uri: string;
+  root: string;
+  storiesSteps: ReadonlyMap<number, ReadonlySet<string>>;
+}):
+  | { file: string; written: string; line: number; relative: boolean }
+  | { error: string } => {
+  const once = "a feature file names its stories file once, in its Background";
+  if (storiesSteps.size === 0) {
+    return {
+      error: `${uri} names no stories file: ${once}, with a stories file step`,
+    };
+  }
+  const found = [...storiesSteps].sort(([a], [b]) => a - b);
+  if (found.length > 1) {
+    return {
+      error: `${uri} has ${String(found.length)} stories file steps (lines ${found.map(([line]) => String(line)).join(", ")}): ${once}`,
+    };
+  }
+  const [[line, files] = [0, new Set<string>()]] = found;
+  const [written = "", ...more] = files;
+  if (more.length > 0) {
+    return {
+      error: `${uri}:${String(line)}: the stories file step names ${String(files.size)} stories files (${[...files].join(", ")}): a feature file runs on one stories file, split it into one per stories file`,
+    };
+  }
+  if (written.startsWith("/")) {
+    return {
+      error: `${uri}:${String(line)}: the stories file "${written}" starts with "/": write it from the project's root, or from the feature file's folder with "./" or "../"`,
+    };
+  }
+  const relative = written.startsWith("./") || written.startsWith("../");
+  const file = path.resolve(relative ? path.dirname(feature) : root, written);
+  return { file, written, line, relative };
 };
 
 /** A feature file linked by the Storybook steps (`featureLinksOf`'s): its stories file, each scenario's story, its links' errors. */

@@ -4,15 +4,15 @@
 // both platforms run a step's or hook's code as a step of the story (`aroundCall`, Storybook's
 // Interactions panel: the runtime's `around`), and the preview adds notes (`storyNote`). One instance
 // per page: every import resolves to this file.
-import type { LoadRun, ScenarioToRun } from "../../types/platform.ts";
+import type { ScenarioToRun } from "../../types/platform.ts";
 import type { FeatureModel } from "../../types/storybook.ts";
 import { pluginError } from "../../utils/errors.ts";
-import { storybookParameterTypes } from "../../utils/storybookParameterTypes.ts";
+import { storybookExpressionOf } from "../../utils/storybookPlaceholders.ts";
 import { createRuntimeEnvironment } from "../browser/runtimeEnvironment.ts";
 import { scenarioAt } from "../platform/scenario/scenarioAt.ts";
 
 /** Storybook's `mount`: renders the story (the renderer's arguments, e.g. React's element, or none). */
-export type StoryMount = (...args: unknown[]) => Promise<unknown>;
+type StoryMount = (...args: unknown[]) => Promise<unknown>;
 
 /** A story's context, as the plugin reads it (Storybook's `StoryContext` has more). */
 export interface StoryContextLike {
@@ -23,7 +23,7 @@ export interface StoryContextLike {
 }
 
 /** What a story's `play` runs: the scenario, or Outline row, at `line` of a feature file. */
-export interface StoryTarget extends FeatureModel {
+interface StoryTarget extends FeatureModel {
   line: number;
 }
 
@@ -97,17 +97,13 @@ const aroundCall = async <T extends { failure?: { value: unknown } }>(
 };
 
 /**
- * A Storybook page's runtime environment for `run`: the browser's, each step's code a step of the
- * story, and the Storybook steps' parameter types if a support file has such a step (main's scan,
- * the run's `storybookSteps`: main links by the steps it finds, so the page defines the types
- * exactly then).
+ * A Storybook page's runtime environment: the browser's, each step's code a step of the story, and
+ * the Storybook steps' placeholders as `{string}` (node and browser mode keep them as written).
  */
-export const storyEnvironment = (run: LoadRun) => ({
+export const storyEnvironment = () => ({
   ...createRuntimeEnvironment(),
   around: aroundCall,
-  ...(run.storybookSteps && {
-    parameterTypes: Object.values(storybookParameterTypes),
-  }),
+  expressionOf: storybookExpressionOf,
 });
 
 /** Adds an empty step labelled `label` to the running story (a skip, an annotation). */

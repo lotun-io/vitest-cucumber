@@ -15,6 +15,9 @@ Feature: Watch mode: runs
     And a file named "features/a.feature" with:
       """
       Feature: A
+        Background:
+          Given the stories of "./a.stories.tsx"
+          And the "default" story
         Scenario: changing
           Given a changing step
       """
@@ -84,13 +87,16 @@ Feature: Watch mode: runs
     Given a file named "features/a.feature" with:
       """
       Feature: A
+        Background:
+          Given the stories of "./a.stories.tsx"
+          And the "default" story
         Scenario: changing
           Given a changing step
 
         Scenario: also changing
           Given a changing step
       """
-    When I start vitest in watch mode in <mode> mode with "features/a.feature:5"
+    When I start vitest in watch mode in <mode> mode with "features/a.feature:8"
     Then it runs the scenarios:
       | NAME          | STATUS |
       | also changing | failed |

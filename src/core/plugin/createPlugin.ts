@@ -78,6 +78,12 @@ export const createPlugin = (
    */
   let onFileChange: FileChangeAnswer = plans.onFileChange;
   /**
+   * Feature files' Gherkin tags as the Vitest tags declared (`./tags.ts`): all of them, or the ones a
+   * plugin built on this one keeps (`declaredTagsWith`: Storybook's, every tag its tests may have).
+   */
+  let declaredTagsOf = (tags: readonly string[]): Promise<readonly string[]> =>
+    Promise.resolve(tags);
+  /**
    * The Vitest the plugin serves and its projects there, while it's open (`./vitestState.ts`): a
    * watching one's file changes listened to as it opens (`./vitestWatcher.ts`), what was read
    * for its plans dropped as it closes.
@@ -127,7 +133,7 @@ export const createPlugin = (
     const features = await featureFilesOf(project);
     // One that can't be read: no tags.
     const read = await Promise.all(features.map(plans.tagsPlanOf));
-    declareTags(project, read.flatMap(tagsOf));
+    declareTags(project, await declaredTagsOf(read.flatMap(tagsOf)));
   };
 
   /**
@@ -169,7 +175,7 @@ export const createPlugin = (
     );
     const planned = features.flat();
     for (const { project, plan } of planned) {
-      declareTags(project, tagsOf(plan));
+      declareTags(project, await declaredTagsOf(tagsOf(plan)));
     }
     return planned;
   };
@@ -217,6 +223,16 @@ export const createPlugin = (
      */
     watchWith: (answer: FileChangeAnswer) => {
       onFileChange = answer;
+    },
+    /**
+     * For a plugin built on this one whose tests have only some of their Gherkin tags (Storybook's:
+     * not Storybook's, `../storybook/stories/storybookTags.ts`): the tags declared are the ones
+     * `keep` gives, every one its tests may have.
+     */
+    declaredTagsWith: (
+      keep: (tags: readonly string[]) => Promise<readonly string[]>,
+    ) => {
+      declaredTagsOf = keep;
     },
     /** The commands (`../commands/commands.ts`): their browser command, what workers get. */
     commands,

@@ -65,7 +65,6 @@ Then("it fails", (world: E2EWorld) => {
 for (const [step, state] of [
   ["the feature file {string} passes", "passed"],
   ["the feature file {string} fails", "failed"],
-  ["the feature file {string} is skipped", "skipped"],
 ]) {
   Then(step, (world: E2EWorld, file: string) => {
     expect(world.lastRun.modules.get(file), world.lastRun.output).toBe(state);

@@ -1,10 +1,12 @@
 @login
 Feature: Login
-  Each scenario, and each Outline row, is a story on the meta of `Login.stories.ts` (no Storybook step):
-  the story renders, its play runs the scenario.
+  Each scenario, and each Outline row, is a story on the meta of `Login.stories.ts` (its Background's
+  `Given the "default" story`): the story renders, its play runs the scenario.
 
   Background:
-    Given I see the "Log in" button
+    Given the stories of "./Login.stories.ts"
+    And the "default" story
+    And I see the "Log in" button
 
   Scenario: Log in
     When I click the "Log in" button

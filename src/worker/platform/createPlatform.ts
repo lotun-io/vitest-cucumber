@@ -69,12 +69,12 @@ export const createPlatform = (host: Host): Platform => {
     run: LoadRun,
     { workerId, projectName }: RunWorker,
   ) => {
-    const environment = host.environment(run);
+    const environment = host.environment();
     // The support code's ids: the same in every worker with the same support code.
     const support = buildSupportCode(calls, {
       newId: supportIds(calls),
       wrapper: registry.wrapper,
-      parameterTypes: environment.parameterTypes,
+      expressionOf: environment.expressionOf,
     });
     await send(support.query.envelopes(), true);
     return createRunner({

@@ -1,5 +1,9 @@
 Feature: Rules
 
+  Background:
+    Given the stories of "src/Empty.stories.ts"
+    And the "default" story
+
   Rule: Basic arithmetic
 
     Scenario: Addition

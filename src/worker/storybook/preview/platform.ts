@@ -25,8 +25,8 @@ export const platform = createPlatform({
   env: (import.meta.env as Record<string, unknown> | undefined) ?? {},
   importSupport: (importSupport) => importPageSupport(version, importSupport),
   locate,
-  environment: (run) => ({
-    ...storyEnvironment(run),
+  environment: () => ({
+    ...storyEnvironment(),
     defaultTimeouts: previewTimeouts,
   }),
   colors: () => false,

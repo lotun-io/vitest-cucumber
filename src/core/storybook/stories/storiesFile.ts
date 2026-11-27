@@ -30,11 +30,16 @@ const stories = fileCache<StoriesOf>();
 
 /** Stories file `file` as it is on disk: its text, and its stories as Storybook's CSF parser reads them (`loadCsf`). */
 export const readStoriesFile = async (file: string) => {
-  const { loadCsf } = await import("storybook/internal/csf-tools");
+  const [{ loadCsf }, { Tag }] = await Promise.all([
+    import("storybook/internal/csf-tools"),
+    import("storybook/preview-api"),
+  ]);
   const content = await readFile(file, "utf8");
   return {
     content,
-    stories: stories(file, content, () => storiesOfCsf(content, file, loadCsf)),
+    stories: stories(file, content, () =>
+      storiesOfCsf(content, file, loadCsf, Tag.PLAY_FN),
+    ),
   };
 };
 
@@ -47,6 +52,7 @@ const storiesOfCsf = (
   content: string,
   file: string,
   loadCsf: LoadCsf,
+  playTag: string,
 ): StoriesOf => {
   const csf = loadCsf(content, {
     fileName: file,
@@ -60,11 +66,12 @@ const storiesOfCsf = (
     ...(csf.meta?.title !== undefined &&
       csf.meta.title !== untitled && { title: csf.meta.title }),
     metaTags,
-    // An entry's tags: the meta's, the story's own, then `play-fn` if it has a `play`.
+    // An entry's tags: the meta's, the story's own, then `play-fn` (`playTag`: Storybook's
+    // `Tag.PLAY_FN`) if it has a `play`.
     tags: Object.fromEntries(
       inputs.map(({ exportName, tags = [] }) => [
         exportName,
-        tags.slice(metaTags.length).filter((tag) => tag !== "play-fn"),
+        tags.slice(metaTags.length).filter((tag) => tag !== playTag),
       ]),
     ),
   };

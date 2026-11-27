@@ -45,20 +45,20 @@ const unsupportedMethods = new Map([
 
 /**
  * Builds the support code from `calls`, in order. `wrapper` is `setDefinitionFunctionWrapper`'s
- * function, if any; `parameterTypes` the host's own, defined first. Throws cucumber's error for a
- * call it refuses.
+ * function, if any; `expressionOf` the host's rewrite of a step's cucumber expression. Throws
+ * cucumber's error for a call it refuses.
  */
 export const buildSupportCode = (
   calls: readonly SupportCall[],
   {
     newId,
     wrapper,
-    parameterTypes = [],
+    expressionOf = (expression) => expression,
   }: {
     newId: IdGenerator.NewId;
     wrapper?: (code: Code, wrapperOptions: unknown) => Code;
-    /** The host's own parameter types (`RuntimeEnvironment["parameterTypes"]`). */
-    parameterTypes?: RuntimeEnvironment["parameterTypes"];
+    /** The host's rewrite of a step's cucumber expression (`RuntimeEnvironment["expressionOf"]`). */
+    expressionOf?: RuntimeEnvironment["expressionOf"];
   },
 ): SupportCode => {
   const builder = buildCoreSupportCode({ newId });
@@ -88,29 +88,6 @@ export const buildSupportCode = (
     definitions.set(handle, definition);
     return handle;
   };
-
-  // The host's own parameter types (a Storybook host's: the Storybook steps'), before the support
-  // code's: the plugin's, so no source of their own; one the support code defined itself is its own.
-  const defined = new Set(
-    calls.flatMap(({ method, args: [options] }) =>
-      method === "defineParameterType"
-        ? [(options as Options | undefined)?.name]
-        : [],
-    ),
-  );
-  for (const { name, regexp } of parameterTypes) {
-    if (!defined.has(name)) {
-      builder.parameterType({
-        name,
-        regexp,
-        // The step gets the text; never in a snippet (any word matches).
-        transformer: (text: string) => text,
-        useForSnippets: false,
-        preferForRegexpMatch: false,
-        sourceReference: {},
-      });
-    }
-  }
 
   for (const { method, args, location, stack } of calls) {
     try {
@@ -150,7 +127,11 @@ export const buildSupportCode = (
         });
         const { timeout, wrapperOptions } = options as Options;
         builder.step({
-          pattern: pattern as string | RegExp,
+          // A cucumber expression as its host has it (a Storybook host's placeholders rewritten).
+          pattern:
+            typeof pattern === "string"
+              ? expressionOf(pattern)
+              : (pattern as RegExp),
           fn: handleOf({
             code: wrap(code as Code, wrapperOptions),
             timeout: timeout as number | undefined,

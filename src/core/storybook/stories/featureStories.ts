@@ -24,19 +24,7 @@ import { featureBase } from "../../feature/featureFile.ts";
 import { placesOf } from "../../feature/featureTree.ts";
 import type { ScenarioLink } from "./featureLinks.ts";
 import type { StoriesOf } from "./storiesFile.ts";
-import { storyTagsOf } from "./storybookTags.ts";
-
-/** The script extensions a stories file may have. */
-export const storiesExtensions = [
-  "ts",
-  "tsx",
-  "js",
-  "jsx",
-  "mts",
-  "mjs",
-  "cts",
-  "cjs",
-];
+import { type StorybookTags, without } from "./storybookTags.ts";
 
 /** A name as a title's part: a `/` would split it, a `|` splits nothing (the feature's label too). */
 const segmentOf = (name: string) => name.replaceAll("/", "|");
@@ -70,11 +58,27 @@ export const exportNameOf = (name: string) => {
 };
 
 /**
- * The export of a feature's own story (its id `…--vitest-cucumber-feature`), and its tags: out of
- * the sidebar, story tests, docs pages and component manifests (a feature file isn't a stories file).
+ * The export of a feature's own story (its id `…--vitest-cucumber-feature`): its tags take it out
+ * of the sidebar, story tests, docs pages and component manifests (a feature file isn't a stories
+ * file).
  */
 export const featureStoryExport = "__vitestCucumberFeature";
-const featureStoryTags = ["!dev", "!test", "!autodocs", "!manifest"];
+
+/**
+ * The stories of a feature that can't be made (its parse errors, its links), in story tests: its
+ * own story alone, hidden by its meta's tags (every story of the module inherits them), nothing of
+ * its stories file (no render, args, decorators or loaders: nothing of a broken feature runs). No
+ * title: Storybook's automatic one, from the feature file's path. So a docs page attached to the
+ * feature (`<Meta of={…}>`) still finds it, and only its own file fails (its suite throws the
+ * error: `./featureStoriesModule.ts`). Storybook's own process has none: its index fails.
+ */
+export const brokenFeatureStories = (tag: StorybookTags) =>
+  [
+    `export default { tags: ${JSON.stringify(
+      [tag.DEV, tag.TEST, tag.AUTODOCS, tag.MANIFEST].map(without),
+    )} };`,
+    `export const ${featureStoryExport} = {};`,
+  ].join("\n");
 
 /** A scenario's story, as the module exports it and Storybook indexes it. */
 export interface ScenarioStory extends ScenarioLink {
@@ -83,8 +87,8 @@ export interface ScenarioStory extends ScenarioLink {
   /** Its title: its test's place in Vitest's tree, below the feature's. */
   title: string;
   /**
-   * Its tags: the story's own, the pickle's (Storybook's own among them without their `@`:
-   * `./storybookTags.ts`), then `!autodocs` and `!manifest` (the meta's come with
+   * Its tags: the story's own, the pickle's (`@tag(<name>)` as `<name>`, Storybook's own among
+   * them: `./storybookTags.ts`), then `!autodocs` and `!manifest` (the meta's come with
    * the meta). Last, so they hold whatever the story it runs on is tagged: a scenario's story has
    * no docs page, and Storybook's manifests read a manifest entry's file as a stories file, which a
    * feature file isn't (a failure there loses every component's manifest).
@@ -96,7 +100,7 @@ export interface ScenarioStory extends ScenarioLink {
  * The stories module of feature file `feature` (its Gherkin `document`, its Vitest `tree`), linked
  * to `storiesFile` (its `stories`, as Storybook reads them; its title, `storiesTitle`) by `links`;
  * `featureModule`, the feature module's id (its `playAt`); `idOf`, Storybook's `sanitize` (a
- * title's id). Its title: the stories file's, then the feature's label; each story's, its place
+ * title's id); `tag`, Storybook's built-in tags (`Tag`). Its title: the stories file's, then the feature's label; each story's, its place
  * below it (`titles`, by export). Its meta: the stories file's (`metaOf`, its parameters among
  * it), its `id` the feature title's. A feature's text for docs: `featuresOf` (by its stories file:
  * `../../../worker/storybook/features.ts`), or Vite's `?raw` import of the file.
@@ -111,6 +115,7 @@ export const featureStoriesOf = ({
   links,
   featureModule,
   idOf,
+  tag,
 }: {
   feature: string;
   document: GherkinDocument;
@@ -121,6 +126,7 @@ export const featureStoriesOf = ({
   links: readonly ScenarioLink[];
   featureModule: string;
   idOf: (title: string) => string;
+  tag: StorybookTags;
 }) => {
   const label = featureLabelOf(document, feature);
   const title = `${storiesTitle}/${label}`;
@@ -152,9 +158,9 @@ export const featureStoriesOf = ({
         ...(link.exportName === undefined
           ? []
           : (stories.tags[link.exportName] ?? [])),
-        ...storyTagsOf(link.tags),
-        "!autodocs",
-        "!manifest",
+        ...link.tags,
+        without(tag.AUTODOCS),
+        without(tag.MANIFEST),
       ],
     };
   });
@@ -175,7 +181,9 @@ export const featureStoriesOf = ({
     // The feature's own story, first: never listed, tested or documented, its title the feature's,
     // which Storybook gives a docs page attached to the feature (`<Meta of={…} />`: the title of
     // its file's first story), so the page is listed in the feature's folder.
-    `export const ${featureStoryExport} = { tags: ${json(featureStoryTags)} };`,
+    `export const ${featureStoryExport} = { tags: ${json(
+      [tag.DEV, tag.TEST, tag.AUTODOCS, tag.MANIFEST].map(without),
+    )} };`,
     ...scenarios.map(
       ({
         export: exportName,

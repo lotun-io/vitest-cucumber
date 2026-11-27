@@ -7,7 +7,7 @@
 // A scenario plays only its steps: the story's own `play` (and the meta's) is the story's own test.
 // Storybook renders a story before its `play` unless the play uses `mount` (destructures it), which
 // it reads from the play's text: a scenario's play doesn't, so Storybook renders the story first; an
-// unmounted one's does (`Given the unmounted Primary story`), so its `Before` hooks and steps run
+// unmounted one's does (`Given the unmounted "Primary" story`), so its `Before` hooks and steps run
 // before the render, and the user's step mounts it (`story().mount(…)`): if none does, Storybook's
 // preview fails it (`NoStoryMountedError`).
 import type { FeatureModel } from "../../types/storybook.ts";

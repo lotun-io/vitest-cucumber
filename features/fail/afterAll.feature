@@ -5,6 +5,10 @@ Feature: A failing AfterAll hook
 
   pnpm test --project node features/fail/afterAll.feature
 
+  Background:
+    Given the stories of "src/Empty.stories.ts"
+    And the "default" story
+
   Scenario: Passing, its worker's AfterAll hook fails
     Given a value of 1
     Then the value should be 1

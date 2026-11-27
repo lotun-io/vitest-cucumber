@@ -28,6 +28,9 @@ Feature: Failures
     And a file named "features/failures.feature" with:
       """
       Feature: Failures
+        Background:
+          Given the stories of "./failures.stories.tsx"
+          And the "default" story
         Scenario: failing step
           Given a failing step
 
@@ -100,6 +103,9 @@ Feature: Failures
     Given a file named "features/next.feature" with:
       """
       Feature: Next
+        Background:
+          Given the stories of "./next.stories.tsx"
+          And the "default" story
         Scenario: passing in the next file
           Given a passing step
       """
@@ -194,6 +200,9 @@ Feature: Failures
     And a file named "features/failures.feature" with:
       """
       Feature: Failures
+        Background:
+          Given the stories of "./failures.stories.tsx"
+          And the "default" story
         Scenario: an And step
           Given a passing step
           And a failing step
@@ -222,43 +231,43 @@ Feature: Failures
     And the output contains:
       """
       Error: Failed in an And step
-       ❯ features/failures.feature:4:5
-            2|   Scenario: an And step
-            3|     Given a passing step
-            4|     And a failing step
+       ❯ features/failures.feature:7:5
+            5|   Scenario: an And step
+            6|     Given a passing step
+            7|     And a failing step
              |     ^
       """
     And the output contains:
       """
       Error: Failed with 1
-       ❯ features/failures.feature:7:5
+       ❯ features/failures.feature:10:5
       """
     And the output contains:
       """
       Error: Failed with 2
-       ❯ features/failures.feature:7:5
+       ❯ features/failures.feature:10:5
       """
     And the output contains:
       """
       Error: Failed with a doc string
-       ❯ features/failures.feature:15:5
-           13|
-           14|   Scenario: a doc string
-           15|     Given a failing step with a doc string:
+       ❯ features/failures.feature:18:5
+           16|
+           17|   Scenario: a doc string
+           18|     Given a failing step with a doc string:
              |     ^
-           16|       \"\"\"
-           17|       some text
+           19|       \"\"\"
+           20|       some text
       """
     And the output contains:
       """
       Error: Failed with a data table
-       ❯ features/failures.feature:21:5
-           19|
-           20|   Scenario: a data table
-           21|     Given a failing step with a data table:
+       ❯ features/failures.feature:24:5
+           22|
+           23|   Scenario: a data table
+           24|     Given a failing step with a data table:
              |     ^
-           22|       | a | b |
-           23|       | 1 | 2 |
+           25|       | a | b |
+           26|       | 1 | 2 |
       """
 
     Examples:
@@ -325,6 +334,9 @@ Feature: Failures
     And a file named "features/failures.feature" with:
       """
       Feature: Failures
+        Background:
+          Given the stories of "./failures.stories.tsx"
+          And the "default" story
         Scenario: late rejection
           Given a step that times out and rejects later
       """
@@ -365,6 +377,8 @@ Feature: Failures
       """
       Feature: Feature background
         Background:
+          Given the stories of "./feature.stories.tsx"
+          And the "default" story
           Given a background step that fails
 
         Scenario: in the feature
@@ -373,6 +387,9 @@ Feature: Failures
     And a file named "features/rule.feature" with:
       """
       Feature: Rule background
+        Background:
+          Given the stories of "./rule.stories.tsx"
+          And the "default" story
         Rule: a rule
           Background:
             Given a background step that fails
@@ -389,19 +406,19 @@ Feature: Failures
     And the output contains:
       """
       Error: Failed in a Background
-       ❯ features/feature.feature:3:5
-            1| Feature: Feature background
-            2|   Background:
-            3|     Given a background step that fails
+       ❯ features/feature.feature:5:5
+            3|     Given the stories of "./feature.stories.tsx"
+            4|     And the "default" story
+            5|     Given a background step that fails
              |     ^
       """
     And the output contains:
       """
       Error: Failed in a Background
-       ❯ features/rule.feature:4:7
-            2|   Rule: a rule
-            3|     Background:
-            4|       Given a background step that fails
+       ❯ features/rule.feature:7:7
+            5|   Rule: a rule
+            6|     Background:
+            7|       Given a background step that fails
              |       ^
       """
 
@@ -425,6 +442,9 @@ Feature: Failures
     And a file named "features/failures.feature" with:
       """
       Feature: Failures
+        Background:
+          Given the stories of "./failures.stories.tsx"
+          And the "default" story
         Scenario: several errors
           Given a step failing with several errors
       """
@@ -433,12 +453,12 @@ Feature: Failures
     And the output contains:
       """
       Error: First failure
-       ❯ features/failures.feature:3:5
+       ❯ features/failures.feature:6:5
       """
     And the output contains:
       """
       TypeError: Second failure
-       ❯ features/failures.feature:3:5
+       ❯ features/failures.feature:6:5
       """
     And the output contains:
       """
@@ -451,7 +471,7 @@ Feature: Failures
     And the output contains:
       """
       AggregateError: Both failed
-       ❯ features/failures.feature:3:5
+       ❯ features/failures.feature:6:5
       """
     And the output doesn't contain:
       """
@@ -478,6 +498,9 @@ Feature: Failures
     And a file named "features/failures.feature" with:
       """
       Feature: Failures
+        Background:
+          Given the stories of "./failures.stories.tsx"
+          And the "default" story
         Scenario: several errors and an undefined step
           Given a step failing with several errors
           And an undefined step
@@ -487,12 +510,12 @@ Feature: Failures
     And the output contains:
       """
       Error: First failure
-       ❯ features/failures.feature:3:5
+       ❯ features/failures.feature:6:5
       """
     And the output contains:
       """
       TypeError: Second failure
-       ❯ features/failures.feature:3:5
+       ❯ features/failures.feature:6:5
       """
     And the output contains:
       """
@@ -502,7 +525,7 @@ Feature: Failures
     And the output contains:
       """
       AggregateError: Both failed
-       ❯ features/failures.feature:3:5
+       ❯ features/failures.feature:6:5
       """
 
     Examples:
@@ -525,6 +548,9 @@ Feature: Failures
     And a file named "features/failures.feature" with:
       """
       Feature: Failures
+        Background:
+          Given the stories of "./failures.stories.tsx"
+          And the "default" story
         Scenario: a BigInt
           Given a step failing with a BigInt
       """
@@ -536,7 +562,7 @@ Feature: Failures
     And the output contains:
       """
       Error: Failed with a BigInt
-       ❯ features/failures.feature:3:5
+       ❯ features/failures.feature:6:5
       """
 
     Examples:
@@ -559,6 +585,9 @@ Feature: Failures
     And a file named "features/failures.feature" with:
       """
       Feature: Failures
+        Background:
+          Given the stories of "./failures.stories.tsx"
+          And the "default" story
         Scenario: failing expect
           Given a step whose expect fails
       """
@@ -584,7 +613,7 @@ Feature: Failures
       """
     And the output contains:
       """
-       ❯ features/failures.feature:3:5
+       ❯ features/failures.feature:6:5
       """
     And the output contains:
       """
@@ -620,6 +649,9 @@ Feature: Failures
     And a file named "features/failures.feature" with:
       """
       Feature: Failures
+        Background:
+          Given the stories of "./failures.stories.tsx"
+          And the "default" story
         Scenario: failing expect on Sets
           Given a step whose expect on Sets fails
 
@@ -677,6 +709,9 @@ Feature: Failures
     And a file named "features/failures.feature" with:
       """
       Feature: Failures
+        Background:
+          Given the stories of "./failures.stories.tsx"
+          And the "default" story
         Scenario: a string
           Given a step throwing a string
 
@@ -724,7 +759,7 @@ Feature: Failures
       """
     And the output contains:
       """
-       ❯ features/failures.feature:12:5
+       ❯ features/failures.feature:15:5
       """
     And the output contains:
       """
@@ -742,8 +777,7 @@ Feature: Failures
       | storybook |
 
   # A hook's: its test's error is the hook's (`Before hook failed`, `After hook failed`: no line of
-  # its own in the feature file), the value its cause. A hook's kind is its own, in a scenario
-  # without steps too.
+  # its own in the feature file), the value its cause.
   Scenario Outline: A hook throwing a value that isn't an Error fails its scenario (<mode>)
     Given a file named "features/steps.ts" with:
       """
@@ -760,6 +794,9 @@ Feature: Failures
     And a file named "features/failures.feature" with:
       """
       Feature: Failures
+        Background:
+          Given the stories of "./failures.stories.tsx"
+          And the "default" story
         @before
         Scenario: before
           Given a passing step
@@ -767,9 +804,6 @@ Feature: Failures
         @after
         Scenario: after
           Given a passing step
-
-        @after
-        Scenario: after, without steps
       """
     When I run vitest in <mode> mode
     Then it fails
@@ -778,10 +812,6 @@ Feature: Failures
       Before hook failed
       """
     And the test "Failures > after" fails with:
-      """
-      After hook failed
-      """
-    And the test "Failures > after, without steps" fails with:
       """
       After hook failed
       """
@@ -800,6 +830,38 @@ Feature: Failures
       | browser   |
       | storybook |
 
+  # A hook's kind is its own in a scenario without steps too (node and browser mode: in a Storybook
+  # project, a scenario without steps names no story, an error of its feature's).
+  Scenario Outline: A hook throwing a value that isn't an Error fails a scenario without steps (<mode>)
+    Given a file named "features/steps.ts" with:
+      """
+      import { After } from "@cucumber/cucumber";
+
+      After(() => {
+        throw { code: "E_AFTER" };
+      });
+      """
+    And a file named "features/failures.feature" with:
+      """
+      Feature: Failures
+        Scenario: after, without steps
+      """
+    When I run vitest in <mode> mode
+    Then it fails
+    And the test "Failures > after, without steps" fails with:
+      """
+      After hook failed
+      """
+    And the output contains:
+      """
+      E_AFTER
+      """
+
+    Examples:
+      | mode    |
+      | node    |
+      | browser |
+
   # As a thrown one: the step's error, the value its cause (not cucumber's own error, "Promise
   # rejected without a reason": the plugin keeps the value its code rejected with).
   Scenario Outline: An async step rejecting without a reason fails its step (<mode>)
@@ -814,6 +876,9 @@ Feature: Failures
     And a file named "features/failures.feature" with:
       """
       Feature: Failures
+        Background:
+          Given the stories of "./failures.stories.tsx"
+          And the "default" story
         Scenario: async null
           Given an async step rejecting with null
       """
@@ -829,7 +894,7 @@ Feature: Failures
       """
     And the output contains:
       """
-       ❯ features/failures.feature:3:5
+       ❯ features/failures.feature:6:5
       """
 
     Examples:
@@ -853,6 +918,9 @@ Feature: Failures
     And a file named "features/failures.feature" with:
       """
       Feature: Failures
+        Background:
+          Given the stories of "./failures.stories.tsx"
+          And the "default" story
         Scenario: both interfaces
           Given an async callback step
 
@@ -873,7 +941,7 @@ Feature: Failures
       """
     And the output contains:
       """
-       ❯ features/failures.feature:3:5
+       ❯ features/failures.feature:6:5
       """
 
     Examples:
@@ -903,6 +971,9 @@ Feature: Failures
     And a file named "features/failures.feature" with:
       """
       Feature: Failures
+        Background:
+          Given the stories of "./failures.stories.tsx"
+          And the "default" story
         Scenario: timer
           Given an async step whose timer throws
 
@@ -921,7 +992,7 @@ Feature: Failures
       """
     And the output contains:
       """
-       ❯ features/failures.feature:3:5
+       ❯ features/failures.feature:6:5
       """
     And the output contains:
       """
@@ -969,6 +1040,9 @@ Feature: Failures
     And a file named "features/failures.feature" with:
       """
       Feature: Failures
+        Background:
+          Given the stories of "./failures.stories.tsx"
+          And the "default" story
         Scenario: with a cause
           Given a step failing with a cause
 

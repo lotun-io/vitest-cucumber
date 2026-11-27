@@ -14,6 +14,9 @@ Feature: Storybook errors
     And a file named "src/Page.feature" with:
       """
       Feature: Page
+        Background:
+          Given the stories of "./Page.stories.ts"
+          And the "default" story
         Scenario: A step
           Given a step
       """
@@ -71,6 +74,7 @@ Feature: Storybook errors
       """
       import { Given } from "@cucumber/cucumber";
       Given("a step", () => {});
+      Given("the stories of {storybook:storiesFile}", (_file: string) => {});
       Given("the {storybook:story} story", (_story: string) => {});
       """
     And a file named "src/Linked.stories.ts" with:
@@ -81,14 +85,59 @@ Feature: Storybook errors
     And a file named "src/Linked.feature" with:
       """
       Feature: Linked
+        Background:
+          Given the stories of "./Linked.stories.ts"
         Scenario: A typo
-          Given the Primry story
+          Given the "Primry" story
       """
     When I run vitest
     Then it fails
     And the output contains:
       """
-      src/Linked.feature:3: src/Linked.stories.ts has no story "Primry" (its stories: Primary)
+      src/Linked.feature:5: src/Linked.stories.ts has no story "Primry" (its stories: Primary)
+      """
+    And Vitest reports the tests:
+      | NAME          | STATE  |
+      | Page > A step | passed |
+
+  # A docs page attached to a broken feature (`<Meta of={…}>`): story tests still start (their index
+  # has the feature's own story, hidden: without it Storybook's index fails on the page and no story
+  # test runs, the feature's error never shown), the feature fails alone with its error, the others
+  # run. Story tests only index a docs page (Storybook's core, without its docs addon), never compile
+  # it.
+  Scenario: A docs page attached to a broken feature: only the feature's stories fail
+    Given a file named "features/steps.ts" with:
+      """
+      import { Given } from "@cucumber/cucumber";
+      Given("a step", () => {});
+      Given("the stories of {storybook:storiesFile}", (_file: string) => {});
+      Given("the {storybook:story} story", (_story: string) => {});
+      """
+    And a file named "src/Linked.stories.ts" with:
+      """
+      export default { title: "Linked", render: () => null };
+      export const Primary = {};
+      """
+    And a file named "src/Linked.feature" with:
+      """
+      Feature: Linked
+        Background:
+          Given the stories of "./Linked.stories.ts"
+        Scenario: A typo
+          Given the "Primry" story
+      """
+    And a file named "src/Linked.mdx" with:
+      """
+      import { Meta } from "@storybook/addon-docs/blocks";
+      import * as Linked from "./Linked.feature";
+
+      <Meta of={Linked} name="Behavior" />
+      """
+    When I run vitest
+    Then it fails
+    And the output contains:
+      """
+      src/Linked.feature:5: src/Linked.stories.ts has no story "Primry" (its stories: Primary)
       """
     And Vitest reports the tests:
       | NAME          | STATE  |
@@ -106,6 +155,11 @@ Feature: Storybook errors
     And a file named "src/Page.feature.md" with:
       """
       # Feature: page!
+
+      ## Background:
+
+      * Given the stories of "./Page.stories.ts"
+      * And the "default" story
 
       ## Scenario: Another step
 
@@ -136,6 +190,9 @@ Feature: Storybook errors
     And a file named "src/Cart.feature" with:
       """
       Feature: Cart
+        Background:
+          Given the stories of "./Cart.stories.ts"
+          And the "default" story
         Scenario: HTTP request
           Given a step
 
@@ -161,14 +218,65 @@ Feature: Storybook errors
     And the output contains:
       """
       scenarios would be the same story in Storybook (id "cart-feature-cart--http-request"):
-      - src/Cart.feature:2 (Scenario: "HTTP request")
-      - src/Cart.feature:5 (Scenario: "Http request!")
+      - src/Cart.feature:5 (Scenario: "HTTP request")
+      - src/Cart.feature:8 (Scenario: "Http request!")
       scenarios would be the same story in Storybook (id "cart-feature-cart--scenario"):
-      - src/Cart.feature:8 (Scenario: "Scenario")
       - src/Cart.feature:11 (Scenario: "Scenario")
+      - src/Cart.feature:14 (Scenario: "Scenario")
       scenarios would be the same story in Storybook (id "cart-feature-cart--pay"):
-      - src/Cart.feature:19 (Example: "Pay")
-      - src/Cart.feature:20 (Example: "Pay")
+      - src/Cart.feature:22 (Example: "Pay")
+      - src/Cart.feature:23 (Example: "Pay")
+      """
+    And Vitest reports the tests:
+      | NAME          | STATE  |
+      | Page > A step | passed |
+
+  # A feature names its stories file once, in its Background, and each scenario its story (the
+  # user's calls, 2026-11-27: no stories file next to it taken, no story meaning the meta): a feature
+  # without the one, or a scenario without the other (a scenario with no steps gets no Background
+  # steps), fails its stories, every such error named; the others run.
+  Scenario: A feature that doesn't name its stories file, or a scenario its story, fails its stories
+    Given a file named "features/steps.ts" with:
+      """
+      import { Given } from "@cucumber/cucumber";
+      Given("a step", () => {});
+      """
+    And a file named "src/Unnamed.stories.ts" with:
+      """
+      export default { title: "Unnamed", render: () => null };
+      """
+    And a file named "src/Unnamed.feature" with:
+      """
+      Feature: Unnamed
+        Scenario: On the meta
+          Given the "default" story
+      """
+    And a file named "src/Storyless.stories.ts" with:
+      """
+      export default { title: "Storyless", render: () => null };
+      """
+    And a file named "src/Storyless.feature" with:
+      """
+      Feature: Storyless
+        Background:
+          Given the stories of "./Storyless.stories.ts"
+        Scenario: No story
+          Given a step
+        Scenario: No steps
+      """
+    When I run vitest
+    Then it fails
+    And the output contains:
+      """
+      src/Unnamed.feature names no stories file: a feature file names its stories file once, in its Background, with a stories file step
+      """
+    And the output contains:
+      """
+      src/Storyless.feature:4 ("No story") names no story: a story step names its story (its stories file's, or "default": its meta)
+      """
+    And the output contains:
+      """
+      src/Storyless.feature:6 ("No steps") names no stories file and no story: it has no steps (a Background's steps reach only a scenario with steps of its own)
       """
     And Vitest reports the tests:
       | NAME          | STATE  |
@@ -308,8 +416,9 @@ Feature: Storybook errors
       | STORY                     | STATUS | SHOWS                       |
       | page-feature-page--a-step | FAIL   | BeforeAll failed on purpose |
 
-  # `e2e/options.feature` has its story tests.
-  Scenario: With no `import` globs, the preview loads no support code
+  # `e2e/options.feature` has its story tests. Without support code, no Storybook step links a feature
+  # to its stories: Storybook's index fails on it.
+  Scenario: With no `import` globs, a feature file stops Storybook's build
     Given the plugin options:
       """
       { "import": [] }
@@ -320,7 +429,8 @@ Feature: Storybook errors
 
       Given("a step", () => {});
       """
-    When I build its Storybook
-    Then its stories show:
-      | STORY                     | STATUS | SHOWS            |
-      | page-feature-page--a-step | FAIL   | Undefined steps: |
+    Then building its Storybook fails with:
+      """
+      Unable to index ./src/Page.feature:
+      names no stories file
+      """

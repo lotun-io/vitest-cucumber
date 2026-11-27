@@ -3,8 +3,9 @@ import { Callout, Steps, Tabs } from "nextra/components";
 # Storybook
 
 List your feature files in Storybook's `stories`, and each one becomes a stories file of its own:
-every scenario, and every row of a Scenario Outline, is a story that renders a story of the
-stories file next to it, then plays the scenario's steps in its `play` function. They run wherever
+every scenario, and every row of a Scenario Outline, is a story that renders the story its steps
+name (of the stories file its Background names), then plays the scenario's steps in its `play`
+function. They run wherever
 Storybook runs stories:
 
 - **in Vitest**, with [Storybook's Vitest addon](https://storybook.js.org/docs/writing-tests/integrations/vitest-addon):

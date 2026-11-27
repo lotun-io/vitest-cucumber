@@ -3,19 +3,22 @@
 // (`.storybook/`: the plugin's addon entry with the scenario's options), its `node_modules`
 // `storybook/`'s (Storybook, React, the plugin from `src/`).
 // Its stories are its feature files (`.storybook/main.ts`, a glob): each one a stories module of its
-// own, on the stories file next to it; in `storybook` mode, each feature file (anywhere but
-// `node_modules`) without a stories file next to it is given one (a meta only, `<name>.stories.tsx`:
-// out of the support code's `features/**/*.ts`). A feature file is its own story tests' test file,
+// own, on the stories file its Background names; in `storybook` mode, each feature file (anywhere
+// but `node_modules`) without a stories file of the scenario's own next to it is given one there (a
+// meta only, `<name>.stories.tsx`: out of the support code's `features/**/*.ts`), which it names
+// (`Given the stories of "./<name>.stories.tsx"`), and the Storybook steps' definitions if the
+// scenario has none (`./storybookSteps.ts`). A feature file is its own story tests' test file,
 // its tests named as node and browser mode name them: its run is read as it is (`asFeatureRun`: the
 // addon's debug links taken out).
 import { rm, symlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { glob } from "tinyglobby";
 import { linkStorybookModules, packagesOf, writePackages } from "./packages.ts";
+import { storybookStepsFile } from "./storybookSteps.ts";
 import type { E2EWorld, RunResult } from "./world.ts";
 
 /** The Storybook project's package (its `node_modules`). */
-export const storybookPackage = path.resolve("storybook");
+const storybookPackage = path.resolve("storybook");
 
 /**
  * Storybook's config of a scenario's project (`.storybook/`), by name: the feature files of the folders
@@ -32,7 +35,9 @@ export const storybookFiles = (options: E2EWorld["pluginOptions"]) => ({
 import type { StorybookConfig } from "@storybook/react-vite";
 
 const config: StorybookConfig = {
-  stories: ["../{features,src,specs}/**/*.{feature,feature.md}"],
+  // Docs pages too (\`.mdx\`: Storybook's core indexes them, its docs addon compiles them, which
+  // this project hasn't: story tests only).
+  stories: ["../{features,src,specs}/**/*.{feature,feature.md,mdx}"],
   addons: [
     "@storybook/addon-vitest",
     cucumber(${JSON.stringify({ import: ["features/**/*.ts"], ...options })}),
@@ -130,6 +135,7 @@ export async function featureStoriesFiles(this: E2EWorld) {
   });
   // Storybook's config, as the plugin's options are now (a step may have set them since).
   await writeStorybookFiles.call(this);
+  await storybookStepsFile.call(this);
   for (const feature of features) {
     if (!(await ownStoriesFileOf(this.dir, feature))) {
       // As the scenario's own files (a kept Vitest gets them: `./kept.ts`).
@@ -157,7 +163,9 @@ export async function featureStoriesFiles(this: E2EWorld) {
 export async function runAs(
   this: E2EWorld,
 ): Promise<(result: RunResult) => Promise<RunResult>> {
-  return this.mode === "storybook"
-    ? featureStoriesFiles.call(this)
-    : (result) => Promise.resolve(result);
+  if (this.mode === "storybook") {
+    return featureStoriesFiles.call(this);
+  }
+  await storybookStepsFile.call(this);
+  return (result) => Promise.resolve(result);
 }

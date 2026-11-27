@@ -18,6 +18,9 @@ Feature: Scenario statuses
     Given a file named "features/undefined.feature" with:
       """
       Feature: Undefined
+        Background:
+          Given the stories of "./undefined.stories.tsx"
+          And the "default" story
         Scenario: undefined step
           Given a step nobody defined
       """
@@ -52,6 +55,9 @@ Feature: Scenario statuses
     Given a file named "features/undefined.feature" with:
       """
       Feature: Undefined
+        Background:
+          Given the stories of "./undefined.stories.tsx"
+          And the "default" story
         Scenario: undefined step
           Given a step nobody defined
       """
@@ -69,6 +75,9 @@ Feature: Scenario statuses
     Given a file named "features/statuses.feature" with:
       """
       Feature: Statuses
+        Background:
+          Given the stories of "./statuses.stories.tsx"
+          And the "default" story
         Scenario: pending step
           Given a pending step
 
@@ -130,6 +139,9 @@ Feature: Scenario statuses
     And a file named "features/a.feature" with:
       """
       Feature: Summary
+        Background:
+          Given the stories of "./a.stories.tsx"
+          And the "default" story
         Scenario: every status
           Given a pending step
           And a red car
@@ -199,6 +211,9 @@ Feature: Scenario statuses
     And a file named "features/a.feature" with:
       """
       Feature: Parameter types
+        Background:
+          Given the stories of "./a.stories.tsx"
+          And the "default" story
         Scenario: undefined type
           Given a red car
 
@@ -235,6 +250,9 @@ Feature: Scenario statuses
     And a file named "features/a.feature" with:
       """
       Feature: Parameter types
+        Background:
+          Given the stories of "./a.stories.tsx"
+          And the "default" story
         Scenario: unrelated undefined step
           Given a red bike
       """

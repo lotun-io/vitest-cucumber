@@ -77,7 +77,8 @@ const createProject = (options: PresetOptions) => {
     /**
      * Each stories file's feature files (`./featuresModule.ts`), by their import paths (as Storybook's
      * index writes them: a docs page's `parameters.fileName`, `./importPath.ts`): the feature
-     * files linked so far that have a stories file (their links may fail), each file's features
+     * files asked for so far that name a stories file (whether it exists, whether their links
+     * fail), each file's features
      * in their paths' order, each with its text as the plans read it (one that can't be read
      * left out), as the preview serves it (its code, and whether it would be another).
      */

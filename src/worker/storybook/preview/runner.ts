@@ -15,7 +15,7 @@ import type {
 import { pluginError } from "../../../utils/errors.ts";
 import { type PageRunner, storyNote } from "../story.ts";
 import { platform } from "./platform.ts";
-import { cwd, importSupport, options, storybookSteps } from "./support.ts";
+import { cwd, importSupport, options } from "./support.ts";
 
 /** Storybook's preview's runner: also cucumber's BeforeAll and AfterAll, its project `beforeAll`'s. */
 export interface PreviewRunner extends PageRunner {
@@ -93,7 +93,7 @@ export const createPreviewRunner = ({
 /** The page's runner: the preview's platform, its support module. */
 export const runner = createPreviewRunner({
   platform,
-  run: { cwd, options, storybookSteps },
+  run: { cwd, options },
   importSupport,
   note: storyNote,
 });

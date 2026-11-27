@@ -1,5 +1,9 @@
 Feature: Data tables
 
+  Background:
+    Given the stories of "src/Empty.stories.ts"
+    And the "default" story
+
   Scenario: Data table argument
     Given the following values:
       | key   | value |

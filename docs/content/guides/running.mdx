@@ -80,7 +80,8 @@ npx vitest run -t "Cart > Checkout"              # by name: feature > rule > out
 - **[By tag](https://vitest.dev/guide/filtering#filtering-by-tags)**: Gherkin tags are Vitest
   [tags](https://vitest.dev/guide/test-tags), `@` included, and inherited as in Cucumber (a
   Feature's, a Rule's and an Examples block's tags apply to their scenarios). You don't need to
-  declare them in `test.tags`.
+  declare them in `test.tags`. A tag without the `@` is written `@tag(<name>)`: see
+  [Plain tag names](#plain-tag-names).
 - **[By name](https://vitest.dev/guide/filtering#filtering-by-test-name)**: `-t` matches the full
   name, so `-t "Arithmetic > Doubling"` runs every scenario of that rule.
 
@@ -109,6 +110,34 @@ test: {
 `retry`, `timeout`, `skip` and the others apply to the tagged scenarios. `concurrent` doesn't: a
 worker always runs its scenarios one at a time. A tag's `timeout` times the whole scenario; a step's
 own: [Timeouts](/guides/support-code#timeouts).
+
+## Plain tag names
+
+Gherkin writes every tag with an `@`. To give a scenario a tag without one, as Vitest's tag filters
+and definitions name tags (`slow`, not `@slow`), write it `@tag(<name>)`: the scenario has the tag
+`<name>`, what's inside the parentheses, in every mode.
+
+```gherkin filename="features/cart.feature"
+@tag(slow)
+Scenario: Paying with a voucher
+  Given a cart with 3 items
+```
+
+```bash
+npx vitest run --tagsFilter "slow"
+```
+
+```ts filename="vitest.config.ts"
+test: { tags: [{ name: "slow", timeout: 30_000 }] },
+```
+
+It's that tag for cucumber too: a hook's tag expression names it, `Before({ tags: "slow" }, …)`,
+and cucumber's messages show it. In Storybook, `@tag(<name>)` is also how you write
+[Storybook's own tags](/modes/storybook/running#storybook-tags) (`@tag(!dev)`).
+
+The name can't have a space or an `@`: Gherkin refuses a tag with a space ("A tag may not contain
+whitespace", the feature file fails), and starts a new tag at every `@`, so `@tag(!@smoke)` is two
+tags, `@tag(!` and `@smoke)`.
 
 ## Retries
 

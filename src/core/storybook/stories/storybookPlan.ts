@@ -3,6 +3,7 @@
 // Storybook steps) and its stories module written (`./featureStories.ts`), or, its links failing,
 // what stops it (the plugin's error, every one listed). A hook writes the module its plan gives
 // (`./featureStoriesModule.ts`).
+import type { FeatureSuite } from "../../../types/feature.ts";
 import { pluginError } from "../../../utils/errors.ts";
 import type { FailedPlan, VitestPlan } from "../../feature/plans.ts";
 import type { FeatureLinks } from "./featureLinks.ts";
@@ -12,7 +13,21 @@ import { linkedFeatureOf, type SameLabel } from "./linkedFeature.ts";
 import type { StoriesOf } from "./storiesFile.ts";
 import type { AutoTitleOf } from "./storiesTitle.ts";
 import type { StorybookPlan } from "./storybookPlans.ts";
+import { storybookTagsOf, testTagsOf } from "./storybookTags.ts";
 import { sameIdErrorsOf } from "./storyIds.ts";
+
+/** `tree` with each test's tags `tagsOf` its own. */
+const withTestTags = (
+  tree: FeatureSuite,
+  tagsOf: (tags: readonly string[]) => string[],
+): FeatureSuite => ({
+  ...tree,
+  children: tree.children.map((child) =>
+    "children" in child
+      ? withTestTags(child, tagsOf)
+      : { ...child, tags: tagsOf(child.tags) },
+  ),
+});
 
 /**
  * Feature file `feature` (its Vitest `plan`; its links `linked`, with the Storybook steps' own
@@ -29,7 +44,6 @@ export const storybookPlanFrom = async ({
   label,
   sameLabel,
   stepErrors,
-  storybookSteps,
   root,
   storiesOf,
   autoTitleOf,
@@ -42,8 +56,6 @@ export const storybookPlanFrom = async ({
   /** The other feature files on its stories file whose labels give its id (by path). */
   sameLabel: readonly SameLabel[];
   stepErrors: readonly string[];
-  /** Whether a support file has a Storybook step (the plan's `storybookSteps`). */
-  storybookSteps: boolean;
   root: string;
   /** A stories file's stories, as Storybook reads them (kept: `./storybookPlans.ts`). */
   storiesOf: (file: string) => Promise<StoriesOf>;
@@ -54,6 +66,8 @@ export const storybookPlanFrom = async ({
   // Storybook's own ids (`storybook/internal/csf`: loaded only in Storybook projects).
   const { sanitize, storyNameFromExport, toId } =
     await import("storybook/internal/csf");
+  // Storybook's built-in tags (`Tag`).
+  const tag = await storybookTagsOf();
   const linked = await linkedFeatureOf({
     uri,
     root,
@@ -84,6 +98,7 @@ export const storybookPlanFrom = async ({
     links: linked.links,
     featureModule: featureModuleOf(feature),
     idOf: sanitize,
+    tag,
   });
   // Two of its stories with one id: stopped, each named (its module isn't used).
   const sameIds = sameIdErrorsOf({
@@ -99,7 +114,8 @@ export const storybookPlanFrom = async ({
   }
   return {
     ...plan,
-    storybookSteps,
+    // Its tests' Vitest tags: their Gherkin tags but Storybook's own (`./storybookTags.ts`).
+    featureTree: withTestTags(featureTree, (tags) => testTagsOf(tags, tag)),
     stories: { code, title, titles },
   };
 };

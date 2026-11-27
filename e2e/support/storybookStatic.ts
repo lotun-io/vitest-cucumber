@@ -78,10 +78,6 @@ const freePort = () =>
   });
 
 /**
- * Starts Storybook's dev server for the project (`storybook dev`), in its folder or from another
- * (`from`): its URL once its index answers (60 s at most), and how to stop it (its process group).
- */
-/**
  * The process groups of the `storybook dev` servers this worker started and hasn't stopped: killed
  * as the worker exits, should a scenario's cleanup not have run (each has a session of its own, so
  * nothing else would stop it).
@@ -97,6 +93,10 @@ process.on("exit", () => {
   }
 });
 
+/**
+ * Starts Storybook's dev server for the project (`storybook dev`), in its folder or from another
+ * (`from`): its URL once its index answers (60 s at most), and how to stop it (its process group).
+ */
 export const startDev = async (dir: string, from = dir) => {
   const port = await freePort();
   const url = `http://127.0.0.1:${String(port)}`;

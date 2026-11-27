@@ -3,6 +3,10 @@ Feature: Form
   a parameter type of our own (`features/steps/form.ts`). The story (`Form.stories.ts`) spies on its
   `onSubmit`: the last step checks what the form gave it.
 
+  Background:
+    Given the stories of "./Form.stories.ts"
+    And the "default" story
+
   Scenario: Filling the form
     When I fill in the form with:
       | Name  | Ada Lovelace    |

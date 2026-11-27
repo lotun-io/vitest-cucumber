@@ -1,6 +1,5 @@
 import { cucumber } from "@lotun/vitest-cucumber";
 import { playwright } from "@vitest/browser-playwright";
-import path from "node:path";
 import { defineConfig } from "vitest/config";
 import {
   allocatorEnv,
@@ -10,7 +9,6 @@ import {
   nodeSourceCoverage,
   sourceDir,
   sourcePattern,
-  virtualFeatureStories,
 } from "./vitest.utils.ts";
 
 export default defineConfig({
@@ -114,10 +112,6 @@ export default defineConfig({
         // story, made as Vitest loads them), with their own support code, as `node` and `browser` run
         // them. Its name given again: an extended file's isn't the project's.
         extends: "./storybook/vite.config.ts",
-        // Its features' stories files, virtual (see `./vitest.utils.ts`'s `virtualFeatureStories`).
-        plugins: [
-          virtualFeatureStories(path.join(import.meta.dirname, "features")),
-        ],
         test: {
           name: "storybook",
           // Storybook's `beforeAll` (cucumber's BeforeAll and AfterAll) runs for every stories file,

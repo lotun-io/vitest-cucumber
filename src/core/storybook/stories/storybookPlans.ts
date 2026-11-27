@@ -23,7 +23,7 @@
 // changes nothing. What it gives back is what's left for the host to do: the feature plans'
 // answer (whether the support files' list is another), the feature files to take as changed
 // (their stories module is made from their stories file and the Storybook steps too, which
-// nothing else follows: `./staleFeatures.ts`). What shows a feature's text (`storybook dev`'s
+// nothing else follows: `onFileChange`). What shows a feature's text (`storybook dev`'s
 // features map) is its host's to follow: it's made again and compared there
 // (`../preset/featuresModule.ts`).
 // One ask doesn't wait for the host: Storybook's indexer's, which its own watcher may bring
@@ -46,7 +46,7 @@ import {
   type FileChange,
   type VitestPlan,
 } from "../../feature/plans.ts";
-import { featureLinksOf, isStoriesFile } from "./featureLinks.ts";
+import { featureLinksOf } from "./featureLinks.ts";
 import { featureLabelOf } from "./featureStories.ts";
 import {
   indexEntriesOf,
@@ -54,7 +54,6 @@ import {
   type MakeTitle,
 } from "./indexEntries.ts";
 import type { SameLabel } from "./linkedFeature.ts";
-import { staleFeaturesOf } from "./staleFeatures.ts";
 import {
   dropStoriesFile,
   readStoriesFile,
@@ -71,14 +70,10 @@ export interface StorybookSupportPlan {
   options: RunOptions;
   /** The support files, in order. */
   supportFiles: string[];
-  /** Whether a support file has a Storybook step: its page then defines their parameter types. */
-  storybookSteps: boolean;
 }
 
 /** A feature file made for Storybook: its Vitest plan, its stories module. */
 export interface StorybookPlan extends VitestPlan {
-  /** Whether a support file has a Storybook step: its page then defines their parameter types. */
-  storybookSteps: boolean;
   /** Its stories module: its code, its title (its stories file's, then its label), each story's own title by export. */
   stories: {
     code: string;
@@ -138,7 +133,10 @@ export const createStorybookPlans = ({
   });
   /** Which feature file runs on which stories file, both ways (their paths with `/`). */
   const links = plans.cache.keep(createStoriesLinks(onLinkedFeaturesChanged));
-  /** Each Storybook feature file's label (`Feature: <name>`), as its plan was last made with. */
+  /**
+   * Each Storybook feature file's label (`Feature: <name>`), as it was first read: kept until the
+   * file's own event (`onFileChange`, which compares it) or the cache's clearing.
+   */
   const labels = plans.cache.of<string>();
 
   /** Reads feature file `file`'s label (its plan's error, if it fails). */
@@ -207,9 +205,10 @@ export const createStorybookPlans = ({
       steps: by,
       ...plan.gherkin,
     });
+    // The stories file it names, whether it exists or not: an event of that file concerns it.
     links.link(
       slash(file),
-      linked.storiesFile === undefined ? undefined : slash(linked.storiesFile),
+      linked.named === undefined ? undefined : slash(linked.named),
     );
     const label = featureLabelOf(plan.gherkin.document, file);
     await labels(slash(file), async () => label);
@@ -220,7 +219,6 @@ export const createStorybookPlans = ({
       label,
       sameLabel: await sameLabelOf(slash(file), label),
       stepErrors: by.errors,
-      storybookSteps: by.used,
       root: root(),
       storiesOf,
       autoTitleOf,
@@ -272,7 +270,6 @@ export const createStorybookPlans = ({
         return {
           options: plans.options,
           supportFiles: await plans.supportFiles(),
-          storybookSteps: (await steps()).used,
         };
       } catch (error) {
         return failedPlan(error);
@@ -284,8 +281,8 @@ export const createStorybookPlans = ({
      * - a feature file: deleted, it's forgotten, the others on its stories file in `staleFeatures`;
      *   else the others on its stories file are in `staleFeatures` if its label is another (a
      *   same label is refused).
-     * - a stories file (by its name, or one a feature runs on): changed with another text, added
-     *   or deleted, the feature files it concerns are in `staleFeatures`.
+     * - a stories file a feature names (whether it exists or not): changed with another text,
+     *   added or deleted, the features naming it are in `staleFeatures`.
      * - a support file (whatever its event: an editor may save one as a delete, then an add),
      *   or the support files' list another: the Storybook steps are read again; their
      *   expressions others, every Storybook feature file is in `staleFeatures`.
@@ -309,14 +306,14 @@ export const createStorybookPlans = ({
           staleFeatures: labelChanged ? others : [],
         };
       }
-      let storiesChanged = false;
-      if (isStoriesFile(id) || links.featuresOf(id).length > 0) {
-        if (type === "change") {
-          storiesChanged = await stories.changed(id, () => readStoriesFile(id));
-        } else {
-          stories.drop(id);
-          storiesChanged = true;
-        }
+      // A stories file a feature names (whether it exists or not): read again as it changes.
+      // Any other file: what's kept of it (a stories file no feature names now) dropped.
+      const named = links.featuresOf(id).length > 0;
+      let storiesChanged = named;
+      if (named && type === "change") {
+        storiesChanged = await stories.changed(id, () => readStoriesFile(id));
+      } else {
+        stories.drop(id);
       }
       if (type === "unlink") {
         dropStoriesFile(id);
@@ -325,9 +322,13 @@ export const createStorybookPlans = ({
       const stepsChanged =
         (supportFilesChanged || (await plans.supportFiles()).includes(id)) &&
         (await steps.changed());
-      const stale =
-        stepsChanged || storiesChanged
-          ? staleFeaturesOf({ type, file: id, links, stepsChanged })
+      // Out of date (a feature's module is made from its stories file and the Storybook steps
+      // too, which Vite, Vitest and Storybook don't know): every Storybook feature if the steps'
+      // expressions are others (any may link another way), else the features naming the file.
+      const stale = stepsChanged
+        ? links.features()
+        : storiesChanged
+          ? links.featuresOf(id)
           : [];
       // Deleted since: forgotten, its host's own to drop.
       for (const feature of stale.filter((feature) => !existsSync(feature))) {

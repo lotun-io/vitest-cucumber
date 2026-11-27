@@ -15,6 +15,7 @@ import {
 import { v5 } from "uuid";
 import type { FeatureGherkin, FeatureSuite } from "../../types/feature.ts";
 import { featureTree } from "./featureTree.ts";
+import { tagOf } from "./tagTransform.ts";
 
 /** The namespace of every feature file's ids (a fixed UUID: the plugin's own). */
 const namespace = "8b1f3c2e-5d47-4a9e-9c61-2f0e7b4d6a13";
@@ -59,7 +60,11 @@ export const planOf = (
   )) {
     document ??= gherkinDocument;
     if (pickle) {
-      pickles.push(pickle);
+      // Its tags as the plugin has them (`@tag(<name>)`'s name: `./tagTransform.ts`).
+      pickles.push({
+        ...pickle,
+        tags: pickle.tags.map((tag) => ({ ...tag, name: tagOf(tag.name) })),
+      });
     }
     if (parseError) {
       parseErrors.push(parseError.message);

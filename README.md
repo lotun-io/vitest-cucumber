@@ -18,7 +18,7 @@ npm install -D @lotun/vitest-cucumber@beta @cucumber/cucumber vitest
 
 - [Node mode](https://lotun-io.github.io/vitest-cucumber/modes/node): steps run in Vitest's workers. For logic, APIs, or driving a browser with Playwright.
 - [Browser mode](https://lotun-io.github.io/vitest-cucumber/modes/browser): the same steps run in a real page, with Vitest's browser mode.
-- [Storybook](https://lotun-io.github.io/vitest-cucumber/modes/storybook): each scenario is a story on the stories file next to its feature (`Login.feature` and `Login.stories.ts`).
+- [Storybook](https://lotun-io.github.io/vitest-cucumber/modes/storybook): each scenario is a story on the stories file its feature names (`Given the stories of "./Login.stories.ts"`).
 
 ## Features
 

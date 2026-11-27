@@ -36,6 +36,9 @@ Feature: Stack frames
     And a file named "features/stack.feature" with:
       """
       Feature: Stack
+        Background:
+          Given the stories of "./stack.stories.tsx"
+          And the "default" story
         Scenario: calling a helper
           Given a step calling a helper
 
@@ -85,7 +88,7 @@ Feature: Stack frames
     And the output contains:
       """
       TypeError: thrown in a helper
-       ❯ features/stack.feature:3:5
+       ❯ features/stack.feature:6:5
       """
     And the output contains:
       """
@@ -142,8 +145,8 @@ Feature: Stack frames
     Then it fails
     And each scenario's frames in "src/helpers.ts" are its plain test's:
       | SCENARIO                 | TEST             | STEP                     |
-      | Stack > calling a helper | calling a helper | features/stack.feature:3 |
-      | Stack > after an await   | after an await   | features/stack.feature:6 |
+      | Stack > calling a helper | calling a helper | features/stack.feature:6 |
+      | Stack > after an await   | after an await   | features/stack.feature:9 |
 
     Examples:
       | mode      | browser | instance |

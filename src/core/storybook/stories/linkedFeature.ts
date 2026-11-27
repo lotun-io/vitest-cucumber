@@ -70,15 +70,8 @@ export const linkedFeatureOf = async ({
   const errors = [...stepErrors, ...linked.errors];
   const { storiesFile, links } = linked;
   if (!storiesFile) {
-    // Its links' errors say why it has none, if any do.
-    return {
-      errors:
-        errors.length > 0
-          ? errors
-          : [
-              `${uri} has no stories file: none is next to it (a stories file of its name), and none is named by a stories file step`,
-            ],
-    };
+    // Its links' errors say why it has none (none named, one that doesn't exist, two).
+    return { errors };
   }
   const storiesUri = slash(path.relative(root, storiesFile));
   /**
@@ -111,8 +104,8 @@ export const linkedFeatureOf = async ({
   ): LinkedFeature => ({
     errors: [...errors, ...more, ...takenOf(title)],
   });
-  /** Where the feature names its stories file: its stories file step's line, if it has one. */
-  const at = `${uri}${linked.storiesLine === undefined ? "" : `:${String(linked.storiesLine)}`}`;
+  /** Where the feature names its stories file: its stories file step's line. */
+  const at = `${uri}:${String(linked.storiesLine)}`;
   // A file that isn't a stories file (a step naming a component, a folder), or a broken one: the
   // feature's error, not the reader's own (Storybook's parser's, Node's: no feature named).
   let stories;
@@ -148,10 +141,10 @@ export const linkedFeatureOf = async ({
           `${at}: ${storiesUri} has no title: none is written in its meta, and no pattern of Storybook's "stories" matches it (give its meta a "title", or list the file in "stories")`,
         ]
       : []),
-    ...links.flatMap(({ exportName, storyLine, line }) =>
+    ...links.flatMap(({ exportName, storyLine }) =>
       exportName !== undefined && !known.has(exportName)
         ? [
-            `${uri}:${String(storyLine ?? line)}: ${storiesUri} has no story "${exportName}" (its stories: ${stories.exports.join(", ") || "none"})`,
+            `${uri}:${String(storyLine)}: ${storiesUri} has no story "${exportName}" (its stories: ${stories.exports.join(", ") || "none"})`,
           ]
         : [],
     ),

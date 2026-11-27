@@ -50,18 +50,21 @@ Feature: Storybook's dev server
     And a file named "src/Card.feature" with:
       """
       Feature: Card
+        Background:
+          Given the stories of "./Card.stories.ts"
+
         Scenario: Primary
-          Given the Primary story
+          Given the "Primary" story
           And the helper's marker
       """
     And a file named "src/Other.feature" with:
       """
       Feature: Other
         Background:
-          Given the stories of src/Card.stories.ts
+          Given the stories of "src/Card.stories.ts"
 
         Scenario: Also primary
-          Given the Primary story
+          Given the "Primary" story
       """
 
   # One dev server, a story's page kept open: each save is followed in turn, the page never
@@ -87,10 +90,10 @@ Feature: Storybook's dev server
       """
       Feature: More
         Background:
-          Given the stories of src/Card.stories.ts
+          Given the stories of "src/Card.stories.ts"
 
         Scenario: A third
-          Given the Primary story
+          Given the "Primary" story
       """
     Then its page shows "Feature: More"
     And its index has the story "card-feature-more--a-third"

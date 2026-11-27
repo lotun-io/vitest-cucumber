@@ -1,7 +1,7 @@
 import { IdGenerator } from "@cucumber/messages";
 import { describe, expect, test } from "vitest";
 import type { Code, SupportCall } from "../../../types/supportCode.ts";
-import { storybookParameterTypes } from "../../../utils/storybookParameterTypes.ts";
+import { storybookExpressionOf } from "../../../utils/storybookPlaceholders.ts";
 import { buildSupportCode } from "../supportCode.ts";
 
 const at = (line: number) => ({ uri: "features/steps.ts", line, column: 1 });
@@ -176,72 +176,63 @@ test("parameter types: cucumber's defaults, the transformer called with `this`",
   expect(match?.args[0]?.getValue({ prefix: "#" })).toBe("#red");
 });
 
-describe("the host's own parameter types (a Storybook host's)", () => {
+describe("the host's rewrite of a step's cucumber expression (a Storybook host's)", () => {
   const story = {
     method: "Given",
     args: ["the {storybook:story} story", (name: string) => name],
     location: at(3),
   } satisfies SupportCall;
-  const parameterTypes = Object.values(storybookParameterTypes);
+  const stories = {
+    method: "Given",
+    args: ["the stories of {storybook:storiesFile}", (file: string) => file],
+    location: at(4),
+  } satisfies SupportCall;
+  /** A regular expression's step with a `(\w+)` group: a parameter type of that pattern would be given it. */
+  const regexp = {
+    method: "Given",
+    args: [
+      /^a regexp with (\d+) and (\w+)$/,
+      (n: number, word: string) => [n, word],
+    ],
+    location: at(5),
+  } satisfies SupportCall;
   const buildWith = (calls: SupportCall[]) =>
     buildSupportCode(calls, {
       newId: IdGenerator.incrementing(),
-      parameterTypes,
+      expressionOf: storybookExpressionOf,
     });
 
-  test("given: every one defined, with no source of its own, before the support code's steps", () => {
-    const support = buildWith([
-      story,
-      {
-        method: "Given",
-        args: [
-          "the stories of {storybook:storiesFile}",
-          (file: string) => file,
-        ],
-        location: at(4),
-      },
-    ]);
-    const [match] = support.library.findAllStepsBy("the LogIn story");
-    expect(match?.args.map((arg) => arg.getValue(null))).toEqual(["LogIn"]);
-    const [file] = support.library.findAllStepsBy(
-      "the stories of ./Login.stories.ts",
-    );
-    expect(file?.args.map((arg) => arg.getValue(null))).toEqual([
-      "./Login.stories.ts",
-    ]);
-    expect(
+  test("given: a Storybook step's placeholder is `{string}` (its value quoted, either quote), its definition's pattern so written; no parameter type of the plugin's", () => {
+    const support = buildWith([story, stories, regexp]);
+    const valuesOf = (text: string) =>
       support.library
-        .toEnvelopes()
-        .flatMap(({ parameterType }) => (parameterType ? [parameterType] : []))
-        .map(({ name, sourceReference }) => ({ name, sourceReference })),
-    ).toEqual(
-      parameterTypes.map(({ name }) => ({ name, sourceReference: {} })),
-    );
-  });
-
-  test("the support code defined them itself: its own, none added", () => {
-    const own = parameterTypes.map(
-      ({ name }, index) =>
-        ({
-          method: "defineParameterType",
-          args: [
-            {
-              name,
-              regexp: /\w+/,
-              transformer: (text: string) => `own ${text}`,
-            },
-          ],
-          location: at(index + 1),
-        }) satisfies SupportCall,
-    );
-    const support = buildWith([...own, story]);
-    const [match] = support.library.findAllStepsBy("the LogIn story");
-    expect(match?.args.map((arg) => arg.getValue(null))).toEqual(["own LogIn"]);
+        .findAllStepsBy(text)
+        .map((match) => match.args.map((arg) => arg.getValue(null)));
+    expect(valuesOf('the "LogIn" story')).toEqual([["LogIn"]]);
+    expect(valuesOf("the 'LogIn' story")).toEqual([["LogIn"]]);
+    expect(valuesOf("the LogIn story")).toEqual([]);
+    expect(valuesOf('the stories of "./My Login.stories.ts"')).toEqual([
+      ["./My Login.stories.ts"],
+    ]);
+    // A user's regular expression's groups: no plugin's type to be given (two of one pattern
+    // would fail it: cucumber's `AmbiguousParameterTypeError`).
+    expect(valuesOf("a regexp with 42 and answer")).toEqual([[42, "answer"]]);
+    const envelopes = support.library.toEnvelopes();
+    expect(envelopes.filter(({ parameterType }) => parameterType)).toEqual([]);
+    expect(
+      envelopes.flatMap(({ stepDefinition }) =>
+        stepDefinition ? [stepDefinition.pattern.source] : [],
+      ),
+    ).toEqual([
+      "the {string} story",
+      "the stories of {string}",
+      "^a regexp with (\\d+) and (\\w+)$",
+    ]);
   });
 
   test("none given (node and browser mode): a step using one has an undefined parameter type, and matches nothing", () => {
     const support = build([story]);
-    expect(support.library.findAllStepsBy("the LogIn story")).toEqual([]);
+    expect(support.library.findAllStepsBy('the "LogIn" story')).toEqual([]);
     expect(
       support.library
         .toEnvelopes()
