@@ -155,7 +155,7 @@ describe("the preview's runner", () => {
       platform,
       run: { cwd: "/p", options: defaultRunOptions },
       importSupport: undefined,
-      note: () => undefined,
+      note: async () => undefined,
     });
     await expect(runner.run(scenario)).rejects.toThrow(
       "the preview's support code isn't served",
