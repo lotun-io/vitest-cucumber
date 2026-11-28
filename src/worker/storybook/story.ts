@@ -1,4 +1,4 @@
-// The running story (a page runs one at a time), the page's runner, and how a step's code runs in
+// The running story (a page runs one at a time: `runStory`), the page's runner, and how a step's code runs in
 // it. A story's `play` (`./feature.ts`) runs its target through the runner its page has
 // (`./vitest/runner.ts` in story tests, `./preview/runner.ts` in Storybook's preview, a static build's too);
 // both platforms run a step's or hook's code as a step of the story (`aroundCall`, Storybook's
@@ -39,28 +39,50 @@ export interface PageRunner {
 
 let runner: PageRunner | undefined;
 let current: StoryContextLike | undefined;
+/** The story playing (its run), if any: the next one waits for it. */
+let playing: Promise<void> | undefined;
 
 /** Sets the page's runner. */
 export const setRunner = (pageRunner: PageRunner) => {
   runner = pageRunner;
 };
 
-/** Runs `target` (its scenario: the pickle at its line) for `context`'s story, on the page's runner. */
+/**
+ * Runs `target` (its scenario: the pickle at its line) for `context`'s story, on the page's runner,
+ * once the story playing ends: a page runs one story at a time (the running story, the page's World
+ * and its uncaught errors' listeners are its own). Storybook's preview reloads the page as another
+ * story is chosen or the story is remounted mid-play, but not as an HMR update re-renders it: its
+ * new play starts as the old one still runs (its steps run to their end, their timeouts bound it).
+ */
 export const runStory = async (
   context: StoryContextLike,
   target: StoryTarget,
 ) => {
-  if (!runner) {
+  const pageRunner = runner;
+  if (!pageRunner) {
     throw pluginError(
       "no cucumber runner in this page, add cucumber({ … }) from @lotun/vitest-cucumber/storybook/node to the addons in .storybook/main.ts",
       { quiet: true },
     );
   }
-  current = context;
+  const before = playing;
+  const run = (async () => {
+    // The story playing ends first, however it ends (its outcome its own play's).
+    await before?.catch(() => undefined);
+    current = context;
+    try {
+      await pageRunner.run(scenarioAt(target, target.line));
+    } finally {
+      current = undefined;
+    }
+  })();
+  playing = run;
   try {
-    await runner.run(scenarioAt(target, target.line));
+    await run;
   } finally {
-    current = undefined;
+    if (playing === run) {
+      playing = undefined;
+    }
   }
 };
 

@@ -1,6 +1,7 @@
 import { expect, test, vi } from "vitest";
 import { gherkinOf } from "../../__tests__/gherkinOf.ts";
 import {
+  currentStory,
   runStory,
   setRunner,
   type StoryContextLike,
@@ -123,4 +124,42 @@ test("once the story ended, nothing is a step of it", async () => {
   await inStory({ step }, () => Promise.resolve());
   await around("Given a step", () => Promise.resolve(passed));
   expect(step).not.toHaveBeenCalled();
+});
+
+test("a story played while another plays (an HMR update re-renders it mid-play): it runs once the other ended, its own story the running one", async () => {
+  const runs: string[] = [];
+  let end: () => void = () => undefined;
+  const first: StoryContextLike = {};
+  const second: StoryContextLike = {};
+  setRunner({
+    run: async () => {
+      const story = currentStory() === first ? "first" : "second";
+      runs.push(`${story} starts`);
+      if (story === "first") {
+        await new Promise<void>((resolve) => {
+          end = resolve;
+        });
+      }
+      runs.push(
+        `${story} ends, its story ${currentStory() === first ? "first" : "second"}`,
+      );
+      if (story === "first") {
+        throw new Error("the first failed");
+      }
+    },
+  });
+  const playingFirst = runStory(first, target);
+  const playingSecond = runStory(second, target);
+  await Promise.resolve();
+  expect(runs).toEqual(["first starts"]);
+  end();
+  await expect(playingFirst).rejects.toThrow("the first failed");
+  await playingSecond;
+  expect(runs).toEqual([
+    "first starts",
+    "first ends, its story first",
+    "second starts",
+    "second ends, its story second",
+  ]);
+  expect(currentStory()).toBeUndefined();
 });
