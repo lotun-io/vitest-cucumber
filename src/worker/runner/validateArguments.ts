@@ -1,7 +1,10 @@
 // Cucumber's validation of a definition's arguments (13.3.0's
 // `lib/support_code_library_builder/validate_arguments.ts`): its checks, in its order, for each kind
 // of definition; the messages are the plugin's (`locatedError`: what's wrong, then the call's
-// location on a line of its own). One check is the plugin's own: a BeforeAll or AfterAll hook's
+// location on a line of its own). Its options check refuses `null` too: cucumber's
+// `typeof options === "object"` lets it by and its next check reads `options.timeout`, a bare
+// TypeError (`Given("x", null, fn)`, `Before(null, fn)`); cucumber's types take an object or a
+// function. One check is the plugin's own: a BeforeAll or AfterAll hook's
 // `on` is `"WORKER"` (Vitest's workers run them; a `"COORDINATOR"` hook, once per run, has no
 // coordinator to run it). Page-safe.
 import { locatedError } from "../../utils/errors.ts";
@@ -19,7 +22,7 @@ interface Validation {
 }
 
 const optionsValidation = (argument: string): Validation => ({
-  predicate: ({ options }) => typeof options === "object",
+  predicate: ({ options }) => typeof options === "object" && options !== null,
   message: (method) =>
     `${method}'s ${argument} argument should be an object or a function`,
 });

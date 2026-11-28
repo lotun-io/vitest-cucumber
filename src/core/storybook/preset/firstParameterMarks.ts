@@ -108,6 +108,26 @@ const afterDirectives = (block: Node) => {
 };
 
 /**
+ * Where the arrow after an arrow function's parameters is, from `from` (its last parameter's end):
+ * only whitespace, comments, a `,` and the `)` come before it, a comment's `=>` none.
+ */
+const arrowAfter = (code: string, from: number) => {
+  let at = from;
+  while (at < code.length && !code.startsWith("=>", at)) {
+    if (code.startsWith("//", at)) {
+      const end = code.indexOf("\n", at);
+      at = end === -1 ? code.length : end;
+    } else if (code.startsWith("/*", at)) {
+      const end = code.indexOf("*/", at + 2);
+      at = end === -1 ? code.length : end + 2;
+    } else {
+      at += 1;
+    }
+  }
+  return at;
+};
+
+/**
  * `code` (JavaScript, parsed: its `program`) with the statement in each arrow function whose
  * first parameter is named `world` or `context`; none in it: nothing.
  */
@@ -139,8 +159,10 @@ export const markedCode = (code: string, program: unknown) => {
     } else {
       // An expression: a block that returns it, in parentheses (as written after the arrow, its
       // own parentheses with it: a `return` before a line break would return nothing).
-      const parameters = nodesIn(node.params);
-      const arrow = code.indexOf("=>", parameters.at(-1)?.end ?? node.start);
+      const arrow = arrowAfter(
+        code,
+        nodesIn(node.params).at(-1)?.end ?? node.start,
+      );
       marked.appendRight(arrow + 2, `{${statement}return (`);
       marked.appendRight(node.end, ");}");
     }

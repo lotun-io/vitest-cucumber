@@ -80,6 +80,22 @@ describe("steps", () => {
   });
 });
 
+test("null options: the plugin's error, not a TypeError (cucumber's own check lets null by)", () => {
+  const code = () => undefined;
+  for (const [method, args, message] of [
+    ["Given", ["a step", null, code], "Given's second argument"],
+    ["Before", [null, code], "Before's first argument"],
+    ["AfterStep", [null, code], "AfterStep's first argument"],
+    ["BeforeAll", [null, code], "BeforeAll's first argument"],
+  ] as const) {
+    expect(() => build([{ method, args: [...args], location: at(5) }])).toThrow(
+      new Error(
+        `[@lotun/vitest-cucumber] ${message} should be an object or a function\n  features/steps.ts:5`,
+      ),
+    );
+  }
+});
+
 describe("hooks", () => {
   test("Before/After: options, tags as a string, the code alone; selected by tags", () => {
     const tagged = () => undefined;

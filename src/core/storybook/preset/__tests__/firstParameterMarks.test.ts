@@ -127,6 +127,15 @@ describe("the statement, as it's written", () => {
     );
   });
 
+  test("after the arrow, a comment's `=>` before it none: the comment as written", () => {
+    expect(marked("(world /* => */) => world.go()")).toBe(
+      `(world /* => */) =>{${world}return ( world.go());}`,
+    );
+    expect(marked("(world, // => the World\n) => world.go()")).toBe(
+      `(world, // => the World\n) =>{${world}return ( world.go());}`,
+    );
+  });
+
   test("a test run hook's `context`", () => {
     expect(marked("(context) => {}")).toBe(`(context) => {${context}}`);
   });

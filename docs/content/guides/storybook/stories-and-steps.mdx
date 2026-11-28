@@ -108,8 +108,8 @@ expressions' groups and your own parameter types work as anywhere else.
 - **One story step per scenario**: in the scenario, or in the Background for all of them. A
   scenario without steps of its own gets no Background steps, so it can't name its story.
 - **Write each expression as a string literal**, directly as the first argument of `Given`, `When`,
-  `Then` or `defineStep`, in a file of `import`: the plugin finds them in your support files without
-  running them. A Storybook step anywhere else (in a module a support file imports) isn't found, and
+  `Then` or `defineStep` (or the name you import it as: `import { Given as Step }`), in a file of
+  `import`: the plugin finds them in your support files without running them. A Storybook step anywhere else (in a module a support file imports) isn't found, and
   links nothing. One placeholder per step definition; cucumber's built-in parameter types
   (`{string}`, `{int}`, …) are fine beside it, your own aren't.
 - **Node and browser projects don't know the placeholders**: a step using one is an undefined

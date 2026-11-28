@@ -23,6 +23,12 @@ test("any other function is cucumber's own call", () => {
   }
 });
 
+test("its comments before it, a `)` or a `*/` in them", () => {
+  for (const text of ["(/* ) */ world) => {}", "(// )\n world) => {}"]) {
+    expect(takesFirst(codeOf(text), "world"), text).toBe(true);
+  }
+});
+
 test("a test run hook's: `context`", () => {
   expect(takesFirst(codeOf("(context) => {}"), "context")).toBe(true);
   expect(takesFirst(codeOf("(world) => {}"), "context")).toBe(false);

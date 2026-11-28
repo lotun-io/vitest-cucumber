@@ -80,10 +80,12 @@ export const storybookPlanFrom = async ({
     idOf: sanitize,
   });
   if ("errors" in linked) {
+    // Each error once (a Background's step reaches every scenario: its error would be each one's),
+    // in the order they came; each names the feature file.
+    const errors = [...new Set(linked.errors)];
     return {
-      // Each error names the feature file.
       error: pluginError(
-        `feature file can't be linked to stories:\n${linked.errors.map((message) => `  - ${message}`).join("\n")}`,
+        `feature file can't be linked to stories:\n${errors.map((message) => `  - ${message}`).join("\n")}`,
         { quiet: true },
       ),
     };

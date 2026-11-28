@@ -141,6 +141,19 @@ test("a feature that can't be planned is the feature plans' failed plan, for Sto
   }
 });
 
+test("an error a Background's step gives every scenario is listed once", async () => {
+  stories("src/Once.stories.ts", ["Primary"]);
+  const id = file(
+    "src/Once.feature",
+    `Feature: Once\n  Background:\n    Given the stories of "./Once.stories.ts"\n    And the "Nope" story\n  Scenario: one\n    Given a step\n  Scenario: two\n    Given a step\n  Scenario: three\n    Given a step\n`,
+  );
+  const { storybook } = project();
+  const plan = await storybook.storybookPlanOf(id);
+  const message = "error" in plan ? plan.error.message : "";
+  expect(message).toContain('has no story "Nope" (its stories: Primary)');
+  expect(message.match(/has no story "Nope"/g)).toHaveLength(1);
+});
+
 test("a feature naming no stories file is stopped by its links' error, and linked to none: a stories file next to it, added, isn't its", async () => {
   const id = file(
     "c.feature",
