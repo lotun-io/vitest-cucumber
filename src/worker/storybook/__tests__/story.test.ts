@@ -6,6 +6,7 @@ import {
   setRunner,
   type StoryContextLike,
   storyEnvironment,
+  storyNote,
 } from "../story.ts";
 
 const { around } = storyEnvironment();
@@ -124,6 +125,33 @@ test("once the story ended, nothing is a step of it", async () => {
   await inStory({ step }, () => Promise.resolve());
   await around("Given a step", () => Promise.resolve(passed));
   expect(step).not.toHaveBeenCalled();
+});
+
+test("a note is an empty step of the running story, done once Storybook's `step` is (its step debugger waits for the user), its error thrown", async () => {
+  let go: () => void = () => undefined;
+  const labels: string[] = [];
+  const step = vi.fn(async (label: string, play: () => Promise<void>) => {
+    await new Promise<void>((resolve) => {
+      go = resolve;
+    });
+    labels.push(label);
+    await play();
+  });
+  const done = vi.fn();
+  const noted = inStory({ step }, () => storyNote("Skipped").then(done));
+  await vi.waitFor(() => expect(step).toHaveBeenCalledTimes(1));
+  expect(done).not.toHaveBeenCalled();
+  go();
+  await noted;
+  expect(done).toHaveBeenCalledTimes(1);
+  expect(labels).toEqual(["Skipped"]);
+  const failing = vi.fn(() => {
+    throw new Error("This function ran after the play function completed.");
+  });
+  await expect(
+    inStory({ step: failing }, () => storyNote("Skipped")),
+  ).rejects.toThrow("after the play function completed");
+  await expect(storyNote("no story")).resolves.toBeUndefined();
 });
 
 test("a story played while another plays (an HMR update re-renders it mid-play): it runs once the other ended, its own story the running one", async () => {

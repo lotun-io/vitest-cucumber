@@ -4,7 +4,8 @@
 // (`../../utils/fileCache.ts`: its features, often several, each ask for them, and `loadCsf`
 // parses it with Babel).
 import { readFile } from "node:fs/promises";
-import type { loadCsf as loadCsfType } from "storybook/internal/csf-tools";
+import { loadCsf } from "storybook/internal/csf-tools";
+import { Tag } from "storybook/preview-api";
 import { fileCache } from "../../utils/fileCache.ts";
 
 /**
@@ -19,9 +20,6 @@ export interface StoriesOf {
   tags: Record<string, string[]>;
 }
 
-/** Storybook's CSF parser (`storybook/internal/csf-tools`, loaded only in Storybook projects). */
-type LoadCsf = typeof loadCsfType;
-
 /** The title a stories file without a literal one is read with (Storybook's automatic one is the caller's). */
 const untitled = "vitest-cucumber-untitled";
 
@@ -30,15 +28,11 @@ const stories = fileCache<StoriesOf>();
 
 /** Stories file `file` as it is on disk: its text, and its stories as Storybook's CSF parser reads them (`loadCsf`). */
 export const readStoriesFile = async (file: string) => {
-  const [{ loadCsf }, { Tag }] = await Promise.all([
-    import("storybook/internal/csf-tools"),
-    import("storybook/preview-api"),
-  ]);
   const content = await readFile(file, "utf8");
   return {
     content,
     stories: stories(file, content, () =>
-      storiesOfCsf(content, file, loadCsf, Tag.PLAY_FN),
+      storiesOfCsf(content, file, Tag.PLAY_FN),
     ),
   };
 };
@@ -51,7 +45,6 @@ export const storiesOfFile = async (file: string): Promise<StoriesOf> =>
 const storiesOfCsf = (
   content: string,
   file: string,
-  loadCsf: LoadCsf,
   playTag: string,
 ): StoriesOf => {
   const csf = loadCsf(content, {

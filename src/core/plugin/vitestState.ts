@@ -15,7 +15,7 @@
 // - a Vitest's test runs (`../runs/testRuns.ts`, a `WeakMap` by its config), which hold its projects;
 // - node mode's command server (`../commands/commands.ts`), one per Vitest, dropped as it closes;
 // - Storybook's: in Storybook's own process its projects by config folder
-//   (`../storybook/preset.ts`) and its dev server's source maps (`../storybook/preset/locate.ts`).
+//   (`../storybook/preset/project.ts`) and its dev server's source maps (`../storybook/preset/locate.ts`).
 import type { TestProject, Vitest } from "vitest/node";
 
 /** The open Vitest a plugin serves, and the plugin's projects in it. */

@@ -11,13 +11,13 @@ import type { Located } from "../../../utils/errors.ts";
 import { exampleName } from "../../feature/featureTree.ts";
 
 /** Storybook's functions making ids (`storybook/internal/csf`'s). */
-export interface StorybookIds {
+interface StorybookIds {
   toId: (kind: string, name?: string) => string;
   storyNameFromExport: (key: string) => string;
 }
 
 /** A story of a feature's module: its export, the line it comes from, its name as shown. */
-export interface ModuleStory {
+interface ModuleStory {
   export: string;
   line: number;
   name: string;

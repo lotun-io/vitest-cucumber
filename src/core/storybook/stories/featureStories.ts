@@ -81,7 +81,7 @@ export const brokenFeatureStories = (tag: StorybookTags) =>
   ].join("\n");
 
 /** A scenario's story, as the module exports it and Storybook indexes it. */
-export interface ScenarioStory extends ScenarioLink {
+interface ScenarioStory extends ScenarioLink {
   /** The module's export. */
   export: string;
   /** Its title: its test's place in Vitest's tree, below the feature's. */

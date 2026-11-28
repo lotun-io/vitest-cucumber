@@ -12,7 +12,7 @@ Run [Cucumber](https://cucumber.io/) feature files as [Vitest](https://vitest.de
 npm install -D @lotun/vitest-cucumber@beta @cucumber/cucumber vitest
 ```
 
-> Requires Node.js 24 or later, Vitest 5 and [`@cucumber/cucumber`](https://github.com/cucumber/cucumber-js) 13.
+> Requires Node.js 24, or 26 and later, Vitest 5 and [`@cucumber/cucumber`](https://github.com/cucumber/cucumber-js) 13.
 
 ## Modes
 

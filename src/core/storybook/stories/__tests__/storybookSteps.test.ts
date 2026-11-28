@@ -301,7 +301,11 @@ describe("Storybook steps, from the support code", () => {
         "Unterminated multiline comment",
       ],
       [`${step}\nconst s = "never closed\n${step}`, 2, "Unterminated string"],
-      ["this isn't JavaScript {", 1, ""],
+      [
+        "this isn't JavaScript {",
+        1,
+        "Expected a semicolon or an implicit semicolon after a statement, but found none",
+      ],
     ] as const) {
       const [found] = scanSupportCode(code, "/p/a.ts");
       expect(found?.at, code).toBe(`/p/a.ts:${String(line)}`);

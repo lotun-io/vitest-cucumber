@@ -26,7 +26,7 @@ export interface PreviewRunner extends PageRunner {
 /**
  * A preview runner on `platform`, loading the support code for `run` through `importSupport` (none:
  * the preset isn't serving the support module), its notes added by `note` (the page's: the support
- * module's, `storyNote`).
+ * module's, `storyNote`), each awaited: a note is a step of the story.
  */
 export const createPreviewRunner = ({
   platform,
@@ -37,7 +37,7 @@ export const createPreviewRunner = ({
   platform: Platform;
   run: LoadRun;
   importSupport: ImportSupport | undefined;
-  note: (label: string) => void;
+  note: (label: string) => Promise<void>;
 }): PreviewRunner => {
   // The support code it loads, at its first story (`ensureBeforeAll`).
   if (importSupport) {
@@ -66,13 +66,13 @@ export const createPreviewRunner = ({
       const outcome = await platform.scenario(scenario);
       if (outcome.error) {
         for (const { type, message } of outcome.annotations) {
-          note(`${type}: ${message}`);
+          await note(`${type}: ${message}`);
         }
         throw outcome.error.value;
       }
       if (outcome.skipped) {
         const { note: skipNote } = outcome.skipped;
-        note(`Skipped${skipNote ? `: ${skipNote}` : ""}`);
+        await note(`Skipped${skipNote ? `: ${skipNote}` : ""}`);
       }
     },
     beforeAll: ensureBeforeAll,

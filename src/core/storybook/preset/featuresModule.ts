@@ -37,8 +37,8 @@ export const featuresMapId = "\0vitest-cucumber:storybook-features";
 const linkedFeatures = ownModule("worker/storybook/linkedFeatures");
 
 /**
- * The features map's code: the store filled with `features`, each stories file's (by its path
- * from the root: see `featuresMap.ts`), each feature's text written in; the store's `features`
+ * The features map's code: the store filled with `features`, each stories file's (by its import
+ * path, as Storybook's index has it: see `featuresMap.ts`), each feature's text written in; the store's `features`
  * and `onFeaturesChange` exported, as the placeholder's; and the module's acceptance of its own
  * hot update, written here (Vite reads a module's own source for it).
  */

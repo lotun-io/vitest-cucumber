@@ -107,7 +107,8 @@ expressions' groups and your own parameter types work as anywhere else.
   (`Given the stories of "src/stories/Greeting.stories.ts"`). A feature runs on one stories file.
 - **One story step per scenario**: in the scenario, or in the Background for all of them. A
   scenario without steps of its own gets no Background steps, so it can't name its story.
-- **Write each expression as a string literal**, directly as the first argument of `Given`, `When`,
+- **Write each expression as a plain string** (a string literal, or a template literal without
+  `${…}`), directly as the first argument of `Given`, `When`,
   `Then` or `defineStep` (or the name you import it as: `import { Given as Step }`), in a file of
   `import`: the plugin finds them in your support files without running them. A Storybook step anywhere else (in a module a support file imports) isn't found, and
   links nothing. One placeholder per step definition; cucumber's built-in parameter types
@@ -126,8 +127,7 @@ expressions' groups and your own parameter types work as anywhere else.
 A link the plugin can't make is an error, with every such error of the feature listed: no stories
 file step, two of them, a missing stories file, a scenario without its story step, a story the
 stories file doesn't have (its stories listed), two stories named in one scenario, a step two
-Storybook steps match. Each one, and what to do:
-[Troubleshooting](/guides/troubleshooting#a-feature-that-cant-be-linked).
+Storybook steps match. Each message says what to do, and the places it's about.
 
 ## Mounting
 

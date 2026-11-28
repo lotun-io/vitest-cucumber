@@ -13,14 +13,13 @@
 // `manifest` are always taken off a scenario's story after its tags (`./featureStories.ts`).
 // Storybook's tags are its own constants, `Tag` (`storybook/preview-api`, public API), never written
 // here.
-import type { Tag } from "storybook/preview-api";
+import { Tag } from "storybook/preview-api";
 
 /** Storybook's built-in tags, by name (`Tag`: `Tag.DEV` is `dev`). */
 export type StorybookTags = typeof Tag;
 
-/** Storybook's built-in tags (`storybook/preview-api`'s `Tag`: loaded only in Storybook projects). */
-export const storybookTagsOf = async (): Promise<StorybookTags> =>
-  (await import("storybook/preview-api")).Tag;
+/** Storybook's built-in tags (`storybook/preview-api`'s `Tag`). */
+export const storybookTags: StorybookTags = Tag;
 
 /** Storybook tag `tag`, taken off (`!dev`). */
 export const without = (tag: string) => `!${tag}`;

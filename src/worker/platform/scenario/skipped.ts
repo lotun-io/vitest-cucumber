@@ -7,8 +7,8 @@
 // - `PENDING` (`strict: false`), `UNDEFINED` or `AMBIGUOUS` (a dry run): skipped, its note its first
 //   such step as the summary heads them (`Pending step: When a pending step`), as part of the
 //   scenario never ran;
-// - anything else passes, e.g. a `FAILED` step an After hook rewrote (cucumber's run succeeds), or no
-//   result at all (no steps, no hooks: cucumber's formatters report it passed).
+// - anything else passes, e.g. no result at all (no steps, no hooks: cucumber's formatters report
+//   it passed). (An After hook can't make a failed step pass: it gets a copy of the result.)
 // Decided where the run ran: the worker in node mode, the page in browser mode. Page-safe.
 import {
   getWorstTestStepResult,

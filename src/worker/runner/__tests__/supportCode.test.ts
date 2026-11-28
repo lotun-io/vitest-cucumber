@@ -126,6 +126,43 @@ test("an expression cucumber can't compile: the plugin's error at the call, cucu
   ).not.toThrow();
 });
 
+test("a hook's tags that aren't a tag expression: the plugin's error at the call, the parser's reason, every kind of hook", () => {
+  for (const method of [
+    "Before",
+    "After",
+    "BeforeStep",
+    "AfterStep",
+  ] as const) {
+    expect(() =>
+      build([{ method, args: ["@a and", () => undefined], location: at(4) }]),
+    ).toThrow(
+      expect.objectContaining({
+        message: `[@lotun/vitest-cucumber] ${method}'s tags "@a and" aren't a valid tag expression (Expected operand.)\n  features/steps.ts:4`,
+        stack: "",
+      }),
+    );
+  }
+});
+
+test("a parameter type's name taken: the plugin's error at its definitions (both, if the project's twice), not cucumber's bare one", () => {
+  const type = (name: string, line: number): SupportCall => ({
+    method: "defineParameterType",
+    args: [{ name, regexp: /red|blue/ }],
+    location: at(line),
+  });
+  expect(() => build([type("color", 2), type("color", 3)])).toThrow(
+    new Error(
+      "[@lotun/vitest-cucumber] defineParameterType's name \"color\" is already a parameter type's, give it another name\n  features/steps.ts:2\n  features/steps.ts:3",
+    ),
+  );
+  // Cucumber's own.
+  expect(() => build([type("int", 5)])).toThrow(
+    new Error(
+      "[@lotun/vitest-cucumber] defineParameterType's name \"int\" is already a parameter type's, give it another name\n  features/steps.ts:5",
+    ),
+  );
+});
+
 test("null options: the plugin's error, not a TypeError (cucumber's own check lets null by)", () => {
   const code = () => undefined;
   const withTags =

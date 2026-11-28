@@ -5,6 +5,7 @@
 // its story's own (its place in Vitest's tree: `titles`), given to `makeTitle`, Storybook's, as
 // any written title is (it adds the `titlePrefix` of the feature file's `stories` pattern); their
 // ids the meta's `id`'s, whatever their titles (the module writes one).
+import { loadCsf } from "storybook/internal/csf-tools";
 
 /** Storybook's function making a file's title, from the one written in it (none: its automatic one). */
 export type MakeTitle = (title?: string) => string;
@@ -30,7 +31,6 @@ export const indexEntriesOf = async ({
   stories: { code: string; title: string; titles: Record<string, string> };
   makeTitle: MakeTitle;
 }): Promise<IndexInput[]> => {
-  const { loadCsf } = await import("storybook/internal/csf-tools");
   return loadCsf(code, { makeTitle, fileName })
     .parse()
     .indexInputs.map((input) => ({

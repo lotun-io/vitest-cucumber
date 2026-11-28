@@ -51,7 +51,8 @@ import type { E2EWorld, RunResult } from "./world.ts";
 const workerName = process.env.VITEST_POOL_ID ?? `pid${process.pid}`;
 
 /**
- * A Vitest this worker keeps (for its feature file's scenarios), for the scenarios whose files
+ * A Vitest this worker keeps (for its feature file's scenarios in e2e, `isolate: true`; for every
+ * sample it runs in the compatibility kit, `isolate: false`), for the scenarios whose files
  * outside `features/` are its `files` (`key`: them, as text): in a directory of its own, the
  * scenarios take turns. Only `features/` changes between them, which the plugin and Vitest load again
  * each run (`invalidateFile`); the rest, Node keeps as it loaded it (e.g. a `cucumber.mjs`, imported

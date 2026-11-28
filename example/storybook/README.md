@@ -76,8 +76,8 @@ setWorldConstructor(StoryWorld);
 
 ```ts
 // features/steps/steps.ts
-When("I click the {string} button", async function (this: StoryWorld, name: string) {
-  const { canvas, userEvent } = this.story;
+When("I click the {string} button", async (world: StoryWorld, name: string) => {
+  const { canvas, userEvent } = world.story;
   await userEvent.click(canvas.getByRole("button", { name }));
 });
 ```

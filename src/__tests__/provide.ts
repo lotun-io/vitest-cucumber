@@ -1,6 +1,6 @@
 // The unit project's global setup: what the plugin provides its workers (no plugin runs in the unit
-// project), since the page's modules read it as they load (`worker/cucumber/page.ts`'s `version`).
-// As a node-mode run would have it (Vitest's defaults, no tag defined with a timeout); a test that
+// project), for the modules that read it (`inject("vitestCucumber")`, as they're called). As a
+// node-mode run would have it (Vitest's defaults, no tag defined with a timeout); a test that
 // needs another value sets it for its own file (`./withProvided.ts`).
 import type { TestProject } from "vitest/node";
 import type {} from "../types/providedContext.ts";

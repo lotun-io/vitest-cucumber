@@ -51,7 +51,8 @@ export interface StepFrame {
 /**
  * A failure of a run, as the platform gives its host (`Host["throwable"]`): the value the user's
  * code threw (or the plugin's own error), and, for a scenario's step, the step's line in its feature
- * file, which the host adds to its stack as it sends it (`../worker/platform/errors/thrown.ts`).
+ * file, which a Vitest host adds to its stack as it sends it (`../worker/platform/errors/serializedErrors.ts`'s
+ * `withFrame`; Storybook's preview throws the original, without it: `../worker/platform/errors/thrown.ts`).
  */
 export interface Failure {
   value: unknown;

@@ -8,6 +8,7 @@ import { spawn, spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { createServer as createNetServer } from "node:net";
 import path from "node:path";
+import { stripVTControlCharacters } from "node:util";
 import {
   chromium as playwrightChromium,
   type Browser,
@@ -93,12 +94,29 @@ process.on("exit", () => {
   }
 });
 
+/** Why `storybook dev` exited at once: the port it was given is taken (since it was found free). */
+const portTaken = /Port \d+ is not available/;
+
 /**
  * Starts Storybook's dev server for the project (`storybook dev`), in its folder or from another
- * (`from`): its URL once its index answers (60 s at most), and how to stop it (its process group).
+ * (`from`): its URL once it says it's ready there and its index answers (60 s at most), and how to
+ * stop it (its process group). A port taken between finding it free and Storybook binding it
+ * (another worker's): another port, three tries.
  */
 export const startDev = async (dir: string, from = dir) => {
-  const port = await freePort();
+  for (let tries = 1; ; tries += 1) {
+    const started = await startDevOn(await freePort(), dir, from);
+    if (started !== "taken") {
+      return started;
+    }
+    if (tries === 3) {
+      throw new Error("storybook dev found no free port in 3 tries");
+    }
+  }
+};
+
+/** `startDev` on `port`: its server, or `"taken"` if Storybook found the port taken. */
+const startDevOn = async (port: number, dir: string, from: string) => {
   const url = `http://127.0.0.1:${String(port)}`;
   let output = "";
   const child = spawn(
@@ -106,7 +124,6 @@ export const startDev = async (dir: string, from = dir) => {
       "dev",
       "--ci",
       "--no-open",
-      "--quiet",
       "-p",
       String(port),
       // Its port or none: taken since it was found free (another worker's), Storybook would move
@@ -176,14 +193,22 @@ export const startDev = async (dir: string, from = dir) => {
   const started = Date.now();
   while (Date.now() - started < 60_000) {
     if (child.exitCode !== null) {
+      await close();
+      if (portTaken.test(output)) {
+        return "taken";
+      }
       throw new Error(
         `storybook dev exited (${String(child.exitCode)}):\n${output}`,
       );
     }
-    const ready = await fetch(`${url}/index.json`).then(
-      (response) => response.ok,
-      () => false,
-    );
+    // Ready as it says so (its URL in its output: another worker's server on the port answers
+    // too, until this one exits for it), then as its index answers.
+    const ready =
+      stripVTControlCharacters(output).includes(`${url}/`) &&
+      (await fetch(`${url}/index.json`).then(
+        (response) => response.ok,
+        () => false,
+      ));
     if (ready) {
       return { url, close };
     }

@@ -195,6 +195,7 @@ After(async (world: E2EWorld) => {
   }
 });
 
-// The feature file's end (the e2e project runs with `isolate: true`): the Vitest its worker kept.
+// The worker's end: the Vitests it kept (the e2e project's: one feature file's, `isolate: true`; the
+// compatibility kit's: many samples', `isolate: false`).
 AfterAll(closeKept);
 AfterAll(closeStaticBrowser);

@@ -3,6 +3,7 @@
 // Storybook steps) and its stories module written (`./featureStories.ts`), or, its links failing,
 // what stops it (the plugin's error, every one listed). A hook writes the module its plan gives
 // (`./featureStoriesModule.ts`).
+import { sanitize, storyNameFromExport, toId } from "storybook/internal/csf";
 import type { FeatureSuite } from "../../../types/feature.ts";
 import { type Located, locatedErrors } from "../../../utils/errors.ts";
 import type { FailedPlan, VitestPlan } from "../../feature/plans.ts";
@@ -13,7 +14,7 @@ import { linkedFeatureOf, type SameLabel } from "./linkedFeature.ts";
 import type { StoriesOf } from "./storiesFile.ts";
 import type { AutoTitleOf } from "./storiesTitle.ts";
 import type { StorybookPlan } from "./storybookPlans.ts";
-import { storybookTagsOf, testTagsOf } from "./storybookTags.ts";
+import { storybookTags, testTagsOf } from "./storybookTags.ts";
 import { sameIdErrorsOf } from "./storyIds.ts";
 
 /** `tree` with each test's tags `tagsOf` its own. */
@@ -63,11 +64,8 @@ export const storybookPlanFrom = async ({
   autoTitleOf: AutoTitleOf;
 }): Promise<StorybookPlan | FailedPlan> => {
   const { uri, gherkin, featureTree } = plan;
-  // Storybook's own ids (`storybook/internal/csf`: loaded only in Storybook projects).
-  const { sanitize, storyNameFromExport, toId } =
-    await import("storybook/internal/csf");
   // Storybook's built-in tags (`Tag`).
-  const tag = await storybookTagsOf();
+  const tag = storybookTags;
   const linked = await linkedFeatureOf({
     uri,
     featureLine: gherkin.document.feature?.location.line ?? 1,

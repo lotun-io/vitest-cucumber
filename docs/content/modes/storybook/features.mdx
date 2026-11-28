@@ -17,6 +17,7 @@ or in `features/`:
   </FileTree.Folder>
   <FileTree.Folder name="features" defaultOpen>
     <FileTree.Folder name="steps" defaultOpen>
+      <FileTree.File name="steps.ts" />
       <FileTree.File name="stories.ts" />
     </FileTree.Folder>
     <FileTree.Folder name="support" defaultOpen>
@@ -109,7 +110,7 @@ export class StoryWorld extends World {
 setWorldConstructor(StoryWorld);
 ```
 
-```ts filename="features/steps/stories.ts"
+```ts filename="features/steps/steps.ts"
 import { Then, When } from "@cucumber/cucumber";
 import { expect } from "storybook/test";
 import type { StoryWorld } from "../support/world.ts";

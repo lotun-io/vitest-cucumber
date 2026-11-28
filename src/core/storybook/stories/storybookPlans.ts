@@ -37,6 +37,7 @@
 // file made again (the error is theirs to drop, or to have).
 import type { GherkinDocument } from "@cucumber/messages";
 import { existsSync } from "node:fs";
+import { sanitize } from "storybook/internal/csf";
 import type { RunOptions } from "../../../types/feature.ts";
 import { slash } from "../../../utils/slash.ts";
 import { isFeatureFile } from "../../feature/featureFile.ts";
@@ -84,13 +85,13 @@ export interface StorybookPlan extends VitestPlan {
 }
 
 /** A feature file indexed for Storybook: its Storybook plan, and its index entries. */
-export interface StorybookIndexPlan extends StorybookPlan {
+interface StorybookIndexPlan extends StorybookPlan {
   /** Its index entries (`./indexEntries.ts`). */
   indexEntries: IndexInput[];
 }
 
 /** What a file's event leaves for a Storybook host to do. */
-export interface StorybookFileChanged {
+interface StorybookFileChanged {
   /** Whether the support files' list is another (the feature plans' answer): what was made with the old one is out of date. */
   supportFilesChanged: boolean;
   /** The feature files to take as changed, so their modules are made again. */
@@ -178,7 +179,6 @@ export const createStorybookPlans = ({
     feature: string,
     label: string,
   ): Promise<SameLabel[]> => {
-    const { sanitize } = await import("storybook/internal/csf");
     const others = othersOf(feature);
     const theirs = await Promise.all(
       others.map((other) =>
@@ -227,7 +227,11 @@ export const createStorybookPlans = ({
     );
     const own = labelOf(plan.gherkin.document, file);
     const { label } = own;
-    await labels(slash(file), async () => own);
+    // Kept for the others on its stories file. One that failed (the file broken) stays until the
+    // file's event replaces it, which then makes the others stale (a failed label is another):
+    // this plan is made from its own text, whichever comes first (Storybook's indexer may ask
+    // before the plugin's watcher tells it).
+    await labels(slash(file), async () => own).catch(() => undefined);
     return storybookPlanFrom({
       feature: file,
       plan,
@@ -288,7 +292,7 @@ export const createStorybookPlans = ({
           supportFiles: await plans.supportFiles(),
         };
       } catch (error) {
-        return failedPlan(error);
+        return failedPlan(error, "the support files can't be listed");
       }
     },
     /**
@@ -356,6 +360,3 @@ export const createStorybookPlans = ({
     links,
   };
 };
-
-/** A project's Storybook plans (`createStorybookPlans`). */
-export type StorybookPlans = ReturnType<typeof createStorybookPlans>;

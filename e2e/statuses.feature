@@ -50,7 +50,9 @@ Feature: Scenario statuses
 
   # The summary's colors are Vitest's: main asks Vitest's printer, and the worker or the page gets the
   # answer. So the error has colors exactly when Vitest's output has (a terminal, `FORCE_COLOR=1`),
-  # whichever way the suite runs (CI, an agent: none).
+  # whichever way the suite runs. Vitest decides it once, as it loads in the suite's worker, so this
+  # checks the suite's own setting only (CI, an agent: none); a colored summary and Vitest's answer
+  # read are unit-tested (`summary/__tests__/summary.test.ts`, `plugin/__tests__/colors.test.ts`).
   Scenario Outline: An undefined step's summary has Vitest's colors (<mode>)
     Given a file named "features/undefined.feature" with:
       """

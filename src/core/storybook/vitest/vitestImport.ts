@@ -22,7 +22,7 @@
 // its own, and a step's line could be a mapped call's (the scenario's line printed for its
 // step). Past the feature's last line no step has one.
 import MagicString from "magic-string";
-import { pluginError } from "../../../utils/errors.ts";
+import { locatedError } from "../../../utils/errors.ts";
 
 /** A named import from "vitest": its specifiers. */
 const vitestImport = /import\s*\{([^}]*)\}\s*from\s*["']vitest["'];?/g;
@@ -60,12 +60,15 @@ const testImportOf = (code: string) => {
 export const vitestFromFeature = ({
   code,
   file,
+  uri,
   featureModule,
   testUtils,
   lines,
 }: {
   code: string;
   file: string;
+  /** The feature file's path from the project's root (its error's place). */
+  uri: string;
   featureModule: string;
   testUtils: string;
   lines: number;
@@ -74,9 +77,9 @@ export const vitestFromFeature = ({
   if (code.includes(testUtils)) {
     const found = testImportOf(code);
     if (!found) {
-      throw pluginError(
-        `Storybook's story tests of ${file} aren't written as the plugin expects, your Storybook may be newer than the plugin supports (no \`test\` imported from "vitest")`,
-        { quiet: true },
+      throw locatedError(
+        `Storybook's story tests aren't written as the plugin expects, your Storybook may be newer than the plugin supports (no \`test\` imported from "vitest")`,
+        [uri],
       );
     }
     s.overwrite(

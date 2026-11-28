@@ -169,15 +169,18 @@ test("nothing throws: a file that can't be read is a failed plan, the file's own
   rmSync(id);
 });
 
-test("a failed plan: the plugin's own error as it is; anything else the plugin's bug, the error its cause", () => {
+test("a failed plan: the plugin's own error as it is; any other under the plugin's header, quiet, the error its cause (not a bug of the plugin's)", () => {
   const own = pluginError("feature file can't be linked to stories", {
     quiet: true,
   });
   expect(failedPlan(own).error).toBe(own);
   const stray = new TypeError("x is undefined");
-  const { error } = failedPlan(stray);
-  expect(error.message).toMatch(
-    /^\[@lotun\/vitest-cucumber\] a feature file's plan couldn't be made \(a bug in @lotun\/vitest-cucumber, please report it at /,
-  );
-  expect(error.cause).toBe(stray);
+  expect(failedPlan(stray).error).toMatchObject({
+    message: "[@lotun/vitest-cucumber] feature file can't be planned",
+    stack: "",
+    cause: stray,
+  });
+  expect(
+    failedPlan(stray, "the support files can't be listed").error.message,
+  ).toBe("[@lotun/vitest-cucumber] the support files can't be listed");
 });

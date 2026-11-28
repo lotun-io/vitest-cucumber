@@ -1,7 +1,7 @@
 // A feature file's runtime for its stories module (`./featureStories.ts`, which imports it): a module
 // whose default export plays its scenarios (`../../../worker/storybook/feature.ts`), from its Gherkin
 // document and pickles. Shared by the Vitest plugin (`../../storybookPlugin.ts`) and Storybook's preview
-// (`../preset.ts`). In story tests (the Vitest plugin's), it also hands the addon's story tests to the
+// (`../preset/previewPlugin.ts`). In story tests (the Vitest plugin's), it also hands the addon's story tests to the
 // plugin's runtime (`../../../worker/storybook/vitest/tests.ts`): the addon's generated code imports
 // `test` from "vitest" and `testStory` and `convertToFilePath` from its test utilities; the stories
 // module's import of the test utilities resolves to its feature module (`storyTestsModuleId`), which

@@ -54,6 +54,14 @@ definitions:
 plugins: [cucumber({ import: ["features/**/*.ts"] })],
 ```
 
+In a Storybook project, `import` is the addon entry's, resolved from the folder that holds
+`.storybook`. There a glob that matches no file shows first as the features' link errors
+(`the feature names no stories file`): the Storybook steps are in your support code too.
+
+```ts filename=".storybook/main.ts"
+addons: [cucumber({ import: ["features/**/*.ts"] })],
+```
+
 ### A feature file without scenarios
 
 ```ansi
@@ -92,38 +100,6 @@ so it's optimized before the run:
 ```ts filename="vitest.config.ts"
 optimizeDeps: { include: ["react"] },
 ```
-
-### A feature that can't be linked
-
-```text
-Error: [@lotun/vitest-cucumber] feature file can't be linked to stories
-  - the scenario "Saying hello" names no story, add a story step (a story of the stories file, or "default" for its meta)
-    src/Greeting.feature:7
-  - the feature names no stories file, add a stories file step to its Background
-    src/Greeting.feature:1
-```
-
-The plugin links each scenario of a feature file to a story from its
-[Storybook steps](/guides/storybook/stories-and-steps#storybook-steps), before anything runs. A link it can't
-make fails the feature's stories, with every such error listed, each with the places it's about
-under it (in Storybook's own process, it stops its index: `storybook dev` lists the error,
-`storybook build` fails). Each error, and what to do:
-
-| The error says | Do this |
-| --- | --- |
-| `names no stories file` | Name it in the feature's Background: `Given the stories of "./Greeting.stories.ts"` |
-| `has no scenarios` | Give the feature a scenario: in Storybook, its scenarios are its stories |
-| `has 2 stories file steps` | Keep one, in the Background: a feature runs on one stories file |
-| `the stories file "…" doesn't exist` | Fix the path: from the feature's folder with `./` or `../`, else from the project's root |
-| `names no story` | Give the scenario a story step: `Given the "Ada" story`, or `Given the "default" story` for the meta |
-| `names no stories file` (a scenario) | Move the stories file step to the Background, so it reaches every scenario |
-| `has no steps` | A scenario without steps gets no Background steps: give it its own story step |
-| `names 2 stories` | Keep one story step per scenario, the Background's counted |
-| `has no story "…"` | Name one of the stories it lists, as exported (`Ada`, not `ada`) |
-| `matches 2 Storybook steps` | Word your Storybook step definitions so that one step matches only one |
-| `can't be read, write its expression as a plain string` | Write the expression as a string literal, the first argument of `Given(…)` |
-| `isn't a valid cucumber expression` | Fix the expression: cucumber's reason is in the parentheses |
-| `the support file can't be parsed` | Fix the syntax error at that line: the plugin parses your support files to find the Storybook steps |
 
 ### No component is mounted in your story
 

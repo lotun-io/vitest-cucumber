@@ -166,5 +166,6 @@ attempt's.
 ## When a file fails before its scenarios run
 
 A feature file that doesn't parse, support code that throws while loading, a definition Cucumber
-rejects, a failing `BeforeAll` or `AfterAll`: each message and what to do is in
+rejects, a failing `BeforeAll` or `AfterAll`: each message says what's wrong and what to do, and
+where (a feature's line, a definition's call). The less obvious cases are in
 [Troubleshooting](/guides/troubleshooting).

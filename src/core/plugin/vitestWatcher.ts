@@ -8,7 +8,7 @@ import type { Vitest } from "vitest/node";
 import type { FileChange } from "../feature/plans.ts";
 
 /** What a listener is told: how a file changed, and its path (as the watcher gives it). */
-export type FileChangeListener = (type: FileChange, file: string) => void;
+type FileChangeListener = (type: FileChange, file: string) => void;
 
 /** A watching Vitest, as this reads it. */
 export type WatchedVitest = Pick<Vitest, "config" | "vite">;

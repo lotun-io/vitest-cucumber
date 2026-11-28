@@ -63,7 +63,12 @@ export const watchDevServer = ({
     }
   };
 
-  project.onLinkedFeaturesChanged(followFeaturesMap);
+  // The links' change has no caller to fail either (the plans tell it as they link): its error logged.
+  project.onLinkedFeaturesChanged(() =>
+    followFeaturesMap().catch((error: unknown) => {
+      server.config.logger.error(String(error));
+    }),
+  );
 
   /** A file was added, changed or deleted: the plans told, then what they leave to do. */
   const fileChanged = async (type: FileChange, file: string) => {

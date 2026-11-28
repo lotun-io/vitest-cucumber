@@ -12,7 +12,9 @@
 // of the addon's test utilities resolved to its feature module, its Vitest import the feature
 // module's `vitest`, each of the feature's tests running the story test the addon declared for its
 // scenario (`./storybook/vitest/vitestImport.ts`).
+import path from "node:path";
 import type { Plugin } from "vitest/config";
+import { slash } from "../utils/slash.ts";
 import { createBrowserHooks } from "./browserPlugin.ts";
 import { isFeatureFile } from "./feature/featureFile.ts";
 import {
@@ -31,7 +33,7 @@ import { autoTitleOfStorybook } from "./storybook/stories/storiesTitle.ts";
 import { createStorybookPlans } from "./storybook/stories/storybookPlans.ts";
 import {
   declaredTagsOf,
-  storybookTagsOf,
+  storybookTags,
 } from "./storybook/stories/storybookTags.ts";
 import { vitestFromFeature } from "./storybook/vitest/vitestImport.ts";
 import { withoutQuery } from "./utils/withoutQuery.ts";
@@ -51,9 +53,7 @@ export const createStorybookPlugin = (options: PresetOptions): Plugin[] => {
   });
   core.watchWith(plans.onFileChange);
   // Its tests have their Gherkin tags but Storybook's: its declared ones, every one a test may have.
-  core.declaredTagsWith(async (tags) =>
-    declaredTagsOf(tags, await storybookTagsOf()),
-  );
+  core.declaredTagsWith(async (tags) => declaredTagsOf(tags, storybookTags));
 
   /** A feature file as its stories module, and its feature module. */
   const storiesPlugin: Plugin = {
@@ -88,7 +88,7 @@ export const createStorybookPlugin = (options: PresetOptions): Plugin[] => {
       const { code, map } = storiesModule({
         file: id,
         plan: await plans.storybookPlanOf(id),
-        tag: await storybookTagsOf(),
+        tag: storybookTags,
       });
       return { code, map: map ?? null };
     },
@@ -110,6 +110,8 @@ export const createStorybookPlugin = (options: PresetOptions): Plugin[] => {
       return vitestFromFeature({
         code,
         file,
+        uri:
+          "error" in plan ? slash(path.relative(core.root(), file)) : plan.uri,
         featureModule: featureModuleOf(file),
         testUtils,
         lines: "error" in plan ? 0 : plan.content.split("\n").length,

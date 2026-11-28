@@ -9,13 +9,12 @@ npx vitest run src/stories/Greeting.feature
 ```
 
 ```ansi
- [32m✓[39m [30m[45m storybook (chromium) [49m[39m src/stories/Greeting.feature [2m([22m[2m4 tests[22m[2m)[22m[32m 47[2mms[22m[39m
-   [32m✓[39m Greeting [2m(4)[22m
+ [32m✓[39m [30m[45m storybook (chromium) [49m[39m src/stories/Greeting.feature [2m([22m[2m3 tests[22m[2m)[22m[32m 47[2mms[22m[39m
+   [32m✓[39m Greeting [2m(3)[22m
      [32m✓[39m Saying hello[32m 14[2mms[22m[39m
      [32m✓[39m Greeting <name> [2m(2)[22m
        [32m✓[39m Greeting Ada[32m 12[2mms[22m[39m
-       [32m✓[39m Greeting Grace[32m 11[2mms[22m[39m
-     [32m✓[39m Greeting the world[32m 10[2mms[22m[39m[0m
+       [32m✓[39m Greeting Grace[32m 11[2mms[22m[39m[0m
 ```
 
 A feature file's story tests are listed as in the other modes, under the feature file, each in its
@@ -84,7 +83,7 @@ In Vitest, as in the [other modes](/guides/running#filtering):
 
 ```bash
 npx vitest run src/stories/Greeting.feature      # every scenario of the feature
-npx vitest run src/stories/Greeting.feature:4    # the scenario at line 4
+npx vitest run src/stories/Greeting.feature:6    # the scenario at line 6
 npx vitest run --tagsFilter "@smoke"             # by Gherkin tag
 npx vitest run -t "Saying hello"                 # by name
 ```
@@ -113,5 +112,6 @@ Don't make scenarios depend on each other: a story plays alone in Storybook's UI
 ## A broken feature
 
 A feature file cucumber can't parse, or whose links the plugin can't make, is reported with every
-error it has. In Vitest only its own file fails; `storybook dev` and `storybook build` stop, as
-for a broken stories file. See [Troubleshooting](/guides/troubleshooting#a-feature-that-cant-be-linked).
+error it has. In Vitest only its own file fails. `storybook build` fails, and `storybook dev`
+shows the error in place of its index until the file is fixed, as for a broken stories file. Each
+message says what to do.

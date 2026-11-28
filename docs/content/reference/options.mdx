@@ -44,8 +44,10 @@ import { options } from "./cucumber.options.ts";
 plugins: [cucumber(options)],
 ```
 
-A missing or wrong option (no `import`, or one that isn't an array of strings; a `language` Gherkin
-doesn't have) fails as `cucumber()` is called. The options are read once: changing them takes a restart.
+A missing or wrong option (no `import`, or one that isn't an array of strings, or a `language`
+Gherkin doesn't have) stops Vitest as it starts, as `cucumber()` is called. In Storybook it stops
+Storybook and its story tests as they start, when they read the addon's options. The options are
+read once: changing them takes a restart.
 
 ## import
 

@@ -37,8 +37,8 @@ export const createBrowserHooks = (options: Partial<CucumberOptions>) => {
           // Vitest's file system module cache off for this project. A feature's module is the
           // plugin's to make, from more than the file's text (the support files, a Storybook
           // feature's stories), so it must not be kept there: the plugin opts its feature modules
-          // out (`./plugin/createPlugin.ts`'s `defineCacheKeyGenerator`), which Vitest 5.1.1
-          // doesn't apply to a browser instance (its bug: `CLAUDE.md`, "Updating Vitest"). A
+          // out (`./plugin/createPlugin.ts`'s `defineCacheKeyGenerator`), which Vitest (5.1.1,
+          // 5.1.2) doesn't apply to a browser instance (its bug: `CLAUDE.md`, "Updating Vitest"). A
           // browser project reads that cache only where Vitest transforms a test file itself
           // (`vitest list`, `--changed`), never for what its pages run. To drop once Vitest
           // applies the opt-out there.

@@ -1,7 +1,6 @@
 // What a page loads of the plugin's (browser mode's, Storybook's story tests' and its preview's): its
 // `@cucumber/cucumber`, the packages its runtime imports (pre-bundled), and the plugin itself never
-// pre-bundled. Its own module, so Storybook's preset (`../storybook/preset.ts`) loads only this, not
-// the shared plugin.
+// pre-bundled. Its own module: what a page gets, apart from how a plugin serves it.
 import { ownModule } from "../utils/ownModule.ts";
 
 /** What the page gets for `@cucumber/cucumber`, and for its subpaths (a module that throws). */

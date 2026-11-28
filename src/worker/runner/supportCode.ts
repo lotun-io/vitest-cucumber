@@ -48,6 +48,28 @@ const unsupportedMethods = new Map([
 ]);
 
 /**
+ * A hook's `tags` (`method`'s, called at `where`) parsed, or the plugin's error at the call, with
+ * the parser's reason: cucumber parses a test case hook's only as the support code is built, with
+ * no place.
+ */
+const tagsOf = (method: string, tags: string, where: string) => {
+  try {
+    return parse(tags);
+  } catch (error) {
+    const reason = (
+      error instanceof Error ? error.message : String(error)
+    ).replace(
+      /^Tag expression ".*" could not be parsed because of syntax error: /,
+      "",
+    );
+    throw locatedError(
+      `${method}'s tags "${tags}" aren't a valid tag expression (${reason})`,
+      [where],
+    );
+  }
+};
+
+/**
  * Builds the support code from `calls`, in order. `wrapper` is `setDefinitionFunctionWrapper`'s
  * function, if any; `expressionOf` the host's rewrite of a step's cucumber expression. Throws
  * cucumber's error for a call it refuses.
@@ -66,6 +88,8 @@ export const buildSupportCode = (
   },
 ): SupportCode => {
   const builder = buildCoreSupportCode({ newId });
+  /** Each parameter type defined: its name, its call (an error's place). */
+  const parameterTypes: { name: unknown; where: string }[] = [];
   /** Each step's cucumber expression: as written, as compiled, its call (an error's place). */
   const stepExpressions: {
     method: string;
@@ -160,6 +184,10 @@ export const buildSupportCode = (
           method,
           location: where,
         });
+        // Checked here, at the call (cucumber's core parses them again as it builds).
+        if (typeof options.tags === "string" && options.tags !== "") {
+          tagsOf(method, options.tags, where);
+        }
         const hook = {
           fn: handleOf({
             code: wrap(code),
@@ -189,7 +217,8 @@ export const buildSupportCode = (
           code: wrap(code),
           timeout: options.timeout as number | undefined,
           thisFirst: takesFirst(code, "world"),
-          ...(typeof tags === "string" && tags !== "" && { tags: parse(tags) }),
+          ...(typeof tags === "string" &&
+            tags !== "" && { tags: tagsOf(method, tags, where) }),
         });
       } else if (method === "BeforeAll" || method === "AfterAll") {
         const { options, code } = hookArgs(false);
@@ -221,6 +250,7 @@ export const buildSupportCode = (
           useForSnippets,
           preferForRegexpMatch,
         } = args[0] as Options;
+        parameterTypes.push({ name, where });
         builder.parameterType({
           name: name as string,
           regexp: regexp as RegExp | string | RegExp[] | string[],
@@ -274,7 +304,23 @@ export const buildSupportCode = (
           [step.where],
         );
       }
-      throw error;
+      // A parameter type's name taken (cucumber's own, or defined twice): at its definitions.
+      const message = error instanceof Error ? error.message : String(error);
+      const taken = /^There is already a parameter type with name (.+)$/.exec(
+        message,
+      )?.[1];
+      const defined = parameterTypes.filter(({ name }) => name === taken);
+      if (defined.length > 0) {
+        throw locatedError(
+          `defineParameterType's name "${String(taken)}" is already a parameter type's, give it another name`,
+          defined.map(({ where }) => where),
+        );
+      }
+      // Anything else cucumber refuses as it builds: its error, under the plugin's.
+      throw pluginError("the support code can't be built", {
+        quiet: true,
+        cause: error,
+      });
     }
   };
   const library = build();

@@ -663,6 +663,9 @@ Feature: Running feature files
     When I open vitest without a watcher in <mode> mode
     And I run its tests
     Then the feature file "features/a.feature" fails
+    And it runs the scenarios:
+      | NAME         | STATUS    |
+      | a later step | undefined |
     When the file "features/later.ts" is added, unseen, with:
       """
       import { Given } from "@cucumber/cucumber";
@@ -710,3 +713,7 @@ Feature: Running feature files
       """
     And I run its tests
     Then the feature file "src/a.feature" fails
+    And the output contains:
+      """
+      src/a.stories.ts has no story "First" (it has Renamed)
+      """

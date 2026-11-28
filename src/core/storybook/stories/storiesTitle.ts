@@ -7,6 +7,7 @@
 // is taken as written too). Both hosts make them from Storybook's options (its config folder,
 // its presets' `stories`: `autoTitleOfStorybook`): the preset has them (`../preset/project.ts`),
 // story tests get the same ones, the preset's (`../../storybookPlugin.ts`, from its `viteFinal`).
+import { getStoryTitle } from "storybook/internal/common";
 import type { StoriesEntry } from "storybook/internal/types";
 import type { PresetOptions } from "../preset/project.ts";
 
@@ -14,7 +15,7 @@ import type { PresetOptions } from "../preset/project.ts";
 export type AutoTitleOf = (file: string) => Promise<string | undefined>;
 
 /** Storybook's `stories` patterns (`entries`), and the folder they're written from. */
-export interface StoriesPatterns {
+interface StoriesPatterns {
   from: string;
   entries: StoriesEntry[];
 }
@@ -28,16 +29,12 @@ const withoutPrefix = (entry: StoriesEntry): StoriesEntry =>
         ...(entry.files !== undefined && { files: entry.files }),
       };
 
-/**
- * Storybook's automatic titles by `stories`, read at the first ask (Storybook's own function
- * loaded then: only a Storybook project asks).
- */
+/** Storybook's automatic titles by `stories`, read at the first ask. */
 export const createAutoTitleOf = (
   stories: () => Promise<StoriesPatterns>,
 ): AutoTitleOf => {
   let patterns: Promise<StoriesPatterns> | undefined;
   return async (file) => {
-    const { getStoryTitle } = await import("storybook/internal/common");
     const { from, entries } = await (patterns ??= stories());
     return getStoryTitle({
       storyFilePath: file,

@@ -51,6 +51,3 @@ export const createStoriesLinks = (onChange: () => void = () => undefined) => {
     },
   };
 };
-
-/** A project's stories links (`createStoriesLinks`). */
-export type StoriesLinks = ReturnType<typeof createStoriesLinks>;

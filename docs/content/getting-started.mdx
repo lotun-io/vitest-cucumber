@@ -4,7 +4,7 @@ import { Callout, FileTree, Steps, Tabs } from "nextra/components";
 
 ## Requirements
 
-- Node.js 24 or later
+- Node.js 24, or 26 and later
 - Vitest 5
 - [`@cucumber/cucumber`](https://github.com/cucumber/cucumber-js) 13
 
@@ -31,15 +31,18 @@ The steps below create these files:
 
 <Tabs items={["pnpm", "npm", "yarn"]}>
   <Tabs.Tab>
-    ```bash pnpm add -D @lotun/vitest-cucumber@beta @cucumber/cucumber vitest
+    ```bash
+    pnpm add -D @lotun/vitest-cucumber@beta @cucumber/cucumber vitest
     ```
   </Tabs.Tab>
   <Tabs.Tab>
-    ```bash npm install -D @lotun/vitest-cucumber@beta @cucumber/cucumber vitest
+    ```bash
+    npm install -D @lotun/vitest-cucumber@beta @cucumber/cucumber vitest
     ```
   </Tabs.Tab>
   <Tabs.Tab>
-    ```bash yarn add -D @lotun/vitest-cucumber@beta @cucumber/cucumber vitest
+    ```bash
+    yarn add -D @lotun/vitest-cucumber@beta @cucumber/cucumber vitest
     ```
   </Tabs.Tab>
 </Tabs>
@@ -66,8 +69,8 @@ export default defineConfig({
 
 <Callout type="warning">
   Both are required. Without `test.include`, Vitest looks for its default
-  `*.test.ts` files and finds no feature files. Without `import`, no step
-  definitions load: every step is undefined.
+  `*.test.ts` files and finds no feature files. Without `import`, Vitest
+  doesn't start: `the "import" option is missing, give it your support code's globs`.
 </Callout>
 
 To keep the options in a file of their own, import them from it:

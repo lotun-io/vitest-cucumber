@@ -82,8 +82,9 @@ may be in: next to its stories file, or in `features/`. With a `titlePrefix` on 
 
 `cucumber()` from `@lotun/vitest-cucumber/storybook/node` is the addon, with the plugin's
 [options](/reference/options): Storybook and its story tests both use them. Write them inline, or
-import them from a file of your own. `import` is resolved from the directory Storybook starts in,
-your project's root.
+import them from a file of your own. `import` is resolved from the folder that holds Storybook's
+config folder (`.storybook`'s parent, usually your project's root), wherever Storybook or Vitest
+starts.
 
 ### Keep `cucumber()` out of the Storybook test project
 

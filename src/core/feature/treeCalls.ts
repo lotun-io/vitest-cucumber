@@ -17,7 +17,7 @@ interface LineCalls {
 }
 
 /** How a mode writes a suite's call (opening its body: `… () => {`) and a test's. */
-export interface TreeCalls {
+interface TreeCalls {
   describe: (suite: FeatureSuite) => string;
   test: (test: FeatureTest) => string;
 }

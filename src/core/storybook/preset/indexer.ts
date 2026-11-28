@@ -3,9 +3,10 @@
 // index there as well, once (its builder's Vite plugin asks for it as the project's config is
 // resolved), and a docs page of a feature (`<Meta of={…}>` in an MDX file) needs the feature's
 // entries, or the index fails and Vitest can't start: a broken one too (its own story alone).
+import { loadCsf } from "storybook/internal/csf-tools";
 import { brokenFeatureStories } from "../stories/featureStories.ts";
 import type { IndexInput, MakeTitle } from "../stories/indexEntries.ts";
-import { storybookTagsOf } from "../stories/storybookTags.ts";
+import { storybookTags } from "../stories/storybookTags.ts";
 import { type PresetOptions, projectOf } from "./project.ts";
 
 /** A Storybook indexer, as a preset's `experimental_indexers` gets and gives them. */
@@ -42,8 +43,7 @@ export const featureIndexer = (options: PresetOptions): Indexer => ({
       if (!process.env.VITEST) {
         throw plan.error;
       }
-      const { loadCsf } = await import("storybook/internal/csf-tools");
-      return loadCsf(brokenFeatureStories(await storybookTagsOf()), {
+      return loadCsf(brokenFeatureStories(storybookTags), {
         makeTitle,
         fileName,
       }).parse().indexInputs;

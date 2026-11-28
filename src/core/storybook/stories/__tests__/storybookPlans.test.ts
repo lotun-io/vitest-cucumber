@@ -467,3 +467,19 @@ test("its tests' Vitest tags: their pickles' but Storybook's built-in ones (`@ta
     'tags: ["!dev","slow","!test","@smoke","!autodocs","!manifest"]',
   );
 });
+
+test("a feature fixed before the plugin's watcher tells it (Storybook's indexer asking first): planned, not its old error", async () => {
+  stories("src/Fixed.stories.ts", ["S"]);
+  const id = file("src/Fixed.feature", linked("Fixed", "./Fixed.stories.ts"));
+  const { storybook, fileChanged } = project();
+  expect(await storybook.storybookPlanOf(id)).not.toHaveProperty("error");
+  // Broken, and its event told: its label can't be read.
+  file("src/Fixed.feature", "@tag\nNot Gherkin\n");
+  await fileChanged("change", id);
+  expect(await storybook.storybookPlanOf(id)).toHaveProperty("error");
+  // Fixed, and Storybook's indexer asks before the plugin's watcher tells it.
+  file("src/Fixed.feature", linked("Fixed", "./Fixed.stories.ts"));
+  expect(
+    await storybook.storybookIndexPlanOf(id, () => "T"),
+  ).not.toHaveProperty("error");
+});

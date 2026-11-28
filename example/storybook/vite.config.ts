@@ -21,7 +21,9 @@ export default defineConfig({
           // `pnpm test:smoke` runs only the `@smoke` ones.
           storybookTest({
             configDir: path.join(dirname, ".storybook"),
-            ...(process.env.TAGS && { tags: { include: process.env.TAGS.split(",") } }),
+            ...(process.env.TAGS && {
+              tags: { include: process.env.TAGS.split(",") },
+            }),
           }),
           // No cucumber() here: the plugin's addon in `.storybook/main.ts` gives this project its
           // plugins, with its options.
@@ -29,7 +31,7 @@ export default defineConfig({
         test: {
           name: "storybook",
           // Storybook's addon turns file writing off unless set: without it, Vitest drops the data
-          // of a step's attachments (`this.attach`), keeping their names.
+          // of a step's attachments (`world.attach`), keeping their names.
           api: { allowWrite: true },
           browser: {
             enabled: true,

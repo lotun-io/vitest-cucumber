@@ -42,6 +42,39 @@ export default defineConfig(
     },
   },
   {
+    // Main's and node mode's code but Storybook's own: never Storybook as a value (an optional peer:
+    // a node or browser mode project, without it, loads this). Only the preset reaches Storybook's
+    // modules (`core/storybook/`, `core/storybookPlugin.ts`), and only Storybook loads the preset.
+    // The page's code is the next rule's (no package but the pre-bundled ones, nothing of `core/`).
+    files: ["src/*.ts", "src/core/**/*.ts", "src/worker/node/**/*.ts"],
+    ignores: [
+      "src/core/storybook/**",
+      "src/core/storybookPlugin.ts",
+      "src/**/__tests__/**",
+    ],
+    rules: {
+      "@typescript-eslint/no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              regex: "^(storybook|@storybook/.+)(/.*)?$",
+              allowTypeImports: true,
+              message:
+                "Storybook is an optional peer: only the preset's modules (`core/storybook/`) import it.",
+            },
+            {
+              regex: "^\\.\\.?/(.*/)?(storybook/|storybookPlugin\\.ts$)",
+              allowTypeImports: true,
+              message:
+                "Storybook's modules import Storybook: only the preset reaches them, or a project without Storybook would load it.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     // Runs in the page (browser mode): no Node.js, nothing of main's or node mode's, and cucumber's
     // types only (the page's `@cucumber/cucumber` is the plugin's stand-in, `worker/cucumber/page.ts`).
     files: ["src/worker/**/*.ts", "src/utils/**/*.ts", "src/types/**/*.ts"],

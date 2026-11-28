@@ -6,7 +6,7 @@
 // module found by Vite (`getModuleByUrl`, the URL handling Vite's own: its timestamp and import
 // queries, its resolution; a `/@fs/` file, which the parser gives as its path, by `getModulesByFile`),
 // asked first (it's async, the parser's lookups aren't), and its source map as Vitest finds it (a copy
-// of `@vitest/browser` 5.1.0's `ParentBrowserProject` `getSourceMap`); none of Vitest's default ignored
+// of `@vitest/browser` 5.1.2's `ParentBrowserProject` `getSourceMap`); none of Vitest's default ignored
 // frames, as browser mode's (`../../commands/locate.ts`).
 import { parseStacktrace } from "@vitest/utils/source-map";
 import { extractSourcemapFromFile } from "@vitest/utils/source-map/node";

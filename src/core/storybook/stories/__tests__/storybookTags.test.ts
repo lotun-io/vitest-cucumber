@@ -1,14 +1,10 @@
 import { combineTags } from "storybook/internal/csf";
 import { expect, test } from "vitest";
 import { tagOf } from "../../../feature/tagTransform.ts";
-import {
-  declaredTagsOf,
-  storybookTagsOf,
-  testTagsOf,
-} from "../storybookTags.ts";
+import { declaredTagsOf, storybookTags, testTagsOf } from "../storybookTags.ts";
 
 test("Storybook's built-in tags: its own constants (`Tag`, `storybook/preview-api`)", async () => {
-  expect(await storybookTagsOf()).toMatchObject({
+  expect(storybookTags).toMatchObject({
     DEV: "dev",
     TEST: "test",
     AUTODOCS: "autodocs",
@@ -18,7 +14,7 @@ test("Storybook's built-in tags: its own constants (`Tag`, `storybook/preview-ap
 });
 
 test("a test's tags: its Gherkin tags but Storybook's, the built-in ones and the ones the scenario takes off, taken off or not; `@dev` as written is a plain tag", async () => {
-  const builtIns = await storybookTagsOf();
+  const builtIns = storybookTags;
   const tags = [
     "@smoke",
     "@tag(dev)",
@@ -41,7 +37,7 @@ test("a test's tags: its Gherkin tags but Storybook's, the built-in ones and the
 });
 
 test("a project's declared tags: every tag a test may have, so without the `!` forms and the built-in ones; one a scenario takes off still declared (another may have it)", async () => {
-  const builtIns = await storybookTagsOf();
+  const builtIns = storybookTags;
   const tags = ["@smoke", "smoke", "!smoke", "dev", "!dev", "slow"];
   expect(declaredTagsOf(tags, builtIns)).toEqual(["@smoke", "smoke", "slow"]);
 });

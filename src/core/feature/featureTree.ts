@@ -95,7 +95,7 @@ export const featureTree = (
 };
 
 /** A test's place in its feature's tree: the test, and the names of the suites above it. */
-export interface TestPlace {
+interface TestPlace {
   test: FeatureTest;
   /** Its rule's and its outline's names, as they are (the feature's left out). */
   suites: string[];

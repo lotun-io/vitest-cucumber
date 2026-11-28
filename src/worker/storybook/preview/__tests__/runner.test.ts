@@ -37,7 +37,9 @@ const fakes = () => {
       .fn<() => Promise<ScenarioOutcome>>()
       .mockResolvedValue({ annotations: [] }),
   };
-  const note = vi.fn<(label: string) => void>();
+  const note = vi
+    .fn<(label: string) => Promise<void>>()
+    .mockResolvedValue(undefined);
   const importSupport = async () => undefined;
   const runner = createPreviewRunner({
     platform,
@@ -113,6 +115,24 @@ describe("the preview's runner", () => {
     await runner.run(scenario);
     await runner.run(scenario);
     expect(note.mock.calls).toEqual([["Skipped: not ready"], ["Skipped"]]);
+  });
+
+  test("a story ends once its notes are done (each a step of the story, which Storybook's step debugger holds)", async () => {
+    const { platform, note, runner } = fakes();
+    let noted: () => void = () => undefined;
+    note.mockReturnValueOnce(
+      new Promise<void>((resolve) => {
+        noted = resolve;
+      }),
+    );
+    platform.scenario.mockResolvedValue({ annotations: [], skipped: {} });
+    const ended = vi.fn();
+    const running = runner.run(scenario).then(ended);
+    await vi.waitFor(() => expect(note).toHaveBeenCalledTimes(1));
+    expect(ended).not.toHaveBeenCalled();
+    noted();
+    await running;
+    expect(ended).toHaveBeenCalledTimes(1);
   });
 
   test("AfterAll: only once BeforeAll ran, once; a later story runs BeforeAll again", async () => {

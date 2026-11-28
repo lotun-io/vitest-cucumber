@@ -51,8 +51,9 @@ export const setRunner = (pageRunner: PageRunner) => {
  * Runs `target` (its scenario: the pickle at its line) for `context`'s story, on the page's runner,
  * once the story playing ends: a page runs one story at a time (the running story, the page's World
  * and its uncaught errors' listeners are its own). Storybook's preview reloads the page as another
- * story is chosen or the story is remounted mid-play, but not as an HMR update re-renders it: its
- * new play starts as the old one still runs (its steps run to their end, their timeouts bound it).
+ * story is chosen or the story is remounted mid-play, but not as an HMR update re-renders it:
+ * Storybook starts its new play as the old one still runs, and the new one waits here (the old
+ * one's steps run to their end, their timeouts bound it).
  */
 export const runStory = async (
   context: StoryContextLike,
@@ -128,7 +129,11 @@ export const storyEnvironment = () => ({
   expressionOf: storybookExpressionOf,
 });
 
-/** Adds an empty step labelled `label` to the running story (a skip, an annotation). */
-export const storyNote = (label: string) => {
-  void current?.step?.(label, async () => undefined);
+/**
+ * Adds an empty step labelled `label` to the running story (a skip, an annotation), done once
+ * Storybook ran it: in the Interactions panel's step debugger a step waits for the user, and a note
+ * not awaited would run after the play ended (Storybook's error then a rejection nobody handles).
+ */
+export const storyNote = async (label: string) => {
+  await current?.step?.(label, async () => undefined);
 };

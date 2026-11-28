@@ -12,7 +12,7 @@
 // unless a tag definition sets one; never concurrent); a scenario without one (left out by
 // Storybook's tag filter) skips itself, as the addon's own story tests do for its `skip` tags.
 // Each suite and test is put at its Gherkin place, the one its call carries (`locate`), which works
-// around Vitest's page (its bug, 5.1.1, to report: plain Storybook has it too, `vitest run
+// around Vitest's page (its bug, 5.1.1 and 5.1.2: `notes/issues.md` 32; plain Storybook has it too, `vitest run
 // Cart.stories.ts:5` finds no test where `vitest list` shows one): it puts a task where its call
 // is in the module the page was served, and applies a `file:line` filter to that before it reads
 // the module's map; the addon prints the module again, so its lines aren't the feature file's (a

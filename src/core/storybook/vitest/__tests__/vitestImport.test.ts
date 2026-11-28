@@ -18,6 +18,7 @@ describe("a feature's stories module after the addon's transform: its Vitest imp
     const result = vitestFromFeature({
       code: generated,
       file: "/p/Login.feature",
+      uri: "Login.feature",
       featureModule,
       testUtils,
       lines: 3,
@@ -43,6 +44,7 @@ describe("a feature's stories module after the addon's transform: its Vitest imp
       vitestFromFeature({
         code: "export const LogIn = {};",
         file: "/p/Login.feature",
+        uri: "Login.feature",
         featureModule,
         testUtils,
         lines: 2,
@@ -55,10 +57,15 @@ describe("a feature's stories module after the addon's transform: its Vitest imp
       vitestFromFeature({
         code: `import { testStory } from "${testUtils}";`,
         file: "/p/Login.feature",
+        uri: "Login.feature",
         featureModule,
         testUtils,
         lines: 1,
       }),
-    ).toThrow("aren't written as the plugin expects");
+    ).toThrow(
+      new Error(
+        "[@lotun/vitest-cucumber] Storybook's story tests aren't written as the plugin expects, your Storybook may be newer than the plugin supports (no `test` imported from \"vitest\")\n  Login.feature",
+      ),
+    );
   });
 });

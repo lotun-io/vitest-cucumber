@@ -578,7 +578,7 @@ Feature: Plugin options
     Then it fails
     And the output contains:
       """
-      [Error: [@lotun/vitest-cucumber] the "worldParameters" option can't be converted to JSON] {
+      [Error: [@lotun/vitest-cucumber] the "worldParameters" option can't be converted to JSON, give it plain data (objects, arrays, strings, numbers, booleans)] {
         [cause]: TypeError: Do not know how to serialize a BigInt
       """
 

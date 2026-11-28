@@ -64,8 +64,16 @@ const timesOf = async (dir: string) => {
   );
 };
 
-/** When each scenario last saved or deleted a file. */
-const saved = new WeakMap<E2EWorld, number>();
+/** When each scenario last saved or deleted a file, and its page's loads then. */
+const saved = new WeakMap<E2EWorld, { at: number; loads: number }>();
+
+/** A file saved or deleted now: its time, and how many times the page had loaded by then. */
+const markSaved = (world: E2EWorld) => {
+  saved.set(world, {
+    at: Date.now(),
+    loads: world.storybookPage?.loads.count ?? 0,
+  });
+};
 
 /**
  * How long after a save a reload it causes may still come: the page reloads ~0.1 s after one that
@@ -97,7 +105,7 @@ When(
   async (world: E2EWorld, name: string, content: string) => {
     world.fileTimes ??= await timesOf(world.dir);
     await writeFile(world.file(name), content);
-    saved.set(world, Date.now());
+    markSaved(world);
   },
 );
 
@@ -120,14 +128,14 @@ When(
       world.file(name),
       text.replace(from, toDouble ?? toSingle ?? ""),
     );
-    saved.set(world, Date.now());
+    markSaved(world);
   },
 );
 
 When("I delete the file {string}", async (world: E2EWorld, name: string) => {
   world.fileTimes ??= await timesOf(world.dir);
   await rm(world.file(name));
-  saved.set(world, Date.now());
+  markSaved(world);
 });
 
 /** The open page's text (none while it's loading). */
@@ -137,55 +145,100 @@ const textOf = (world: E2EWorld) =>
     .innerText({ timeout: 1000 })
     .catch(() => "");
 
+/**
+ * The open page as it is: whether it shows a story (Storybook's preview marks its `<body>`
+ * `sb-show-main`; else it's preparing one, or shows Storybook's error or no preview), and its text.
+ */
+const stateOf = async (world: E2EWorld) => ({
+  shown: await pageOf(world)
+    .page.locator("body")
+    .getAttribute("class", { timeout: 1000 })
+    .then((classes) => (classes ?? "").split(" ").includes("sb-show-main"))
+    .catch(() => false),
+  text: await textOf(world),
+});
+
 Then(
   "its page shows {string}",
   { timeout },
   async (world: E2EWorld, text: string) => {
+    // On a page that shows a story: Storybook's error screen may quote the text too.
+    const state = await eventually(
+      () => stateOf(world),
+      ({ shown, text: shownText }) => shown && shownText.includes(text),
+    );
+    expect(state.text).toContain(text);
     expect(
-      await eventually(
-        () => textOf(world),
-        (shown) => shown.includes(text),
-      ),
-    ).toContain(text);
+      state.shown,
+      `the page shows no story (Storybook's error, or still loading):\n${state.text}`,
+    ).toBe(true);
   },
 );
 
+// On a page that shows a story: a blank page, one still loading or Storybook's error shows no text.
 Then(
   "its page no longer shows {string}",
   { timeout },
   async (world: E2EWorld, text: string) => {
+    const state = await eventually(
+      () => stateOf(world),
+      ({ shown, text: shownText }) => shown && !shownText.includes(text),
+    );
     expect(
-      await eventually(
-        () => textOf(world),
-        (shown) => !shown.includes(text),
-      ),
-    ).not.toContain(text);
+      state.shown,
+      `the page shows no story (loading, blank or Storybook's error):\n${state.text}`,
+    ).toBe(true);
+    expect(state.text).not.toContain(text);
   },
 );
 
 // Not before a reload the last save causes would have come (`settle`).
+// Since the last save (or since it was opened): not before a reload it causes would have come.
 Then("its page didn't reload", async (world: E2EWorld) => {
-  const wait = (saved.get(world) ?? 0) + settle - Date.now();
+  const last = saved.get(world);
+  const wait = (last?.at ?? 0) + settle - Date.now();
   if (wait > 0) {
     await new Promise((resolve) => setTimeout(resolve, wait));
   }
-  expect(pageOf(world).loads.count).toBe(0);
+  expect(pageOf(world).loads.count).toBe(last?.loads ?? 0);
 });
 
-Then("its page reloaded", (world: E2EWorld) => {
-  expect(pageOf(world).loads.count).toBeGreaterThan(0);
+// Since the last save: a reload it caused, waited for (an earlier one isn't it).
+Then("its page reloaded", { timeout }, async (world: E2EWorld) => {
+  const before = saved.get(world)?.loads ?? 0;
+  expect(
+    await eventually(
+      () => Promise.resolve(pageOf(world).loads.count),
+      (count) => count > before,
+    ),
+  ).toBeGreaterThan(before);
 });
 
-/** The ids of Storybook's index's entries (none while it can't be made). */
-const indexOf = async (world: E2EWorld) => {
+/** The ids of Storybook's index's entries, or why it can't be made (its status, its text). */
+const indexOf = async (
+  world: E2EWorld,
+): Promise<{ ids: string[] } | { failed: string }> => {
   const response = await fetch(`${devOf(world).url}/index.json`).catch(
-    () => undefined,
+    (error: unknown) => String(error),
   );
-  if (!response?.ok) {
-    return [];
+  if (typeof response === "string") {
+    return { failed: response };
+  }
+  if (!response.ok) {
+    return {
+      failed: `${String(response.status)}: ${await response.text()}`,
+    };
   }
   const index = (await response.json()) as { entries: Record<string, unknown> };
-  return Object.keys(index.entries);
+  return { ids: Object.keys(index.entries) };
+};
+
+/** An index's ids, its failure said (the step's own error). */
+const idsOf = (index: Awaited<ReturnType<typeof indexOf>>) => {
+  if ("failed" in index) {
+    throw new Error(`Storybook's index couldn't be made (${index.failed})`);
+  }
+  return index.ids;
 };
 
 Then(
@@ -193,9 +246,11 @@ Then(
   { timeout },
   async (world: E2EWorld, story: string) => {
     expect(
-      await eventually(
-        () => indexOf(world),
-        (ids) => ids.includes(story),
+      idsOf(
+        await eventually(
+          () => indexOf(world),
+          (index) => "ids" in index && index.ids.includes(story),
+        ),
       ),
     ).toContain(story);
   },
@@ -205,10 +260,13 @@ Then(
   "its index has no story {string}",
   { timeout },
   async (world: E2EWorld, story: string) => {
+    // An index that was made: one that can't be has no story either.
     expect(
-      await eventually(
-        () => indexOf(world),
-        (ids) => !ids.includes(story),
+      idsOf(
+        await eventually(
+          () => indexOf(world),
+          (index) => "ids" in index && !index.ids.includes(story),
+        ),
       ),
     ).not.toContain(story);
   },

@@ -68,7 +68,7 @@ Feature: Vitest workers
       { "maxWorkers": 1, "isolate": <isolate> }
       """
     Then it passes
-    And the scenarios log 1 different worker id
+    And the scenarios log the worker id "1"
 
     Examples:
       | mode      | isolate |

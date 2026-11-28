@@ -7,7 +7,12 @@ import path from "node:path";
 import { Writable } from "node:stream";
 import { inspect } from "node:util";
 import { createLogger } from "vite";
-import type { CliOptions, TestSpecification, Vitest } from "vitest/node";
+import type {
+  CliOptions,
+  TestModule,
+  TestSpecification,
+  Vitest,
+} from "vitest/node";
 import { createVitest, startVitest } from "vitest/node";
 import { checkPluginModules } from "./config.ts";
 import { collectingReporter, collectMessages } from "./messages.ts";
@@ -64,38 +69,52 @@ process.prependListener("unhandledRejection", (reason) => {
 });
 
 /**
- * While a nested Vitest runs, its `process.exit` (its logger's, on an unhandled rejection in this
- * process) fails the step with the rejection and what the run printed, not just Vitest's guard's
- * `process.exit unexpectedly called`. Returns the restore.
+ * The nested Vitests running in this process, each with its output: usually one, but a step that
+ * timed out leaves its own running as the next scenario starts another.
  */
-export const showExit = (output: ReturnType<typeof capture>) => {
-  const { exit } = process;
-  lastRejection = undefined;
-  process.exit = ((code?: number) => {
-    const rejection =
-      lastRejection === undefined
-        ? ""
-        : `\nThe unhandled rejection: ${inspect(lastRejection)}`;
-    throw new Error(
-      `The nested Vitest called process.exit(${String(code ?? process.exitCode)}).${rejection}\nIts output:\n${output.text()}`,
-    );
-  }) as typeof process.exit;
-  return () => {
-    process.exit = exit;
-  };
-};
+const guarded: { output: ReturnType<typeof capture> }[] = [];
+
+/** What the guard set aside as the first of them started: restored as the last one ends. */
+let setAside:
+  { exit: typeof process.exit; exitCode: typeof process.exitCode } | undefined;
 
 /**
  * While a nested Vitest runs in this process: the process' exit code set aside (Vitest reports a
- * run's result as it) and a `process.exit` shown (`showExit`). Returns the restore.
+ * run's result as it), and its `process.exit` (its logger's, on an unhandled rejection in this
+ * process) failing the step with the rejection and what the run printed, not just Vitest's guard's
+ * `process.exit unexpectedly called`. Returns its end: the process as it was once the last running
+ * Vitest ends, whatever order they end in (each end once).
  */
 export const guardProcess = (output: ReturnType<typeof capture>) => {
-  const { exitCode } = process;
+  if (guarded.length === 0) {
+    setAside = { exit: process.exit, exitCode: process.exitCode };
+    lastRejection = undefined;
+    process.exit = ((code?: number) => {
+      const rejection =
+        lastRejection === undefined
+          ? ""
+          : `\nThe unhandled rejection: ${inspect(lastRejection)}`;
+      const latest = guarded.at(-1)?.output.text() ?? "";
+      throw new Error(
+        `The nested Vitest called process.exit(${String(code ?? process.exitCode)}).${rejection}\nIts output:\n${latest}`,
+      );
+    }) as typeof process.exit;
+  }
+  // Each run's own result: its exit code from its start.
   process.exitCode = undefined;
-  const restoreExit = showExit(output);
+  const entry = { output };
+  guarded.push(entry);
   return () => {
-    restoreExit();
-    process.exitCode = exitCode;
+    const at = guarded.indexOf(entry);
+    if (at === -1) {
+      return;
+    }
+    guarded.splice(at, 1);
+    if (guarded.length === 0 && setAside) {
+      process.exit = setAside.exit;
+      process.exitCode = setAside.exitCode;
+      setAside = undefined;
+    }
   };
 };
 
@@ -108,17 +127,31 @@ export const runResult = (
   dir: string,
   { exitCode, output }: Pick<RunResult, "exitCode" | "output">,
   specifications?: readonly Pick<TestSpecification, "moduleId" | "project">[],
+): RunResult =>
+  resultOfModules(
+    dir,
+    { exitCode, output },
+    vitest.state
+      .getTestModules()
+      .filter(
+        (module) =>
+          !specifications ||
+          specifications.some(
+            ({ moduleId, project }) =>
+              moduleId === module.moduleId && project === module.project,
+          ),
+      ),
+  );
+
+/**
+ * What a run reported of its test `modules` (see `RunResult`): theirs as they are, a run's own
+ * (Vitest makes each module again for each run, so an ended run's keep its states).
+ */
+export const resultOfModules = (
+  dir: string,
+  { exitCode, output }: Pick<RunResult, "exitCode" | "output">,
+  modules: readonly TestModule[],
 ): RunResult => {
-  const modules = vitest.state
-    .getTestModules()
-    .filter(
-      (module) =>
-        !specifications ||
-        specifications.some(
-          ({ moduleId, project }) =>
-            moduleId === module.moduleId && project === module.project,
-        ),
-    );
   return {
     dir,
     exitCode,
@@ -184,7 +217,7 @@ export class StartupError extends Error {
  * Starts Vitest in the scenario's project, as `vitest [filters]` in its directory would, with
  * Vitest's command line options (`root` from the scenario's project), its runs' messages into
  * `messages` if given (`./messages.ts`: a reporter of its own); its output is recorded until `end`, which restores this
- * process.
+ * process, into `output` if given (a reporter of the caller's reads it as the first run goes).
  */
 export async function startSession(
   this: E2EWorld,
@@ -192,9 +225,14 @@ export async function startSession(
     filters = [],
     options = {},
     messages,
-  }: { filters?: string[]; options?: CliOptions; messages?: Envelope[] },
+    output = capture(),
+  }: {
+    filters?: string[];
+    options?: CliOptions;
+    messages?: Envelope[];
+    output?: ReturnType<typeof capture>;
+  },
 ) {
-  const output = capture();
   // Vitest reports its result as the process' exit code: this process' until `end`.
   const end = guardProcess(output);
   try {

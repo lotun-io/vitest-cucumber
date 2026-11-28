@@ -8,7 +8,7 @@
 // finds them. Page-safe.
 
 /** The timers and clock the runtime uses. */
-export interface RealTimers {
+interface RealTimers {
   setTimeout: (callback: () => void, milliseconds: number) => unknown;
   clearTimeout: (id: unknown) => void;
   /** `Date.now`. */

@@ -38,6 +38,7 @@ import { slash } from "../../utils/slash.ts";
 import { runOptionsOf, type Configuration } from "../plugin/options.ts";
 import { supportFilesOf } from "../support/supportFiles.ts";
 import { fileCache } from "../utils/fileCache.ts";
+import { fileErrorReason } from "../utils/fileErrorReason.ts";
 import { isFeatureFile } from "./featureFile.ts";
 import { tagsOf, tagsOfDocument } from "./featureTags.ts";
 import { parseErrorOf } from "./parseErrors.ts";
@@ -78,16 +79,17 @@ type Parsed = Pick<VitestPlan, "uri" | "tags" | "featureTree" | "gherkin">;
 
 /**
  * A failed plan for `error`: whatever stopped a file from having a plan. The plugin's own errors
- * as they are (the file's: it can't be parsed, read, linked); anything else is the plugin's bug,
- * the error its cause.
+ * as they are (the file's: it can't be parsed, read, linked; or the plugin's bug, `internal`);
+ * any other (Node's, Storybook's, the project's own) under the plugin's `header`, the error its
+ * cause: what went wrong is the error's to say, not a bug of the plugin's.
  */
-export const failedPlan = (error: unknown): FailedPlan => ({
+export const failedPlan = (
+  error: unknown,
+  header = "feature file can't be planned",
+): FailedPlan => ({
   error: isPluginError(error)
     ? error
-    : pluginError("a feature file's plan couldn't be made", {
-        internal: true,
-        cause: error,
-      }),
+    : pluginError(header, { quiet: true, cause: error }),
 });
 
 /** The feature plans of the project at `root`, with the user's `configuration` (their options, with cucumber's defaults). */
@@ -108,11 +110,10 @@ export const createFeaturePlans = ({
     try {
       return { content: await readFile(file, "utf8"), uri };
     } catch (error) {
-      // Node's reason, without the path it names (absolute: the place says it).
-      const reason = (
-        error instanceof Error ? error.message : String(error)
-      ).replace(/, \w+ '[^']*'$/, "");
-      throw locatedError(`feature file can't be read (${reason})`, [uri]);
+      throw locatedError(
+        `feature file can't be read (${fileErrorReason(error)})`,
+        [uri],
+      );
     }
   };
   type FeatureFile = Awaited<ReturnType<typeof read>>;

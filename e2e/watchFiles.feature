@@ -129,6 +129,10 @@ Feature: Watch mode: files
         this line is not gherkin
       """
     Then the feature file "features/a.feature" fails
+    And the output contains:
+      """
+      [@lotun/vitest-cucumber] feature file can't be parsed
+      """
     When I change the file "features/a.feature" to:
       """
       Feature: A
@@ -243,6 +247,10 @@ Feature: Watch mode: files
       export const Renamed = {};
       """
     Then the feature file "src/a.feature" fails
+    And the output contains:
+      """
+      src/a.stories.ts has no story "First" (it has Renamed)
+      """
     When I change the file "src/a.stories.ts" to:
       """
       export default { title: "A", render: () => null };

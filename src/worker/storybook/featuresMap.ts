@@ -8,7 +8,10 @@
 // import the store itself, and the page never ask for this module (the served one). Page code.
 import type { FeatureSource } from "../../types/storybook.ts";
 
-/** Each stories file's features, by its path from the project's root (`./src/Header.stories.ts`). */
+/**
+ * Each stories file's features, by its import path as Storybook's index has it (`./src/Header.stories.ts`:
+ * from the folder Storybook runs in, `../../core/storybook/preset/importPath.ts`).
+ */
 export const features: Record<string, readonly FeatureSource[]> = {};
 
 /** Calls `listener` as the features change: never here (its stop returned). */

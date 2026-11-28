@@ -28,11 +28,14 @@ const devWatch = ({
   answer = {},
   mapChanged = false,
   failure,
+  mapFailure,
 }: {
   ids?: string[];
   answer?: Partial<typeof nothing>;
   mapChanged?: boolean;
   failure?: Error;
+  /** The features map failing as it's made again. */
+  mapFailure?: Error;
 } = {}) => {
   const log: string[] = [];
   const watcher = new EventEmitter();
@@ -73,7 +76,9 @@ const devWatch = ({
       featuresMap: {
         changed: () => {
           log.push("features map made again");
-          return Promise.resolve(mapChanged);
+          return mapFailure
+            ? Promise.reject(mapFailure)
+            : Promise.resolve(mapChanged);
         },
       },
       onLinkedFeaturesChanged: (listener: () => Promise<void>) => {
@@ -124,6 +129,15 @@ test("which feature runs on which stories file changed: the features map made ag
   const same = devWatch({ ids: [featuresMapId] });
   await same.listeners.linkedFeaturesChanged?.();
   expect(same.log).toEqual(["features map made again"]);
+});
+
+test("the links changed and the features map failed: its error logged, nothing rejected (the plans tell it, no caller to fail)", async () => {
+  const { listeners, error } = devWatch({
+    ids: [featuresMapId],
+    mapFailure: new Error("the map broke"),
+  });
+  await expect(listeners.linkedFeaturesChanged?.()).resolves.toBeUndefined();
+  expect(error).toHaveBeenCalledWith("Error: the map broke");
 });
 
 test("a feature file's event: the features map made again after the plans were told, reloaded if it's another (its own hot update tells the docs blocks), nothing else", async () => {

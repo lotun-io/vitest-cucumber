@@ -356,6 +356,18 @@ Then(
   },
 );
 
+// Every id the scenarios log is `id` (one worker at a time: Vitest's pool id 1).
+Then(
+  "the scenarios log the worker id {string}",
+  (world: E2EWorld, id: string) => {
+    const ids = [...world.lastRun.output.matchAll(/worker id: (\S*)/g)].map(
+      ([, logged]) => logged,
+    );
+    expect(ids, world.lastRun.output).not.toEqual([]);
+    expect(new Set(ids), world.lastRun.output).toEqual(new Set([id]));
+  },
+);
+
 // The cucumber the scenarios' projects get: this repository's.
 Then(
   "the output contains the installed cucumber's version, after {string}",

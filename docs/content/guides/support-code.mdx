@@ -131,7 +131,7 @@ AfterStep((world: CartWorld, { pickleStep, result }) => {
   ```
 
 Cucumber's own `world` and `context` exports work in arrow functions too
-(`import { world } from "@cucumber/cucumber"`), typed as Cucumber's `IWorld`.
+(`import { world } from "@cucumber/cucumber"`), typed as Cucumber's `IWorld` and `IContext`.
 
 #### TypeScript
 
@@ -167,7 +167,7 @@ cucumber({
 }),
 ```
 
-They go through JSON: a value JSON can't hold fails every feature file (a `BigInt`, a cycle), and one
+They go through JSON: a value JSON can't hold stops Vitest or Storybook as it starts (a `BigInt`, a cycle), and one
 it changes arrives changed (a `Date` as a string, a `Map` as `{}`). To share such values, set them on
 its context's `parameters` in a `BeforeAll` (`context.parameters`): every World of that worker gets
 a copy.
