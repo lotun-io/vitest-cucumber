@@ -16,11 +16,12 @@ Feature: Errors before the run
     And it runs no scenarios
     And the output contains:
       """
-      [@lotun/vitest-cucumber] parse error in features/a.feature
+      [@lotun/vitest-cucumber] feature file can't be parsed
       """
     And the output contains:
       """
-      (7:5): expected:
+        - expected: #EOF, #TableRow, #DocStringSeparator, #StepLine, #TagLine, #ExamplesLine, #ScenarioLine, #RuleLine, #Comment, #Empty, got 'This is not a step'
+          features/a.feature:7:5
       """
     # The file's own error in every mode (a page's import isn't what fails: no Vitest wrapper).
     And the output doesn't contain:
@@ -70,11 +71,11 @@ Feature: Errors before the run
       | passing | passed |
     And the output contains:
       """
-      [@lotun/vitest-cucumber] parse error in features/broken.feature
+      [@lotun/vitest-cucumber] feature file can't be parsed
       """
     And the output contains:
       """
-      (7:5): expected:
+          features/broken.feature:7:5
       """
     # The file's own error in every mode (a page's import isn't what fails: no Vitest wrapper).
     And the output doesn't contain:

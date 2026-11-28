@@ -50,7 +50,7 @@ const errorsOf = (linked: LinkedFeature) =>
 /** A linked feature's link (one that's stopped: its errors thrown). */
 const linkOf = (linked: LinkedFeature) => {
   if ("errors" in linked) {
-    throw new Error(linked.errors.join("\n"));
+    throw new Error(linked.errors.map(({ message }) => message).join("\n"));
   }
   return linked;
 };
@@ -71,11 +71,13 @@ const linkedOf = async (
   if (!gherkin) {
     throw new Error("no Gherkin");
   }
-  const steps = await storybookStepsOfFiles([
-    path.join(root, "steps/stories.ts"),
-  ]);
+  const steps = await storybookStepsOfFiles(
+    [path.join(root, "steps/stories.ts")],
+    root,
+  );
   return linkedFeatureOf({
     uri,
+    featureLine: gherkin.document.feature?.location.line ?? 1,
     root,
     linked: featureLinksOf({
       feature: path.join(root, uri),
@@ -137,7 +139,11 @@ describe("a feature file, linked to its stories file", () => {
     expect(linkOf(listed).title).toBe("parts/Card");
     const unlisted = await linkedOf("src/Card.feature", card);
     expect(errorsOf(unlisted)).toEqual([
-      'src/Card.feature:3: src/Card.stories.ts has no title: none is written in its meta, and no pattern of Storybook\'s "stories" matches it (give its meta a "title", or list the file in "stories")',
+      {
+        message:
+          'src/Card.stories.ts has no title: none is written in its meta, and no pattern of Storybook\'s "stories" matches it (give its meta a "title", or list the file in "stories")',
+        at: ["src/Card.feature:3"],
+      },
     ]);
     const named = await linkedOf("features/card.feature", [
       "Feature: Card",
@@ -147,8 +153,15 @@ describe("a feature file, linked to its stories file", () => {
     ]);
     // Every error of its links, the title's among them.
     expect(errorsOf(named)).toEqual([
-      'features/card.feature:3: src/Card.stories.ts has no title: none is written in its meta, and no pattern of Storybook\'s "stories" matches it (give its meta a "title", or list the file in "stories")',
-      'features/card.feature:4: src/Card.stories.ts has no story "Plan" (its stories: Plain)',
+      {
+        message:
+          'src/Card.stories.ts has no title: none is written in its meta, and no pattern of Storybook\'s "stories" matches it (give its meta a "title", or list the file in "stories")',
+        at: ["features/card.feature:3"],
+      },
+      {
+        message: 'src/Card.stories.ts has no story "Plan" (its stories: Plain)',
+        at: ["features/card.feature:4"],
+      },
     ]);
   });
 
@@ -166,7 +179,11 @@ describe("a feature file, linked to its stories file", () => {
       ]),
     ).toEqual({
       errors: [
-        "features/plain.feature names no stories file: a feature file names its stories file once, in its Background, with a stories file step",
+        {
+          message:
+            "the feature names no stories file: a feature file names its stories file once, in its Background, with a stories file step",
+          at: ["features/plain.feature:1"],
+        },
       ],
     });
     expect(
@@ -178,9 +195,11 @@ describe("a feature file, linked to its stories file", () => {
       ]),
     ).toEqual({
       errors: [
-        expect.stringMatching(
-          /^features\/plain\.feature:3: the stories file "src\/Gone\.stories\.ts" doesn't exist /,
-        ),
+        {
+          message:
+            "the stories file \"src/Gone.stories.ts\" doesn't exist (src/Gone.stories.ts, from the project's root)",
+          at: ["features/plain.feature:3"],
+        },
       ],
     });
   });
@@ -191,7 +210,11 @@ describe("a feature file, linked to its stories file", () => {
       "src/Button.stories.ts": buttonStories,
     });
     const others = [
-      { file: path.join(root, "features/other.feature"), label: "Its label" },
+      {
+        file: path.join(root, "features/other.feature"),
+        label: "Its label",
+        line: 1,
+      },
     ];
     expect(
       await linkedOf(
@@ -208,8 +231,16 @@ describe("a feature file, linked to its stories file", () => {
       ),
     ).toEqual({
       errors: [
-        'src/Button.feature:5: src/Button.stories.ts has no story "Primry" (its stories: Primary, Secondary)',
-        'src/Button.feature: src/Button.stories.ts already has a "Its label" (features/other.feature), the same id "button-its-label": give one of them another name',
+        {
+          message:
+            'src/Button.stories.ts has no story "Primry" (its stories: Primary, Secondary)',
+          at: ["src/Button.feature:5"],
+        },
+        {
+          message:
+            'src/Button.stories.ts already has a "Its label", the same id "button-its-label": give one of them another name',
+          at: ["features/other.feature:1", "src/Button.feature:1"],
+        },
       ],
     });
   });
@@ -220,7 +251,11 @@ describe("a feature file, linked to its stories file", () => {
       "src/Button.stories.ts": buttonStories,
     });
     const others = [
-      { file: path.join(root, "features/other.feature"), label: "its label!" },
+      {
+        file: path.join(root, "features/other.feature"),
+        label: "its label!",
+        line: 1,
+      },
     ];
     expect(
       await linkedOf(
@@ -237,7 +272,10 @@ describe("a feature file, linked to its stories file", () => {
       ),
     ).toEqual({
       errors: [
-        `src/Button.feature: src/Button.stories.ts already has a "Its label" (features/other.feature: "its label!"), the same id "button-its-label" (Storybook's ids ignore case and punctuation): give one of them another name`,
+        {
+          message: `src/Button.stories.ts already has a "Its label", the same id "button-its-label" (Storybook's ids ignore case and punctuation): give one of them another name`,
+          at: ["features/other.feature:1", "src/Button.feature:1"],
+        },
       ],
     });
   });
@@ -257,7 +295,11 @@ describe("a feature file, linked to its stories file", () => {
       '    Given the "Secondary" story',
     ]);
     expect(errorsOf(linked)).toEqual([
-      'src/Button.feature:5: src/Button.stories.ts has no story "Primry" (its stories: Primary, Secondary)',
+      {
+        message:
+          'src/Button.stories.ts has no story "Primry" (its stories: Primary, Secondary)',
+        at: ["src/Button.feature:5"],
+      },
     ]);
   });
 
@@ -281,7 +323,11 @@ describe("a feature file, linked to its stories file", () => {
       '      Given the "Primary" story',
     ]);
     expect(errorsOf(linked)).toEqual([
-      "features/forms.feature has 2 stories file steps (lines 4, 9): a feature file names its stories file once, in its Background",
+      {
+        message:
+          "the feature has 2 stories file steps: a feature file names its stories file once, in its Background",
+        at: ["features/forms.feature:4", "features/forms.feature:9"],
+      },
     ]);
   });
 
@@ -302,7 +348,11 @@ describe("a feature file, linked to its stories file", () => {
       '    Given the "Primary" story',
     ]);
     expect(errorsOf(linked)).toEqual([
-      "src/Button.stories.ts uses CSF factories, which the plugin doesn't support yet: src/Button.feature's scenarios need its stories in CSF 3",
+      {
+        message:
+          "src/Button.stories.ts uses CSF factories, which the plugin doesn't support yet: the feature's scenarios need its stories in CSF 3",
+        at: ["src/Button.feature:3"],
+      },
     ]);
   });
 
@@ -320,11 +370,12 @@ describe("a feature file, linked to its stories file", () => {
       ]),
     );
     expect(component).toHaveLength(1);
-    expect(component[0]).toMatch(
-      /^features\/component\.feature:3: src\/Button\.tsx can't be read as a stories file \(CSF: missing default export src\/Button\.tsx .*\)$/,
+    expect(component[0]?.message).toMatch(
+      /^src\/Button\.tsx can't be read as a stories file \(CSF: missing default export src\/Button\.tsx .*\)$/,
     );
+    expect(component[0]?.at).toEqual(["features/component.feature:3"]);
     // No path in full: the reader's own are written from the root.
-    expect(component[0]).not.toContain(root);
+    expect(component[0]?.message).not.toContain(root);
     const folder = errorsOf(
       await linkedOf("features/folder.feature", [
         "Feature: Folder",
@@ -334,10 +385,11 @@ describe("a feature file, linked to its stories file", () => {
       ]),
     );
     expect(folder).toHaveLength(1);
-    expect(folder[0]).toMatch(
-      /^features\/folder\.feature:3: src can't be read as a stories file \(EISDIR.*\)$/,
+    expect(folder[0]?.message).toMatch(
+      /^src can't be read as a stories file \(EISDIR.*\)$/,
     );
-    expect(folder[0]).not.toContain(root);
+    expect(folder[0]?.at).toEqual(["features/folder.feature:3"]);
+    expect(folder[0]?.message).not.toContain(root);
   });
 
   test("its stories file, broken (no default export): the feature's error", async () => {
@@ -355,8 +407,9 @@ describe("a feature file, linked to its stories file", () => {
       ]),
     );
     expect(errors).toHaveLength(1);
-    expect(errors[0]).toMatch(
-      /^src\/Card\.feature:3: src\/Card\.stories\.ts can't be read as a stories file \(CSF: missing default export .*\)$/,
+    expect(errors[0]?.message).toMatch(
+      /^src\/Card\.stories\.ts can't be read as a stories file \(CSF: missing default export .*\)$/,
     );
+    expect(errors[0]?.at).toEqual(["src/Card.feature:3"]);
   });
 });

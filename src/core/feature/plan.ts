@@ -10,6 +10,7 @@ import { generateMessages, makeSourceEnvelope } from "@cucumber/gherkin";
 import {
   SourceMediaType,
   type GherkinDocument,
+  type ParseError,
   type Pickle,
 } from "@cucumber/messages";
 import { v5 } from "uuid";
@@ -39,14 +40,14 @@ export const planOf = (
   language: string,
 ): {
   featureTree: FeatureSuite;
-  /** Its parse errors, as cucumber's Gherkin parser reports them. */
-  parseErrors: string[];
+  /** Its parse errors, as cucumber's Gherkin parser reports them: each message, where it is. */
+  parseErrors: ParseError[];
   gherkin?: FeatureGherkin;
 } => {
   const mediaType = mediaTypeOf(content, uri);
   let document: GherkinDocument | undefined;
   const pickles: Pickle[] = [];
-  const parseErrors: string[] = [];
+  const parseErrors: ParseError[] = [];
   for (const { gherkinDocument, pickle, parseError } of generateMessages(
     content,
     uri,
@@ -67,7 +68,7 @@ export const planOf = (
       });
     }
     if (parseError) {
-      parseErrors.push(parseError.message);
+      parseErrors.push(parseError);
     }
   }
   return {

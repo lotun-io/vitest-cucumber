@@ -10,6 +10,7 @@
 // file's meta, its title) is made from this, or it's stopped by every error in its links, which
 // are the feature file's.
 import path from "node:path";
+import type { Located } from "../../../utils/errors.ts";
 import { slash } from "../../../utils/slash.ts";
 import type { FeatureLinks, ScenarioLink } from "./featureLinks.ts";
 import { type StoriesOf, storiesOfFile } from "./storiesFile.ts";
@@ -26,12 +27,14 @@ export type LinkedFeature =
       /** Its scenarios, each on its story. */
       links: ScenarioLink[];
     }
-  | { errors: string[] };
+  | { errors: Located[] };
 
-/** Another feature file on the same stories file whose label gives the same id: its path, its label. */
+/** Another feature file on the same stories file whose label gives the same id: its path, its label, its line. */
 export interface SameLabel {
   file: string;
   label: string;
+  /** Its `Feature:` line. */
+  line: number;
 }
 
 /**
@@ -45,6 +48,7 @@ export interface SameLabel {
  */
 export const linkedFeatureOf = async ({
   uri,
+  featureLine,
   root,
   linked,
   stepErrors,
@@ -55,9 +59,11 @@ export const linkedFeatureOf = async ({
   idOf,
 }: {
   uri: string;
+  /** Its `Feature:` line. */
+  featureLine: number;
   root: string;
   linked: FeatureLinks;
-  stepErrors: readonly string[];
+  stepErrors: readonly Located[];
   /** The feature's label (`Feature: <name>`). */
   label: string;
   /** The other feature files on its stories file whose labels give its id (by path). */
@@ -78,29 +84,32 @@ export const linkedFeatureOf = async ({
    * Its label's id taken on its stories file (titled `title`, if it has one): the last of its
    * errors, the id named (the other labels too, those written otherwise).
    */
-  const takenOf = (title?: string) => {
+  const takenOf = (title?: string): Located[] => {
     if (sameLabel.length === 0) {
       return [];
     }
-    const others = sameLabel
-      .map(({ file, label: theirs }) => {
-        const other = slash(path.relative(root, file));
-        return theirs === label ? other : `${other}: "${theirs}"`;
-      })
-      .join(", ");
     const id =
       title === undefined ? "" : `, the same id "${idOf(`${title}/${label}`)}"`;
     const why = sameLabel.some(({ label: theirs }) => theirs !== label)
       ? " (Storybook's ids ignore case and punctuation)"
       : "";
     return [
-      `${uri}: ${storiesUri} already has a "${label}" (${others})${id}${why}: give one of them another name`,
+      {
+        message: `${storiesUri} already has a "${label}"${id}${why}: give one of them another name`,
+        at: [
+          ...sameLabel.map(
+            ({ file, line }) =>
+              `${slash(path.relative(root, file))}:${String(line)}`,
+          ),
+          `${uri}:${String(featureLine)}`,
+        ],
+      },
     ];
   };
   /** Stopped: its links' errors, `more` of its stories file's, its label's. */
   const stopped = (
     title: string | undefined,
-    ...more: string[]
+    ...more: Located[]
   ): LinkedFeature => ({
     errors: [...errors, ...more, ...takenOf(title)],
   });
@@ -120,31 +129,37 @@ export const linkedFeatureOf = async ({
       .replaceAll(`${root}${path.sep}`, "")
       .replaceAll(`${slash(root)}/`, "")
       .split("\n");
-    return stopped(
-      undefined,
-      `${at}: ${storiesUri} can't be read as a stories file (${reason})`,
-    );
+    return stopped(undefined, {
+      message: `${storiesUri} can't be read as a stories file (${reason})`,
+      at: [at],
+    });
   }
   if (stories.factories) {
-    return stopped(
-      undefined,
-      `${storiesUri} uses CSF factories, which the plugin doesn't support yet: ${uri}'s scenarios need its stories in CSF 3`,
-    );
+    return stopped(undefined, {
+      message: `${storiesUri} uses CSF factories, which the plugin doesn't support yet: the feature's scenarios need its stories in CSF 3`,
+      at: [at],
+    });
   }
   // The title its scenarios are listed under: the stories file's.
   const title = stories.title ?? (await autoTitleOf(slash(storiesFile)));
   const known = new Set(stories.exports);
   /** What its stories file lacks: a title, each story a scenario names. */
-  const missing = [
+  const missing: Located[] = [
     ...(title === undefined
       ? [
-          `${at}: ${storiesUri} has no title: none is written in its meta, and no pattern of Storybook's "stories" matches it (give its meta a "title", or list the file in "stories")`,
+          {
+            message: `${storiesUri} has no title: none is written in its meta, and no pattern of Storybook's "stories" matches it (give its meta a "title", or list the file in "stories")`,
+            at: [at],
+          },
         ]
       : []),
     ...links.flatMap(({ exportName, storyLine }) =>
       exportName !== undefined && !known.has(exportName)
         ? [
-            `${uri}:${String(storyLine)}: ${storiesUri} has no story "${exportName}" (its stories: ${stories.exports.join(", ") || "none"})`,
+            {
+              message: `${storiesUri} has no story "${exportName}" (its stories: ${stories.exports.join(", ") || "none"})`,
+              at: [`${uri}:${String(storyLine)}`],
+            },
           ]
         : [],
     ),

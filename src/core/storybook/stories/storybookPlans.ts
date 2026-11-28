@@ -35,6 +35,7 @@
 // index links every one; a run of some files sees theirs). A feature's label is kept as its plan
 // was made with: at an event, another label, or a feature deleted, has the others on its stories
 // file made again (the error is theirs to drop, or to have).
+import type { GherkinDocument } from "@cucumber/messages";
 import { existsSync } from "node:fs";
 import type { RunOptions } from "../../../types/feature.ts";
 import { slash } from "../../../utils/slash.ts";
@@ -96,6 +97,18 @@ export interface StorybookFileChanged {
   staleFeatures: string[];
 }
 
+/** A feature file's label (`Feature: <name>`) and its `Feature:` line: what another's error names. */
+interface FeatureLabel {
+  label: string;
+  line: number;
+}
+
+/** Feature file `file`'s label and line, from its Gherkin `document`. */
+const labelOf = (document: GherkinDocument, file: string): FeatureLabel => ({
+  label: featureLabelOf(document, file),
+  line: document.feature?.location.line ?? 1,
+});
+
 /**
  * The Storybook plans of the project at `root`, on its feature `plans` (the run's options
  * theirs), with Storybook's automatic titles (`autoTitleOf`).
@@ -125,7 +138,7 @@ export const createStorybookPlans = ({
   // The parts, as read from disk.
   /** The Storybook steps of the support files (each file read). */
   const steps = plans.cache.single({
-    make: async () => storybookStepsOfFiles(await plans.supportFiles()),
+    make: async () => storybookStepsOfFiles(await plans.supportFiles(), root()),
     same: (a, b) => a.expressions.join("\n") === b.expressions.join("\n"),
   });
   const stories = plans.cache.of<StoriesFile>({
@@ -137,7 +150,9 @@ export const createStorybookPlans = ({
    * Each Storybook feature file's label (`Feature: <name>`), as it was first read: kept until the
    * file's own event (`onFileChange`, which compares it) or the cache's clearing.
    */
-  const labels = plans.cache.of<string>();
+  const labels = plans.cache.of<FeatureLabel>({
+    same: (a, b) => a.label === b.label && a.line === b.line,
+  });
 
   /** Reads feature file `file`'s label (its plan's error, if it fails). */
   const readLabel = (file: string) => async () => {
@@ -145,7 +160,7 @@ export const createStorybookPlans = ({
     if ("error" in plan) {
       throw plan.error;
     }
-    return featureLabelOf(plan.gherkin.document, file);
+    return labelOf(plan.gherkin.document, file);
   };
   /** The other feature files on feature file `feature`'s stories file (with `/`), as linked so far. */
   const othersOf = (feature: string) => {
@@ -174,8 +189,8 @@ export const createStorybookPlans = ({
     return others
       .flatMap((file, index) => {
         const other = theirs[index];
-        return other !== undefined && sanitize(other) === id
-          ? [{ file, label: other }]
+        return other !== undefined && sanitize(other.label) === id
+          ? [{ file, ...other }]
           : [];
       })
       .sort((a, b) => (a.file < b.file ? -1 : a.file > b.file ? 1 : 0));
@@ -210,8 +225,9 @@ export const createStorybookPlans = ({
       slash(file),
       linked.named === undefined ? undefined : slash(linked.named),
     );
-    const label = featureLabelOf(plan.gherkin.document, file);
-    await labels(slash(file), async () => label);
+    const own = labelOf(plan.gherkin.document, file);
+    const { label } = own;
+    await labels(slash(file), async () => own);
     return storybookPlanFrom({
       feature: file,
       plan,

@@ -163,7 +163,7 @@ describe("a feature's scenarios, linked to stories", () => {
     ]);
   });
 
-  test("no Storybook step at all, or no scenario: the feature names no stories file", () => {
+  test("no Storybook step at all: the feature names no stories file; no scenario, a Background naming one or not: the feature has none", () => {
     expect(
       linksOf("src/Button.feature", [
         "Feature: Button",
@@ -176,13 +176,33 @@ describe("a feature's scenarios, linked to stories", () => {
       storiesLine: undefined,
       links: [],
       errors: [
-        'src/Button.feature:2 ("A") names no story: a story step names its story (its stories file\'s, or "default": its meta)',
-        "src/Button.feature names no stories file: a feature file names its stories file once, in its Background, with a stories file step",
+        {
+          message:
+            'the scenario "A" names no story: a story step names its story (its stories file\'s, or "default": its meta)',
+          at: ["src/Button.feature:2"],
+        },
+        {
+          message:
+            "the feature names no stories file: a feature file names its stories file once, in its Background, with a stories file step",
+          at: ["src/Button.feature:1"],
+        },
       ],
     });
+    const none = {
+      message:
+        "the feature has no scenarios: in Storybook, a feature's scenarios are its stories",
+      at: ["src/Button.feature:1"],
+    };
     expect(linksOf("src/Button.feature", ["Feature: Button"]).errors).toEqual([
-      "src/Button.feature names no stories file: a feature file names its stories file once, in its Background, with a stories file step",
+      none,
     ]);
+    expect(
+      linksOf("src/Button.feature", [
+        "Feature: Button",
+        "  Background:",
+        '    Given the stories of "./Button.stories.tsx"',
+      ]).errors,
+    ).toEqual([none]);
   });
 
   test("the errors of a scenario: no story, two stories, no steps (no Background steps), out of its feature's stories file step's reach", () => {
@@ -199,9 +219,25 @@ describe("a feature's scenarios, linked to stories", () => {
         "  Scenario: No steps",
       ]).errors,
     ).toEqual([
-      'src/Button.feature:6 ("Two stories") names a story twice (lines 7 and 8): a scenario has one, its Backgrounds\' steps included',
-      'src/Button.feature:4 ("No story") names no story: a story step names its story (its stories file\'s, or "default": its meta)',
-      'src/Button.feature:9 ("No steps") names no stories file and no story: it has no steps (a Background\'s steps reach only a scenario with steps of its own)',
+      {
+        message:
+          'the scenario "Two stories" names a story twice: a scenario has one, its Backgrounds\' steps included',
+        at: [
+          "src/Button.feature:7",
+          "src/Button.feature:8",
+          "src/Button.feature:6",
+        ],
+      },
+      {
+        message:
+          'the scenario "No story" names no story: a story step names its story (its stories file\'s, or "default": its meta)',
+        at: ["src/Button.feature:4"],
+      },
+      {
+        message:
+          'the scenario "No steps" names no stories file and no story: it has no steps (a Background\'s steps reach only a scenario with steps of its own)',
+        at: ["src/Button.feature:9"],
+      },
     ]);
     expect(
       linksOf("src/Button.feature", [
@@ -215,8 +251,16 @@ describe("a feature's scenarios, linked to stories", () => {
         "    When I click",
       ]).errors,
     ).toEqual([
-      'src/Button.feature:5 ("Not reached") names no stories file: the feature\'s stories file step reaches each scenario in its Background',
-      'src/Button.feature:7 ("Neither") names no stories file and no story: the feature\'s stories file step reaches each scenario in its Background; a story step names its story (its stories file\'s, or "default": its meta)',
+      {
+        message:
+          'the scenario "Not reached" names no stories file: the feature\'s stories file step reaches each scenario in its Background',
+        at: ["src/Button.feature:5"],
+      },
+      {
+        message:
+          'the scenario "Neither" names no stories file and no story: the feature\'s stories file step reaches each scenario in its Background; a story step names its story (its stories file\'s, or "default": its meta)',
+        at: ["src/Button.feature:7"],
+      },
     ]);
   });
 
@@ -230,7 +274,11 @@ describe("a feature's scenarios, linked to stories", () => {
       '    Given the "Primary" story',
     ]);
     expect(missing.errors).toEqual([
-      `features/files.feature:3: the stories file "src/Missing.stories.ts" doesn't exist (${path.join(root, "src/Missing.stories.ts")}, from the project's root)`,
+      {
+        message:
+          "the stories file \"src/Missing.stories.ts\" doesn't exist (src/Missing.stories.ts, from the project's root)",
+        at: ["features/files.feature:3"],
+      },
     ]);
     // Still named: the feature is linked to it, so its event (added) concerns the feature.
     expect(missing).toMatchObject({
@@ -247,7 +295,11 @@ describe("a feature's scenarios, linked to stories", () => {
         '    Given the "Primary" story',
       ]).errors,
     ).toEqual([
-      'features/files.feature:3: the stories file "/src/Button.stories.tsx" starts with "/": write it from the project\'s root, or from the feature file\'s folder with "./" or "../"',
+      {
+        message:
+          'the stories file "/src/Button.stories.tsx" starts with "/": write it from the project\'s root, or from the feature file\'s folder with "./" or "../"',
+        at: ["features/files.feature:3"],
+      },
     ]);
     expect(
       at([
@@ -264,7 +316,11 @@ describe("a feature's scenarios, linked to stories", () => {
         '      Given the "Filled" story',
       ]).errors,
     ).toEqual([
-      "features/files.feature has 2 stories file steps (lines 4, 9): a feature file names its stories file once, in its Background",
+      {
+        message:
+          "the feature has 2 stories file steps: a feature file names its stories file once, in its Background",
+        at: ["features/files.feature:4", "features/files.feature:9"],
+      },
     ]);
     expect(
       at([
@@ -278,7 +334,11 @@ describe("a feature's scenarios, linked to stories", () => {
         "      | src/Input.stories.ts   |",
       ]).errors,
     ).toEqual([
-      "features/files.feature:3: the stories file step names 2 stories files (src/Button.stories.tsx, src/Input.stories.ts): a feature file runs on one stories file, split it into one per stories file",
+      {
+        message:
+          "the stories file step names 2 stories files (src/Button.stories.tsx, src/Input.stories.ts): a feature file runs on one stories file, split it into one per stories file",
+        at: ["features/files.feature:3"],
+      },
     ]);
   });
 });

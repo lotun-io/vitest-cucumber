@@ -98,7 +98,7 @@ export const buildSupportCode = (
       const where = `${uri}:${String(line)}`;
       const instead = unsupportedMethods.get(method);
       if (instead !== undefined) {
-        throw locatedError(`${method} isn't supported, ${instead}`, where);
+        throw locatedError(`${method} isn't supported, ${instead}`, [where]);
       }
       /** A hook's `(options, code)`, `(code)` or, with tags, `(tags, code)`, as cucumber reads them. */
       const hookArgs = (withTags: boolean) => {

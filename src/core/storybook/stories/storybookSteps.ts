@@ -30,6 +30,7 @@ import {
   type PropertyKey,
   Visitor,
 } from "oxc-parser";
+import type { Located } from "../../../utils/errors.ts";
 import {
   storybookExpressionOf,
   storybookPlaceholders,
@@ -130,8 +131,8 @@ const expressionOf = (
 };
 
 /**
- * The Storybook steps' expressions in support file `file` (its `code`), each at its definition's
- * line; a file that can't be parsed: its first error alone. A definition is called by its name, or
+ * The Storybook steps' expressions in support file `file` (its path from the project's root: each
+ * place's; its `code`), each at its definition's line; a file that can't be parsed: its first error alone. A definition is called by its name, or
  * by the one the file gives it as it imports or destructures it, from any module (`import { Given
  * as Step }`, `const { Given: Step } = require(…)`): the file's names, its scopes aside.
  */
@@ -181,6 +182,18 @@ export const scanSupportCode = (code: string, file: string) => {
   });
 };
 
+/**
+ * Why cucumber refuses an expression: its error's reason, the line after its pointer (`^`); the
+ * rest quotes the expression as Storybook's hosts define it (`{string}`), not as written.
+ */
+const reasonOf = (error: unknown) => {
+  const lines = (error instanceof Error ? error.message : String(error)).split(
+    "\n",
+  );
+  const pointer = lines.findIndex((line) => /^\s*\^/.test(line));
+  return lines[pointer + 1] ?? lines[0] ?? "";
+};
+
 /** The expressions of one support file's scan. */
 type Scan = ReturnType<typeof scanSupportCode>;
 
@@ -193,7 +206,7 @@ type Scan = ReturnType<typeof scanSupportCode>;
  */
 export const storybookStepsOf = (scans: Scan[]) => {
   const registry = new ParameterTypeRegistry();
-  const errors: string[] = [];
+  const errors: Located[] = [];
   /** Each Storybook step: its expression as Storybook's hosts define it, its placeholder's kind and place among its parameters. */
   const expressions: {
     at: At;
@@ -203,13 +216,17 @@ export const storybookStepsOf = (scans: Scan[]) => {
   }[] = [];
   for (const { at, source, unreadable, unparsable } of scans.flat()) {
     if (unparsable !== undefined) {
-      errors.push(`the support file ${at} can't be parsed: ${unparsable}`);
+      errors.push({
+        message: `the support file can't be parsed: ${unparsable}`,
+        at: [at],
+      });
       continue;
     }
     if (source === undefined) {
-      errors.push(
-        `the Storybook step at ${at} (${unreadable ?? ""}) can't be read: write its expression as a string literal`,
-      );
+      errors.push({
+        message: `the Storybook step ${unreadable ?? ""} can't be read: write its expression as a string literal`,
+        at: [at],
+      });
       continue;
     }
     const names = [...source.matchAll(/\{([^{}]*)\}/g)].map(
@@ -217,27 +234,39 @@ export const storybookStepsOf = (scans: Scan[]) => {
     );
     const used = names.filter((name) => kinds.has(name));
     if (used.length > 1) {
-      errors.push(
-        `the Storybook step "${source}" (${at}) uses ${used.map((name) => `{${name}}`).join(", ")}: a Storybook step uses one of the plugin's placeholders, once (a story, an unmounted story, or a stories file)`,
-      );
+      errors.push({
+        message: `the Storybook step "${source}" uses ${used.map((name) => `{${name}}`).join(", ")}: a Storybook step uses one of the plugin's placeholders, once (a story, an unmounted story, or a stories file)`,
+        at: [at],
+      });
       continue;
     }
     const unknown = names.filter(
       (name) => !kinds.has(name) && !registry.lookupByTypeName(name),
     );
     if (unknown.length > 0) {
-      errors.push(
-        `the Storybook step "${source}" (${at}) uses ${unknown.map((name) => `{${name}}`).join(", ")}: a Storybook step may use only the plugin's placeholders and cucumber's built-in parameter types ({word}, {string}, {int}, …)`,
-      );
+      errors.push({
+        message: `the Storybook step "${source}" uses ${unknown.map((name) => `{${name}}`).join(", ")}: a Storybook step may use only the plugin's placeholders and cucumber's built-in parameter types ({word}, {string}, {int}, …)`,
+        at: [at],
+      });
       continue;
     }
     const index = names.findIndex((name) => kinds.has(name));
-    expressions.push({
-      at,
-      expression: new CucumberExpression(
+    let expression;
+    try {
+      expression = new CucumberExpression(
         storybookExpressionOf(source),
         registry,
-      ),
+      );
+    } catch (error) {
+      errors.push({
+        message: `the Storybook step "${source}" isn't a valid cucumber expression (${reasonOf(error)})`,
+        at: [at],
+      });
+      continue;
+    }
+    expressions.push({
+      at,
+      expression,
       kind: kinds.get(names[index] ?? "") ?? "story",
       index,
     });

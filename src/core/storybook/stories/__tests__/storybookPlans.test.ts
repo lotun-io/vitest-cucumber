@@ -162,7 +162,7 @@ test("a feature naming no stories file is stopped by its links' error, and linke
   const { storybook, fileChanged } = project();
   const plan = await storybook.storybookPlanOf(id);
   expect("error" in plan && plan.error.message).toContain(
-    "feature file can't be linked to stories:\n  - c.feature names no stories file",
+    "feature file can't be linked to stories\n  - the feature names no stories file: a feature file names its stories file once, in its Background, with a stories file step\n    c.feature:2",
   );
   expect(storybook.links.has(id)).toBe(true);
   expect(storybook.links.storiesFileOf(id)).toBeUndefined();
@@ -384,10 +384,15 @@ test("two features on one stories file with the same label: refused, each naming
   );
   stories("src/Dup.stories.ts", ["S"]);
   const { storybook, fileChanged } = project();
+  /** `text` as a regular expression's, matching itself. */
+  const literal = (text: string) =>
+    text.replaceAll(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const refused = (feature: string, other: string) => ({
     error: {
-      message: expect.stringContaining(
-        `${feature}: src/Dup.stories.ts already has a "Feature: Login" (${other}), the same id "`,
+      message: expect.stringMatching(
+        new RegExp(
+          `src/Dup\\.stories\\.ts already has a "Feature: Login", the same id "[^\\n]*\\n {4}${literal(other)}:\\d+\\n {4}${literal(feature)}:\\d+$`,
+        ),
       ) as string,
     },
   });

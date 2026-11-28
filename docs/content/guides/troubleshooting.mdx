@@ -96,19 +96,23 @@ optimizeDeps: { include: ["react"] },
 ### A feature that can't be linked
 
 ```text
-Error: [@lotun/vitest-cucumber] feature file can't be linked to stories:
-  - src/Greeting.feature names no stories file: a feature file names its stories file once, in its Background, with a stories file step
-  - src/Greeting.feature:7 ("Saying hello") names no story: a story step names its story (its stories file's, or "default": its meta)
+Error: [@lotun/vitest-cucumber] feature file can't be linked to stories
+  - the scenario "Saying hello" names no story: a story step names its story (its stories file's, or "default": its meta)
+    src/Greeting.feature:7
+  - the feature names no stories file: a feature file names its stories file once, in its Background, with a stories file step
+    src/Greeting.feature:1
 ```
 
 The plugin links each scenario of a feature file to a story from its
 [Storybook steps](/guides/storybook/stories-and-steps#storybook-steps), before anything runs. A link it can't
-make fails the feature's stories, with every such error listed (in Storybook's own process, it stops
-its index: `storybook dev` lists the error, `storybook build` fails). Each error, and what to do:
+make fails the feature's stories, with every such error listed, each with the places it's about
+under it (in Storybook's own process, it stops its index: `storybook dev` lists the error,
+`storybook build` fails). Each error, and what to do:
 
 | The error says | Do this |
 | --- | --- |
 | `names no stories file` | Name it in the feature's Background: `Given the stories of "./Greeting.stories.ts"` |
+| `has no scenarios` | Give the feature a scenario: in Storybook, its scenarios are its stories |
 | `has 2 stories file steps` | Keep one, in the Background: a feature runs on one stories file |
 | `the stories file "…" doesn't exist` | Fix the path: from the feature's folder with `./` or `../`, else from the project's root |
 | `names no story` | Give the scenario a story step: `Given the "Ada" story`, or `Given the "default" story` for the meta |
@@ -118,7 +122,8 @@ its index: `storybook dev` lists the error, `storybook build` fails). Each error
 | `has no story "…"` | Name one of the stories it lists, as exported (`Ada`, not `ada`) |
 | `matches 2 Storybook steps` | Word your Storybook step definitions so that one step matches only one |
 | `can't be read: write its expression as a string literal` | Write the expression as a string literal, the first argument of `Given(…)` |
-| `the support file … can't be parsed` | Fix the syntax error at that line: the plugin parses your support files to find the Storybook steps |
+| `isn't a valid cucumber expression` | Fix the expression: cucumber's reason is in the parentheses |
+| `the support file can't be parsed` | Fix the syntax error at that line: the plugin parses your support files to find the Storybook steps |
 
 ### No component is mounted in your story
 
@@ -132,15 +137,15 @@ Storybook's error, in its Interactions panel: a scenario plays an unmounted stor
 
 ## TypeScript
 
-### A hook with a `world` argument doesn't type-check
+### An arrow function hook with a `world` argument doesn't type-check
 
 ```text
 error TS2345: Argument of type '(world: CartWorld) => void' is not assignable to parameter of type 'TestCaseHookFunction<IWorld<any>>'.
   Types of parameters 'world' and 'arg' are incompatible.
 ```
 
-TypeScript is reading Cucumber's own types for the hook: the plugin's types, which also type a hook
-that takes the World, aren't in the project. Name them in the `tsconfig.json` that checks your
+TypeScript is reading Cucumber's own types for the hook: the plugin's types, which also type an
+arrow function hook that takes the World, aren't in the project. Name them in the `tsconfig.json` that checks your
 support code:
 
 ```json filename="tsconfig.json"

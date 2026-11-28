@@ -102,7 +102,7 @@ export const validateArguments = ({
 }) => {
   for (const { predicate, message } of validations[fnName]) {
     if (!predicate(args)) {
-      throw locatedError(message(method, args), location);
+      throw locatedError(message(method, args), [location]);
     }
   }
 };

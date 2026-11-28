@@ -379,7 +379,8 @@ Feature: Plugin options
     And it runs no scenarios
     And the output contains:
       """
-      features/a.feature names no stories file
+        - the feature names no stories file: a feature file names its stories file once, in its Background, with a stories file step
+          features/a.feature:1
       """
 
   # A glob made from a path (`path.join`, `path.resolve`, `fileURLToPath` in the config) has `\` on

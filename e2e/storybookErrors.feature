@@ -45,11 +45,12 @@ Feature: Storybook errors
     Then it fails
     And the output contains:
       """
-      Error: [@lotun/vitest-cucumber] parse error in src/Broken.feature
+      Error: [@lotun/vitest-cucumber] feature file can't be parsed
       """
     And the output contains:
       """
-      (4:3): expected: #EOF
+        - expected: #EOF, #TableRow, #DocStringSeparator, #StepLine, #TagLine, #ExamplesLine, #ScenarioLine, #RuleLine, #Comment, #Empty, got 'this line is not gherkin'
+          src/Broken.feature:4:3
       """
     And the output doesn't contain:
       """
@@ -63,8 +64,8 @@ Feature: Storybook errors
     And building its Storybook fails with:
       """
       Unable to index ./src/Broken.feature:
-      Error: [@lotun/vitest-cucumber] parse error in src/Broken.feature
-      (4:3): expected: #EOF
+      Error: [@lotun/vitest-cucumber] feature file can't be parsed
+      src/Broken.feature:4:3
       """
 
   # A link the plugin can't make (here a story its stories file doesn't have) fails the feature's own
@@ -94,7 +95,8 @@ Feature: Storybook errors
     Then it fails
     And the output contains:
       """
-      src/Linked.feature:5: src/Linked.stories.ts has no story "Primry" (its stories: Primary)
+        - src/Linked.stories.ts has no story "Primry" (its stories: Primary)
+          src/Linked.feature:5
       """
     And Vitest reports the tests:
       | NAME          | STATE  |
@@ -137,7 +139,8 @@ Feature: Storybook errors
     Then it fails
     And the output contains:
       """
-      src/Linked.feature:5: src/Linked.stories.ts has no story "Primry" (its stories: Primary)
+        - src/Linked.stories.ts has no story "Primry" (its stories: Primary)
+          src/Linked.feature:5
       """
     And Vitest reports the tests:
       | NAME          | STATE  |
@@ -217,15 +220,16 @@ Feature: Storybook errors
     Then it fails
     And the output contains:
       """
-      scenarios would be the same story in Storybook (id "cart-feature-cart--http-request"):
-      - src/Cart.feature:5 (Scenario: "HTTP request")
-      - src/Cart.feature:8 (Scenario: "Http request!")
-      scenarios would be the same story in Storybook (id "cart-feature-cart--scenario"):
-      - src/Cart.feature:11 (Scenario: "Scenario")
-      - src/Cart.feature:14 (Scenario: "Scenario")
-      scenarios would be the same story in Storybook (id "cart-feature-cart--pay"):
-      - src/Cart.feature:22 (Example: "Pay")
-      - src/Cart.feature:23 (Example: "Pay")
+      [@lotun/vitest-cucumber] feature file's scenarios can't all be stories
+        - Scenario: "HTTP request" and Scenario: "Http request!" would be the same story in Storybook (id "cart-feature-cart--http-request")
+          src/Cart.feature:5
+          src/Cart.feature:8
+        - Scenario: "Scenario" and Scenario: "Scenario" would be the same story in Storybook (id "cart-feature-cart--scenario")
+          src/Cart.feature:11
+          src/Cart.feature:14
+        - Example: "Pay" and Example: "Pay" would be the same story in Storybook (id "cart-feature-cart--pay")
+          src/Cart.feature:22
+          src/Cart.feature:23
       """
     And Vitest reports the tests:
       | NAME          | STATE  |
@@ -268,15 +272,18 @@ Feature: Storybook errors
     Then it fails
     And the output contains:
       """
-      src/Unnamed.feature names no stories file: a feature file names its stories file once, in its Background, with a stories file step
+        - the feature names no stories file: a feature file names its stories file once, in its Background, with a stories file step
+          src/Unnamed.feature:1
       """
     And the output contains:
       """
-      src/Storyless.feature:4 ("No story") names no story: a story step names its story (its stories file's, or "default": its meta)
+        - the scenario "No story" names no story: a story step names its story (its stories file's, or "default": its meta)
+          src/Storyless.feature:4
       """
     And the output contains:
       """
-      src/Storyless.feature:6 ("No steps") names no stories file and no story: it has no steps (a Background's steps reach only a scenario with steps of its own)
+        - the scenario "No steps" names no stories file and no story: it has no steps (a Background's steps reach only a scenario with steps of its own)
+          src/Storyless.feature:6
       """
     And Vitest reports the tests:
       | NAME          | STATE  |
@@ -415,6 +422,42 @@ Feature: Storybook errors
     Then its stories show:
       | STORY                     | STATUS | SHOWS                       |
       | page-feature-page--a-step | FAIL   | BeforeAll failed on purpose |
+
+  # A project's own Storybook hooks faking the timers (`.storybook/preview.ts`'s `beforeAll` and
+  # `beforeEach`, as a fake-timers library would: a timer never fires) don't stop a step's timeout:
+  # the runtime took the real timers as it loaded (in the preview, with the plugin's annotation,
+  # before the project's preview; in story tests, saved by the plugin's setup file, first).
+  # `e2e/options.feature` has a Vitest setup file's fake timers.
+  Scenario: A preview's fake timers don't stop a step's timeout
+    Given a file named ".storybook/preview.ts" with:
+      """
+      /** Fakes `setTimeout` (its timers never fire), as a project's fake timers would; undone after. */
+      const fakeTimers = () => {
+        const real = globalThis.setTimeout;
+        globalThis.setTimeout = (() => 0) as unknown as typeof setTimeout;
+        return () => {
+          globalThis.setTimeout = real;
+        };
+      };
+
+      export default { beforeAll: fakeTimers, beforeEach: fakeTimers };
+      """
+    And a file named "features/steps.ts" with:
+      """
+      import { Given } from "@cucumber/cucumber";
+
+      Given("a step", { timeout: 200 }, () => new Promise(() => {}));
+      """
+    When I run vitest
+    Then it fails
+    And the test "Page > A step" fails with:
+      """
+      function timed out, ensure the promise resolves within 200 milliseconds
+      """
+    When I build its Storybook
+    Then its stories show:
+      | STORY                     | STATUS | SHOWS                                                                   |
+      | page-feature-page--a-step | FAIL   | function timed out, ensure the promise resolves within 200 milliseconds |
 
   # `e2e/options.feature` has its story tests. Without support code, no Storybook step links a feature
   # to its stories: Storybook's index fails on it.

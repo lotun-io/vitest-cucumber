@@ -77,10 +77,31 @@ describe("Storybook steps, from the support code", () => {
       "/p/steps.ts",
     ]);
     expect(errors).toEqual([
-      `the Storybook step "the {color} {storybook:story} story" (/p/steps.ts:1) uses {color}: a Storybook step may use only the plugin's placeholders and cucumber's built-in parameter types ({word}, {string}, {int}, …)`,
-      "the Storybook step at /p/steps.ts:2 (`the ${word} {storybook:story} story`) can't be read: write its expression as a string literal",
+      {
+        message: `the Storybook step "the {color} {storybook:story} story" uses {color}: a Storybook step may use only the plugin's placeholders and cucumber's built-in parameter types ({word}, {string}, {int}, …)`,
+        at: ["/p/steps.ts:1"],
+      },
+      {
+        message:
+          "the Storybook step `the ${word} {storybook:story} story` can't be read: write its expression as a string literal",
+        at: ["/p/steps.ts:2"],
+      },
     ]);
     expect(match('the red "Primary" story')).toEqual([]);
+  });
+
+  test("an expression cucumber refuses: an error, cucumber's reason, at its definition", () => {
+    const { errors } = stepsOf([
+      `Given("the extra ({storybook:story}) story", () => {});`,
+      "src/steps.ts",
+    ]);
+    expect(errors).toEqual([
+      {
+        message:
+          'the Storybook step "the extra ({storybook:story}) story" isn\'t a valid cucumber expression (An optional may not contain a parameter type.)',
+        at: ["src/steps.ts:1"],
+      },
+    ]);
   });
 
   test("more than one of the plugin's placeholders in a Storybook step: an error", () => {
@@ -92,8 +113,14 @@ describe("Storybook steps, from the support code", () => {
       "/p/steps.ts",
     ]);
     expect(errors).toEqual([
-      `the Storybook step "the {storybook:story} story of {storybook:storiesFile}" (/p/steps.ts:1) uses {storybook:story}, {storybook:storiesFile}: a Storybook step uses one of the plugin's placeholders, once (a story, an unmounted story, or a stories file)`,
-      `the Storybook step "the {storybook:story} next to {storybook:story}" (/p/steps.ts:2) uses {storybook:story}, {storybook:story}: a Storybook step uses one of the plugin's placeholders, once (a story, an unmounted story, or a stories file)`,
+      {
+        message: `the Storybook step "the {storybook:story} story of {storybook:storiesFile}" uses {storybook:story}, {storybook:storiesFile}: a Storybook step uses one of the plugin's placeholders, once (a story, an unmounted story, or a stories file)`,
+        at: ["/p/steps.ts:1"],
+      },
+      {
+        message: `the Storybook step "the {storybook:story} next to {storybook:story}" uses {storybook:story}, {storybook:story}: a Storybook step uses one of the plugin's placeholders, once (a story, an unmounted story, or a stories file)`,
+        at: ["/p/steps.ts:2"],
+      },
     ]);
     expect(match('the "Primary" story of "src/a.stories.ts"')).toEqual([]);
   });
@@ -266,7 +293,10 @@ describe("Storybook steps, from the support code", () => {
       expect(found?.at, code).toBe(`/p/a.ts:${String(line)}`);
       expect(found?.unparsable, code).toContain(message);
       expect(stepsOf([code, "/p/a.ts"]).errors, code).toEqual([
-        `the support file /p/a.ts:${String(line)} can't be parsed: ${found?.unparsable ?? ""}`,
+        {
+          message: `the support file can't be parsed: ${found?.unparsable ?? ""}`,
+          at: [`/p/a.ts:${String(line)}`],
+        },
       ]);
     }
   });

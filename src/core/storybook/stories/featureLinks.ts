@@ -14,6 +14,8 @@
 import type { GherkinDocument, Pickle } from "@cucumber/messages";
 import { existsSync } from "node:fs";
 import path from "node:path";
+import type { Located } from "../../../utils/errors.ts";
+import { slash } from "../../../utils/slash.ts";
 import type { StepLink, StorybookSteps } from "./storybookSteps.ts";
 
 /** A scenario (or an Outline row) that runs on a story. */
@@ -76,8 +78,10 @@ export const featureLinksOf = ({
   pickles: readonly Pickle[];
   steps: StorybookSteps;
 }) => {
-  const errors: string[] = [];
+  const errors: Located[] = [];
   const lines = stepLines(document);
+  /** A place in the feature file: its line. */
+  const placeOf = (line: number) => `${uri}:${String(line)}`;
   /** The stories file steps, by line (an Outline's step: each row's file). */
   const storiesSteps = new Map<number, Set<string>>();
   /** Each pickle's story step. */
@@ -89,13 +93,14 @@ export const featureLinksOf = ({
   /** The pickles that miss the stories file step, the story step or both (their messages after). */
   const lacking: {
     scenario: string;
+    line: number;
     stories: boolean;
     story: boolean;
     steps: boolean;
   }[] = [];
   for (const pickle of pickles) {
     const line = pickle.location?.line ?? 0;
-    const scenario = `${uri}:${String(line)} ("${pickle.name}")`;
+    const scenario = `the scenario "${pickle.name}"`;
     const story: (StepLink & { line: number })[] = [];
     let named = false;
     let ambiguous = false;
@@ -103,9 +108,10 @@ export const featureLinksOf = ({
       const stepLine = lines.get(step.astNodeIds[0] ?? "") ?? line;
       const matches = steps.match(step.text);
       if (matches.length > 1) {
-        errors.push(
-          `${uri}:${String(stepLine)}: "${step.text}" matches ${String(matches.length)} Storybook steps (${matches.map(({ at }) => at).join(", ")})`,
-        );
+        errors.push({
+          message: `"${step.text}" matches ${String(matches.length)} Storybook steps`,
+          at: [...matches.map(({ at }) => at), placeOf(stepLine)],
+        });
         ambiguous = true;
         continue;
       }
@@ -124,13 +130,15 @@ export const featureLinksOf = ({
     }
     const [storyStep] = story;
     if (story.length > 1) {
-      errors.push(
-        `${scenario} names a story twice (lines ${story.map(({ line: at }) => String(at)).join(" and ")}): a scenario has one, its Backgrounds' steps included`,
-      );
+      errors.push({
+        message: `${scenario} names a story twice: a scenario has one, its Backgrounds' steps included`,
+        at: [...story.map(({ line: at }) => placeOf(at)), placeOf(line)],
+      });
     }
     if (!named || !storyStep) {
       lacking.push({
         scenario,
+        line,
         stories: !named,
         story: !storyStep,
         steps: pickle.steps.length > 0,
@@ -140,7 +148,7 @@ export const featureLinksOf = ({
     }
   }
   // A scenario that doesn't name both (without any stories file step: the feature's error, below).
-  for (const { scenario, stories, story, steps: hasSteps } of lacking) {
+  for (const { scenario, line, stories, story, steps: hasSteps } of lacking) {
     const what = [
       ...(stories && storiesSteps.size > 0 ? ["stories file"] : []),
       ...(story ? ["story"] : []),
@@ -162,13 +170,30 @@ export const featureLinksOf = ({
           "it has no steps (a Background's steps reach only a scenario with steps of its own)",
         ];
     if (what.length > 0) {
-      errors.push(
-        `${scenario} names no ${what.join(" and no ")}: ${why.join("; ")}`,
-      );
+      errors.push({
+        message: `${scenario} names no ${what.join(" and no ")}: ${why.join("; ")}`,
+        at: [placeOf(line)],
+      });
     }
   }
   // Its stories file: one step naming it, once.
-  const named = storiesFileOf({ feature, uri, root, storiesSteps });
+  const named =
+    pickles.length === 0
+      ? // No scenario: no pickle has the Background's steps, none names a stories file.
+        {
+          error: {
+            message:
+              "the feature has no scenarios: in Storybook, a feature's scenarios are its stories",
+            at: [placeOf(document.feature?.location.line ?? 1)],
+          },
+        }
+      : storiesFileOf({
+          feature,
+          uri,
+          root,
+          featureLine: document.feature?.location.line ?? 1,
+          storiesSteps,
+        });
   if ("error" in named) {
     errors.push(named.error);
     return {
@@ -181,9 +206,10 @@ export const featureLinksOf = ({
   }
   const exists = existsSync(named.file);
   if (!exists) {
-    errors.push(
-      `${uri}:${String(named.line)}: the stories file "${named.written}" doesn't exist (${named.file}, from ${named.relative ? "the feature file's folder" : "the project's root"})`,
-    );
+    errors.push({
+      message: `the stories file "${named.written}" doesn't exist (${slash(path.relative(root, named.file))}, from ${named.relative ? "the feature file's folder" : "the project's root"})`,
+      at: [placeOf(named.line)],
+    });
   }
   const storiesFile = exists ? named.file : undefined;
   const links: ScenarioLink[] = storiesFile
@@ -217,37 +243,54 @@ const storiesFileOf = ({
   feature,
   uri,
   root,
+  featureLine,
   storiesSteps,
 }: {
   feature: string;
   uri: string;
   root: string;
+  /** The `Feature:` line. */
+  featureLine: number;
   storiesSteps: ReadonlyMap<number, ReadonlySet<string>>;
 }):
   | { file: string; written: string; line: number; relative: boolean }
-  | { error: string } => {
+  | { error: Located } => {
+  /** A place in the feature file: its line. */
+  const placeOf = (line: number) => `${uri}:${String(line)}`;
   const once = "a feature file names its stories file once, in its Background";
   if (storiesSteps.size === 0) {
     return {
-      error: `${uri} names no stories file: ${once}, with a stories file step`,
+      error: {
+        message: `the feature names no stories file: ${once}, with a stories file step`,
+        at: [placeOf(featureLine)],
+      },
     };
   }
   const found = [...storiesSteps].sort(([a], [b]) => a - b);
   if (found.length > 1) {
     return {
-      error: `${uri} has ${String(found.length)} stories file steps (lines ${found.map(([line]) => String(line)).join(", ")}): ${once}`,
+      error: {
+        message: `the feature has ${String(found.length)} stories file steps: ${once}`,
+        at: found.map(([line]) => placeOf(line)),
+      },
     };
   }
   const [[line, files] = [0, new Set<string>()]] = found;
   const [written = "", ...more] = files;
   if (more.length > 0) {
     return {
-      error: `${uri}:${String(line)}: the stories file step names ${String(files.size)} stories files (${[...files].join(", ")}): a feature file runs on one stories file, split it into one per stories file`,
+      error: {
+        message: `the stories file step names ${String(files.size)} stories files (${[...files].join(", ")}): a feature file runs on one stories file, split it into one per stories file`,
+        at: [placeOf(line)],
+      },
     };
   }
   if (written.startsWith("/")) {
     return {
-      error: `${uri}:${String(line)}: the stories file "${written}" starts with "/": write it from the project's root, or from the feature file's folder with "./" or "../"`,
+      error: {
+        message: `the stories file "${written}" starts with "/": write it from the project's root, or from the feature file's folder with "./" or "../"`,
+        at: [placeOf(line)],
+      },
     };
   }
   const relative = written.startsWith("./") || written.startsWith("../");

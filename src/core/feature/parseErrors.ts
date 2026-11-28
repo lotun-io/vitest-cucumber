@@ -1,12 +1,20 @@
-// A feature file's parse errors, as the plugin reports them: one error, its first line the
-// plugin's name and the file (cucumber's wording, lowercase as the plugin's messages are, the file unquoted: `parse error
-// in <uri>`), then each parse
-// error on a line of its own, as the Gherkin parser words it (its position first:
-// `(line:column): expected: …`). Main's (a feature file is parsed there: `./plans.ts`).
-import { pluginErrorMessage } from "../../utils/errors.ts";
+// A feature file's parse errors, as the plugin reports them: one error, `feature file can't be
+// parsed`, each parse error under it as the Gherkin parser words it, its place (`path:line:column`)
+// on a line of its own (`locatedErrors`; the parser's own `(line:column): ` prefix dropped: the
+// place says it). Main's (a feature file is parsed there: `./plans.ts`).
+import type { ParseError } from "@cucumber/messages";
+import { locatedErrors } from "../../utils/errors.ts";
 
-/** The message of feature file `uri`'s `parseErrors` (`@cucumber/gherkin`'s messages). */
-export const parseErrorMessage = (
-  uri: string,
-  parseErrors: readonly string[],
-) => [pluginErrorMessage(`parse error in ${uri}`), ...parseErrors].join("\n");
+/** The error of feature file `uri`'s `parseErrors` (`@cucumber/gherkin`'s). */
+export const parseErrorOf = (uri: string, parseErrors: readonly ParseError[]) =>
+  locatedErrors(
+    "feature file can't be parsed",
+    parseErrors.map(({ message, source: { location } }) => ({
+      message: message.replace(/^\(\d+:\d+\): /, ""),
+      at: [
+        [uri, location?.line, location?.column]
+          .filter((part) => part !== undefined)
+          .join(":"),
+      ],
+    })),
+  );

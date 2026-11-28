@@ -29,14 +29,18 @@ import type {
   FeatureSuite,
   RunOptions,
 } from "../../types/feature.ts";
-import { quietError } from "../../utils/errors.ts";
+import {
+  isPluginError,
+  locatedError,
+  pluginError,
+} from "../../utils/errors.ts";
 import { slash } from "../../utils/slash.ts";
 import { runOptionsOf, type Configuration } from "../plugin/options.ts";
 import { supportFilesOf } from "../support/supportFiles.ts";
 import { fileCache } from "../utils/fileCache.ts";
 import { isFeatureFile } from "./featureFile.ts";
 import { tagsOf, tagsOfDocument } from "./featureTags.ts";
-import { parseErrorMessage } from "./parseErrors.ts";
+import { parseErrorOf } from "./parseErrors.ts";
 import { planOf } from "./plan.ts";
 import { createPlanCache } from "./planCache.ts";
 
@@ -72,9 +76,18 @@ export interface FailedPlan {
 /** A feature file parsed: the part of its plans its text alone decides. */
 type Parsed = Pick<VitestPlan, "uri" | "tags" | "featureTree" | "gherkin">;
 
-/** A failed plan for `error`: whatever stopped a file from having a plan. */
+/**
+ * A failed plan for `error`: whatever stopped a file from having a plan. The plugin's own errors
+ * as they are (the file's: it can't be parsed, read, linked); anything else is the plugin's bug,
+ * the error its cause.
+ */
 export const failedPlan = (error: unknown): FailedPlan => ({
-  error: error instanceof Error ? error : new Error(String(error)),
+  error: isPluginError(error)
+    ? error
+    : pluginError("a feature file's plan couldn't be made", {
+        internal: true,
+        cause: error,
+      }),
 });
 
 /** The feature plans of the project at `root`, with the user's `configuration` (their options, with cucumber's defaults). */
@@ -89,11 +102,19 @@ export const createFeaturePlans = ({
   /** The run's options, from the configuration. */
   const options = runOptionsOf(configuration);
 
-  /** Feature file `file` as it is on disk: its text and its uri. */
-  const read = async (file: string) => ({
-    content: await readFile(file, "utf8"),
-    uri: slash(path.relative(root(), file)),
-  });
+  /** Feature file `file` as it is on disk: its text and its uri; it can't be read: its error. */
+  const read = async (file: string) => {
+    const uri = slash(path.relative(root(), file));
+    try {
+      return { content: await readFile(file, "utf8"), uri };
+    } catch (error) {
+      // Node's reason, without the path it names (absolute: the place says it).
+      const reason = (
+        error instanceof Error ? error.message : String(error)
+      ).replace(/, \w+ '[^']*'$/, "");
+      throw locatedError(`feature file can't be read (${reason})`, [uri]);
+    }
+  };
   type FeatureFile = Awaited<ReturnType<typeof read>>;
 
   // The parts, as read from disk.
@@ -122,7 +143,7 @@ export const createFeaturePlans = ({
         ? { uri, tags: tagsOfDocument(gherkin.document), featureTree, gherkin }
         : {
             // The feature file's own error: no frame of main's would be the user's.
-            error: quietError(parseErrorMessage(uri, parseErrors)),
+            error: parseErrorOf(uri, parseErrors),
           };
     });
 

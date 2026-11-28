@@ -4,7 +4,7 @@
 // what stops it (the plugin's error, every one listed). A hook writes the module its plan gives
 // (`./featureStoriesModule.ts`).
 import type { FeatureSuite } from "../../../types/feature.ts";
-import { pluginError } from "../../../utils/errors.ts";
+import { type Located, locatedErrors } from "../../../utils/errors.ts";
 import type { FailedPlan, VitestPlan } from "../../feature/plans.ts";
 import type { FeatureLinks } from "./featureLinks.ts";
 import { featureModuleOf } from "./featureRuntimeModule.ts";
@@ -55,7 +55,7 @@ export const storybookPlanFrom = async ({
   label: string;
   /** The other feature files on its stories file whose labels give its id (by path). */
   sameLabel: readonly SameLabel[];
-  stepErrors: readonly string[];
+  stepErrors: readonly Located[];
   root: string;
   /** A stories file's stories, as Storybook reads them (kept: `./storybookPlans.ts`). */
   storiesOf: (file: string) => Promise<StoriesOf>;
@@ -70,6 +70,7 @@ export const storybookPlanFrom = async ({
   const tag = await storybookTagsOf();
   const linked = await linkedFeatureOf({
     uri,
+    featureLine: gherkin.document.feature?.location.line ?? 1,
     root,
     linked: links,
     stepErrors,
@@ -80,13 +81,12 @@ export const storybookPlanFrom = async ({
     idOf: sanitize,
   });
   if ("errors" in linked) {
-    // Each error once (a Background's step reaches every scenario: its error would be each one's),
-    // in the order they came; each names the feature file.
-    const errors = [...new Set(linked.errors)];
+    // Each error once (a Background's step reaches every scenario: its error would be each
+    // one's: `locatedErrors`), in the order they came.
     return {
-      error: pluginError(
-        `feature file can't be linked to stories:\n${errors.map((message) => `  - ${message}`).join("\n")}`,
-        { quiet: true },
+      error: locatedErrors(
+        "feature file can't be linked to stories",
+        linked.errors,
       ),
     };
   }
@@ -112,7 +112,12 @@ export const storybookPlanFrom = async ({
     ids: { toId, storyNameFromExport },
   });
   if (sameIds.length > 0) {
-    return { error: pluginError(sameIds.join("\n"), { quiet: true }) };
+    return {
+      error: locatedErrors(
+        "feature file's scenarios can't all be stories",
+        sameIds,
+      ),
+    };
   }
   return {
     ...plan,

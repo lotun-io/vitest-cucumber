@@ -1,4 +1,4 @@
-// The plugin's own errors (`pluginError`, `quietError`, `locatedError`, `unsupportedError`), each message prefixed
+// The plugin's own errors (`pluginError`, `quietError`, `locatedError`, `locatedErrors`, `unsupportedError`), each message prefixed
 // with the plugin's name (`pluginErrorMessage`). Three kinds: a user's or environment's error says
 // what's wrong and has no stack (`quiet`: no frame would be the user's); a user's call at the wrong
 // time keeps its stack, the call among its frames (Vitest's frame filter keeps an error whose first
@@ -12,6 +12,10 @@ const issues = "https://github.com/lotun-io/vitest-cucumber/issues";
 
 /** The plugin's message: `message`, prefixed with its name. */
 export const pluginErrorMessage = (message: string) => `${prefix}${message}`;
+
+/** Whether `error` is one of the plugin's own (its message prefixed: `pluginErrorMessage`). */
+export const isPluginError = (error: unknown): error is Error =>
+  error instanceof Error && error.message.startsWith(prefix);
 
 /** The plugin's message for a bug of its own: `message`, asking to report it. */
 export const internalErrorMessage = (message: string) =>
@@ -53,12 +57,37 @@ export const pluginError = (
 };
 
 /**
- * The plugin's error about a place in the user's files (`location`: `path:line` from the project's
- * root): its message, then the place on a line of its own, indented, and no stack (its frames
- * would be the plugin's). The messages' standard: `notes/design.md`, "Error messages".
+ * What a located error says: its sentence (what's wrong, then what to do), and each place in the
+ * user's files it refers to (`path:line[:column]` from the project's root), in a stack's order:
+ * what it points to first, the line it comes from last.
  */
-export const locatedError = (message: string, location: string) =>
-  pluginError(`${message}\n  ${location}`, { quiet: true });
+export interface Located {
+  message: string;
+  at: readonly string[];
+}
+
+/** `places`, each on a line of its own, indented `indent`. */
+const placesText = (places: readonly string[], indent: string) =>
+  places.map((place) => `\n${indent}${place}`).join("");
+
+/**
+ * The plugin's error about places in the user's files: its message, then each place on a line of
+ * its own, indented, like a stack's frames; no stack (its frames would be the plugin's). The
+ * messages' standard: `notes/design.md`, "Error messages".
+ */
+export const locatedError = (message: string, at: readonly string[]) =>
+  pluginError(`${message}${placesText(at, "  ")}`, { quiet: true });
+
+/**
+ * The plugin's error for several located errors (`items`) under `header`: each as `  - ` and its
+ * message, its places under it; one written twice, listed once.
+ */
+export const locatedErrors = (header: string, items: readonly Located[]) => {
+  const lines = items.map(
+    ({ message, at }) => `  - ${message}${placesText(at, "    ")}`,
+  );
+  return pluginError([header, ...new Set(lines)].join("\n"), { quiet: true });
+};
 
 /** The plugin's error for a part of cucumber's API it doesn't support, in every mode (its call's stack). */
 export const unsupportedError = (name: string) =>

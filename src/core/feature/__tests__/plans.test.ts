@@ -2,9 +2,10 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterAll, expect, test } from "vitest";
+import { pluginError } from "../../../utils/errors.ts";
 import { slash } from "../../../utils/slash.ts";
 import { configurationOf } from "../../plugin/options.ts";
-import { createFeaturePlans } from "../plans.ts";
+import { createFeaturePlans, failedPlan } from "../plans.ts";
 
 const root = mkdtempSync(path.join(tmpdir(), "plans-"));
 afterAll(() => {
@@ -135,25 +136,48 @@ test("a file that doesn't parse is a failed plan, the same one while its text is
   const plan = await all.vitestPlanOf(id);
   expect(plan).toMatchObject({
     error: {
-      message: expect.stringContaining(
-        "parse error in broken.feature",
-      ) as string,
+      message: [
+        "[@lotun/vitest-cucumber] feature file can't be parsed",
+        "  - expected: #TagLine, #FeatureLine, #Comment, #Empty, got 'Not Gherkin'",
+        "    broken.feature:2:1",
+        "  - unexpected end of file, expected: #TagLine, #FeatureLine, #Comment, #Empty",
+        "    broken.feature:3",
+      ].join("\n"),
     },
   });
   expect(plan).not.toHaveProperty("tags");
   expect(await all.vitestPlanOf(id)).toBe(plan);
 });
 
-test("nothing throws: a file that can't be read is a failed plan, the error its own; created: its event", async () => {
+test("nothing throws: a file that can't be read is a failed plan, the file's own error, Node's reason without its path; created: its event", async () => {
   const all = plans();
   const id = path.join(root, "missing.feature");
   for (const plan of [await all.tagsPlanOf(id), await all.vitestPlanOf(id)]) {
     expect(plan).toMatchObject({
-      error: { message: expect.stringContaining("ENOENT") as string },
+      error: {
+        message: [
+          "[@lotun/vitest-cucumber] feature file can't be read (ENOENT: no such file or directory)",
+          "  missing.feature",
+        ].join("\n"),
+        stack: "",
+      },
     });
   }
   file("missing.feature", tagged);
   await all.onFileChange("add", id);
   expect(await all.vitestPlanOf(id)).toMatchObject({ uri: "missing.feature" });
   rmSync(id);
+});
+
+test("a failed plan: the plugin's own error as it is; anything else the plugin's bug, the error its cause", () => {
+  const own = pluginError("feature file can't be linked to stories", {
+    quiet: true,
+  });
+  expect(failedPlan(own).error).toBe(own);
+  const stray = new TypeError("x is undefined");
+  const { error } = failedPlan(stray);
+  expect(error.message).toMatch(
+    /^\[@lotun\/vitest-cucumber\] a feature file's plan couldn't be made \(a bug in @lotun\/vitest-cucumber, please report it at /,
+  );
+  expect(error.cause).toBe(stray);
 });

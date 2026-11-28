@@ -7,6 +7,7 @@
 // not a number added; node and browser mode run them as cucumber does). The ids are made by
 // Storybook's own functions (`storybook/internal/csf`), as Storybook will make them.
 import type { GherkinDocument, Scenario } from "@cucumber/messages";
+import type { Located } from "../../../utils/errors.ts";
 import { exampleName } from "../../feature/featureTree.ts";
 
 /** Storybook's functions making ids (`storybook/internal/csf`'s). */
@@ -69,11 +70,11 @@ export const sameIdErrorsOf = ({
   own: string;
   stories: readonly ModuleStory[];
   ids: StorybookIds;
-}): string[] => {
+}): Located[] => {
   const kinds = kindsOf(document);
   const featureLine = document.feature?.location.line ?? 1;
-  /** Each id's stories: where each is, what it is. */
-  const byId = new Map<string, string[]>();
+  /** Each id's stories: what each is, where. */
+  const byId = new Map<string, { what: string; at: string }[]>();
   const all = [{ export: own, line: featureLine, name: undefined }, ...stories];
   for (const story of all) {
     const id = ids.toId(metaId, ids.storyNameFromExport(story.export));
@@ -83,15 +84,13 @@ export const sameIdErrorsOf = ({
         : `${kinds.get(story.line) ?? "Scenario"}: ${JSON.stringify(story.name)}`;
     byId.set(id, [
       ...(byId.get(id) ?? []),
-      `- ${uri}:${String(story.line)} (${what})`,
+      { what, at: `${uri}:${String(story.line)}` },
     ]);
   }
   return [...byId]
     .filter(([, same]) => same.length > 1)
-    .map(([id, same]) =>
-      [
-        `scenarios would be the same story in Storybook (id ${JSON.stringify(id)}):`,
-        ...same,
-      ].join("\n"),
-    );
+    .map(([id, same]) => ({
+      message: `${same.map(({ what }) => what).join(" and ")} would be the same story in Storybook (id ${JSON.stringify(id)})`,
+      at: same.map(({ at }) => at),
+    }));
 };

@@ -56,11 +56,10 @@ test("names differing in case or punctuation only: one id, an error naming each 
     Given a step
 `),
   ).toEqual([
-    [
-      `scenarios would be the same story in Storybook (id "example-cart-feature-cart--http-request"):`,
-      `- src/Cart.feature:2 (Scenario: "HTTP request")`,
-      `- src/Cart.feature:4 (Scenario: "Http request!")`,
-    ].join("\n"),
+    {
+      message: `Scenario: "HTTP request" and Scenario: "Http request!" would be the same story in Storybook (id "example-cart-feature-cart--http-request")`,
+      at: ["src/Cart.feature:2", "src/Cart.feature:4"],
+    },
   ]);
 });
 
@@ -77,16 +76,14 @@ test("the same name twice, whatever the keyword: an error per id, each scenario 
     Given a step
 `),
   ).toEqual([
-    [
-      `scenarios would be the same story in Storybook (id "example-cart-feature-cart--log-in"):`,
-      `- src/Cart.feature:2 (Example: "Log in")`,
-      `- src/Cart.feature:4 (Scenario: "Log in")`,
-    ].join("\n"),
-    [
-      `scenarios would be the same story in Storybook (id "example-cart-feature-cart--log-out"):`,
-      `- src/Cart.feature:6 (Scenario: "Log out")`,
-      `- src/Cart.feature:8 (Scenario: "Log out")`,
-    ].join("\n"),
+    {
+      message: `Example: "Log in" and Scenario: "Log in" would be the same story in Storybook (id "example-cart-feature-cart--log-in")`,
+      at: ["src/Cart.feature:2", "src/Cart.feature:4"],
+    },
+    {
+      message: `Scenario: "Log out" and Scenario: "Log out" would be the same story in Storybook (id "example-cart-feature-cart--log-out")`,
+      at: ["src/Cart.feature:6", "src/Cart.feature:8"],
+    },
   ]);
 });
 
@@ -101,11 +98,10 @@ test("an Outline's rows its name doesn't tell apart: an error, with what tells t
       | Amex |
 `),
   ).toEqual([
-    [
-      `scenarios would be the same story in Storybook (id "example-cart-feature-cart--pay"):`,
-      `- src/Cart.feature:6 (Example: "Pay")`,
-      `- src/Cart.feature:7 (Example: "Pay")`,
-    ].join("\n"),
+    {
+      message: `Example: "Pay" and Example: "Pay" would be the same story in Storybook (id "example-cart-feature-cart--pay")`,
+      at: ["src/Cart.feature:6", "src/Cart.feature:7"],
+    },
   ]);
 });
 
@@ -121,11 +117,10 @@ Funktionalität: Cart
       | Amex  |
 `),
   ).toEqual([
-    [
-      `scenarios would be the same story in Storybook (id "example-cart-feature-cart--bezahlen"):`,
-      `- src/Cart.feature:7 (Beispiel: "Bezahlen")`,
-      `- src/Cart.feature:8 (Beispiel: "Bezahlen")`,
-    ].join("\n"),
+    {
+      message: `Beispiel: "Bezahlen" and Beispiel: "Bezahlen" would be the same story in Storybook (id "example-cart-feature-cart--bezahlen")`,
+      at: ["src/Cart.feature:7", "src/Cart.feature:8"],
+    },
   ]);
 });
 
@@ -136,11 +131,10 @@ test("a scenario named as the feature's own story: an error naming that story", 
     Given a step
 `),
   ).toEqual([
-    [
-      `scenarios would be the same story in Storybook (id "example-cart-feature-cart--vitest-cucumber-feature"):`,
-      `- src/Cart.feature:1 (the plugin's own story of the feature)`,
-      `- src/Cart.feature:2 (Scenario: "Vitest cucumber feature")`,
-    ].join("\n"),
+    {
+      message: `the plugin's own story of the feature and Scenario: "Vitest cucumber feature" would be the same story in Storybook (id "example-cart-feature-cart--vitest-cucumber-feature")`,
+      at: ["src/Cart.feature:1", "src/Cart.feature:2"],
+    },
   ]);
 });
 
@@ -163,10 +157,9 @@ test("unnamed scenarios, by their keywords: one of each, no error; two of one, a
       "Scenario",
     ]),
   ).toEqual([
-    [
-      `scenarios would be the same story in Storybook (id "example-cart-feature-cart--scenario"):`,
-      `- src/Cart.feature:2 (Scenario: "Scenario")`,
-      `- src/Cart.feature:9 (Scenario: "Scenario")`,
-    ].join("\n"),
+    {
+      message: `Scenario: "Scenario" and Scenario: "Scenario" would be the same story in Storybook (id "example-cart-feature-cart--scenario")`,
+      at: ["src/Cart.feature:2", "src/Cart.feature:9"],
+    },
   ]);
 });
