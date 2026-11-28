@@ -1,7 +1,10 @@
 import { expect, test } from "vitest";
+import { withProvided } from "../../../../__tests__/withProvided.ts";
 import { scenarioTestOptions } from "../scenarioTestOptions.ts";
 
-// The unit project provides `@slow` as a tag defined with a timeout (`src/__tests__/provide.ts`).
+// A project defining the tag `@slow` with a timeout.
+withProvided({ timedTags: ["@slow"] });
+
 test("a scenario without a timed tag: its tags, cucumber's timeouts only, never concurrent", () => {
   expect(scenarioTestOptions(["@smoke"])).toEqual({
     tags: ["@smoke"],

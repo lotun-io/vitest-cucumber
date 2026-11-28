@@ -33,6 +33,8 @@ import {
 import { cucumberExpressionReason } from "../../../utils/cucumberExpressionReason.ts";
 import type { Located } from "../../../utils/errors.ts";
 import {
+  hasStorybookPlaceholder,
+  parameterNamesOf,
   storybookExpressionOf,
   storybookPlaceholders,
 } from "../../../utils/storybookPlaceholders.ts";
@@ -119,16 +121,22 @@ const expressionOf = (
   if (!placeholder.test(text)) {
     return undefined;
   }
-  if (literal.type === "Literal") {
-    return typeof literal.value === "string"
-      ? { start: name.start, source: literal.value }
+  const [only] = literal.type === "TemplateLiteral" ? literal.quasis : [];
+  const value =
+    literal.type === "Literal"
+      ? literal.value
+      : literal.expressions.length === 0
+        ? only?.value.cooked
+        : undefined;
+  if (typeof value === "string") {
+    // Its placeholder a parameter, not text (`\{storybook:story}`: cucumber's escape).
+    return hasStorybookPlaceholder(value)
+      ? { start: name.start, source: value }
       : undefined;
   }
-  const [only] = literal.quasis;
-  return literal.expressions.length === 0 &&
-    typeof only?.value.cooked === "string"
-    ? { start: name.start, source: only.value.cooked }
-    : { start: name.start, unreadable: text };
+  return literal.type === "TemplateLiteral"
+    ? { start: name.start, unreadable: text }
+    : undefined;
 };
 
 /**
@@ -218,9 +226,7 @@ export const storybookStepsOf = (scans: Scan[]) => {
       });
       continue;
     }
-    const names = [...source.matchAll(/\{([^{}]*)\}/g)].map(
-      ([, name = ""]) => name,
-    );
+    const names = parameterNamesOf(source);
     const used = names.filter((name) => kinds.has(name));
     if (used.length > 1) {
       errors.push({

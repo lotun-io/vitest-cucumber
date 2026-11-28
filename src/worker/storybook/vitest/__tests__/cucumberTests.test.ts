@@ -1,4 +1,5 @@
 import { describe, expect, test, type TestAPI } from "vitest";
+import { withProvided } from "../../../../__tests__/withProvided.ts";
 import { markScenario } from "../../scenarioPlay.ts";
 import { cucumberTests } from "../cucumberTests.ts";
 
@@ -66,26 +67,37 @@ describe("a feature file's story tests, declared on Vitest's own `test` as its s
 });
 
 describe("a scenario's test's options", () => {
-  // A `test` that only records its calls: a tag Vitest's config doesn't define can't be declared.
-  const declared: unknown[][] = [];
-  const record = (...args: unknown[]) => {
-    declared.push(args);
+  // A project defining the tag `@slow` with a timeout.
+  withProvided({ timedTags: ["@slow"] });
+
+  /**
+   * Three scenarios' story tests declared, in a test (the project's values set): what was declared
+   * (a `test` that only records its calls: a tag Vitest's config doesn't define can't be declared).
+   */
+  const declare = () => {
+    const declared: unknown[][] = [];
+    const record = (...args: unknown[]) => {
+      declared.push(args);
+    };
+    const tests = cucumberTests(record as unknown as TestAPI, testStory);
+    tests.storyTest("Plain", { tags: [] }, { line: 3, column: 3 });
+    tests.storyTest("Tagged", { tags: ["@smoke"] }, { line: 5, column: 3 });
+    tests.storyTest("Slow", { tags: ["@slow"] }, { line: 7, column: 3 });
+    return { declared, tests };
   };
-  const tests = cucumberTests(record as unknown as TestAPI, testStory);
-  tests.storyTest("Plain", { tags: [] }, { line: 3, column: 3 });
-  tests.storyTest("Tagged", { tags: ["@smoke"] }, { line: 5, column: 3 });
-  tests.storyTest("Slow", { tags: ["@slow"] }, { line: 7, column: 3 });
 
   test("its Gherkin tags as Vitest's, never concurrent, cucumber's own timeouts unless one of its tags is defined with one", () => {
+    const { declared } = declare();
     expect(declared.map(([name, options]) => [name, options])).toEqual([
       ["Plain", { tags: [], timeout: 0, concurrent: false }],
       ["Tagged", { tags: ["@smoke"], timeout: 0, concurrent: false }],
-      // `@slow` has a timeout (the unit project's provided context): Vitest's applies.
+      // `@slow` has a timeout: Vitest's applies.
       ["Slow", { tags: ["@slow"], concurrent: false }],
     ]);
   });
 
   test("a scenario's story test given to `test` is collected, not declared; anything else is declared as it is", () => {
+    const { declared, tests } = declare();
     const before = declared.length;
     const own = () => undefined;
     expect(

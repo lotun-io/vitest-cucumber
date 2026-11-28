@@ -1,5 +1,7 @@
 // The unit project's global setup: what the plugin provides its workers (no plugin runs in the unit
 // project), since the page's modules read it as they load (`worker/cucumber/page.ts`'s `version`).
+// As a node-mode run would have it (Vitest's defaults, no tag defined with a timeout); a test that
+// needs another value sets it for its own file (`./withProvided.ts`).
 import type { TestProject } from "vitest/node";
 import type {} from "../types/providedContext.ts";
 
@@ -9,10 +11,9 @@ export default ({ provide }: TestProject) => {
     totalWorkers: 1,
     isolate: true,
     version: "0.0.0-unit",
-    // A tag defined with a timeout (`worker/platform/__tests__/scenarioTestOptions.test.ts`).
-    timedTags: ["@slow"],
-    // Vitest's defaults in node mode; `testTimeout` 0, none (`worker/platform/__tests__/vitestTimeouts.test.ts`).
-    testTimeout: 0,
+    timedTags: [],
+    // Vitest's defaults in node mode.
+    testTimeout: 5_000,
     hookTimeout: 10_000,
     internalDirectories: [],
     projectName: "",

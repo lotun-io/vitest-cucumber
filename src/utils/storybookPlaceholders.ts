@@ -21,12 +21,25 @@ export const storybookPlaceholders = {
   storiesFile: "storybook:storiesFile",
 } as const;
 
-/** Any of them, as written in an expression. */
-const placeholder = new RegExp(
-  String.raw`\{(?:${Object.values(storybookPlaceholders).join("|")})\}`,
-  "g",
-);
+/** The placeholders' names (`storybook:story`, …). */
+const placeholderNames = new Set<string>(Object.values(storybookPlaceholders));
+
+/**
+ * A parameter of a cucumber expression (`{name}`, its name group 1), as cucumber reads one: not
+ * after an escaping `\` (`\{name}` is text; `\\{name}`, an escaped `\` then a parameter).
+ */
+const parameter = /(?<=(?:^|[^\\])(?:\\\\)*)\{([^{}]*)\}/g;
+
+/** The names of cucumber expression `expression`'s parameters, in order (`{}`'s: `""`). */
+export const parameterNamesOf = (expression: string) =>
+  [...expression.matchAll(parameter)].map(([, name = ""]) => name);
+
+/** Whether cucumber expression `expression` has one of the plugin's placeholders (not as text). */
+export const hasStorybookPlaceholder = (expression: string) =>
+  parameterNamesOf(expression).some((name) => placeholderNames.has(name));
 
 /** Cucumber expression `expression` with its Storybook placeholders as cucumber's `{string}`. */
 export const storybookExpressionOf = (expression: string) =>
-  expression.replaceAll(placeholder, "{string}");
+  expression.replaceAll(parameter, (whole, name: string) =>
+    placeholderNames.has(name) ? "{string}" : whole,
+  );

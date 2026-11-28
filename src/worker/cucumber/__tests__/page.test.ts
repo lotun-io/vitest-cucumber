@@ -153,6 +153,15 @@ describe("the runner's exports, stand-ins that throw", () => {
     expect(setParallelCanAssign).toBe(recorders.setParallelCanAssign);
   });
 
+  test("passed on, not used: returned from an async function, awaited, given to JSON.stringify", async () => {
+    const stand = Formatter as unknown as Record<string, unknown>;
+    expect(stand.then).toBeUndefined();
+    expect(stand.toJSON).toBeUndefined();
+    const passed = async () => Formatter;
+    expect(await passed()).toBe(Formatter);
+    expect(() => JSON.stringify({ stand })).not.toThrow();
+  });
+
   test("reading a symbol, allowed (to inspect it)", () => {
     expect(
       (Formatter as unknown as Record<symbol, unknown>)[Symbol.toStringTag],

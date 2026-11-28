@@ -272,6 +272,20 @@ describe("Storybook steps, from the support code", () => {
     ]);
   });
 
+  test("an escaped brace is text, as cucumber reads it: no placeholder, no parameter type", () => {
+    const code = [
+      String.raw`Given("the \\{storybook:story} story", () => {});`,
+      String.raw`Given("the {storybook:story} story, \\{color}", () => {});`,
+    ].join("\n");
+    expect(scanSupportCode(code, "/p/steps.ts")).toEqual([
+      {
+        at: "/p/steps.ts:2",
+        source: String.raw`the {storybook:story} story, \{color}`,
+      },
+    ]);
+    expect(stepsOf([code, "/p/steps.ts"]).errors).toEqual([]);
+  });
+
   test("a support file without Storybook steps: nothing", () => {
     expect(
       scanSupportCode(`Given("I click {string}", () => {});`, "/p/a.ts"),

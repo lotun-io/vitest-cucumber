@@ -6,8 +6,16 @@
 import { unsupportedError } from "../../utils/errors.ts";
 
 /**
+ * The properties read of any value by what only passes it on: `then` (a promise's resolution checks
+ * whether a value is one: an `async` function returning it, `await`), `toJSON` (`JSON.stringify`,
+ * loggers). Reading them is no use of it: undefined, as a plain value's.
+ */
+const passedOn = new Set(["then", "toJSON"]);
+
+/**
  * A stand-in for `name` that works as a function, a class or an object, and throws on any use: a
- * call, `new`, reading or writing a property. Reading a symbol is allowed, so it can be inspected.
+ * call, `new`, reading or writing a property. Reading a symbol, `then` or `toJSON` is allowed
+ * (`passedOn`), so it can be inspected, returned from an `async` function and logged.
  */
 export const unsupported = <T>(name: string): T => {
   const fail = (): never => {
@@ -18,7 +26,11 @@ export const unsupported = <T>(name: string): T => {
     apply: fail,
     construct: fail,
     get: (target, key) =>
-      typeof key === "symbol" ? Reflect.get(target, key) : fail(),
+      typeof key === "symbol"
+        ? Reflect.get(target, key)
+        : passedOn.has(key)
+          ? undefined
+          : fail(),
     set: fail,
     has: fail,
   }) as T;
