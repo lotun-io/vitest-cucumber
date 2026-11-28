@@ -150,18 +150,47 @@ describe("a scenario", () => {
     expect(failuresOf(failed?.result)).toEqual([noPrototype]);
   });
 
-  test("an After hook that changes the result changes the scenario's (cucumber's object)", async () => {
+  test("a hook's result is a copy of its own: writing to it changes nothing of the run's, either way", async () => {
+    const seen: string[] = [];
     const runner = runnerOf([
       call("After", ({ result }: { result: { status: string } }) => {
-        result.status = "PASSED";
+        seen.push(result.status);
+        result.status = result.status === "FAILED" ? "PASSED" : "FAILED";
       }),
+      call(
+        "AfterStep",
+        ({ result }: { result: { status: string; duration: object } }) => {
+          result.status = "PASSED";
+          result.duration = {};
+        },
+      ),
       call("Given", "a step", () => undefined),
       call("When", "it fails", () => {
         throw new Error("no");
       }),
       call("Then", "a later step", () => undefined),
     ]);
-    expect((await runner.scenario(...scenario(feature))).success).toBe(true);
+    // A failing scenario stays failed, its steps' results as they ran.
+    const failing = await runner.scenario(...scenario(feature));
+    expect(failing.success).toBe(false);
+    expect(statusesOf(failing.query)).toContain("it fails: FAILED");
+    expect(seen).toEqual(["FAILED"]);
+  });
+
+  test("an After hook marking a passing scenario's result FAILED changes nothing (its copy)", async () => {
+    const passing = gherkinOf(`Feature: A
+  Scenario: s
+    Given a step
+`);
+    const runner = runnerOf([
+      call("After", ({ result }: { result: { status: string } }) => {
+        result.status = "FAILED";
+      }),
+      call("Given", "a step", () => undefined),
+    ]);
+    const run = await runner.scenario(...scenario(passing));
+    expect(run.success).toBe(true);
+    expect(statusesOf(run.query)).toContain("a step: PASSED");
   });
 });
 

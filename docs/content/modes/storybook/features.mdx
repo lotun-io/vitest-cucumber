@@ -2,17 +2,10 @@ import { FileTree } from "nextra/components";
 
 # Writing features
 
-## Feature files become stories
-
-Keep your feature files where you like: **next to their stories files**, as Storybook keeps a
-component's files together, or **in `features/`**, as Cucumber projects keep them. Both work in one
-project: the pattern in Storybook's [`stories`](/modes/storybook#add-the-addon) lists both folders
-(`"../@(src|features)/**/*.@(feature|feature.md)"`).
-
-Wherever it is, a feature file says which stories it runs on, with [Storybook steps](#storybook-steps):
-its Background names its **stories file** (`Given the stories of "./Greeting.stories.ts"`), and each
-scenario names its **story** (`Given the "Ada" story`). The examples here keep the feature next to
-its stories file:
+A feature file names the stories it runs on with two steps of yours: its Background names its
+**stories file**, and each scenario names its **story**. Each scenario becomes a story that renders
+that story, then plays the scenario's steps. Keep feature files next to their stories files, as here,
+or in `features/`:
 
 <FileTree>
   <FileTree.Folder name="src" defaultOpen>
@@ -32,33 +25,7 @@ its stories file:
   </FileTree.Folder>
 </FileTree>
 
-Each scenario's story:
-
-- **renders the story its story step names** (`Given the "Ada" story`), with everything the story
-  has (`args`, `render`, `decorators`, `parameters`, …) but its own `play`, which the scenario
-  replaces; with `"default"`, it renders the stories file's meta (its `component`, `args`,
-  `render`, …);
-- **uses the stories file's meta**: its decorators, loaders, parameters and tags, as any story of
-  that file;
-- is **named after the scenario** (an Outline row after its row), with the story's tags and the
-  scenario's Gherkin tags (with their `@`; `@tag(<name>)` as `<name>`, Storybook's own among them:
-  [Storybook tags](/modes/storybook/running#storybook-tags)), and not in autodocs pages or
-  component manifests: the plugin adds `!autodocs` and `!manifest` after its tags, so a
-  scenario's own tags can't put them back;
-- has **an id from its names**: the feature's, then its Rule's and its own
-  (`example-greeting-feature-greeting--saying-hello`). Storybook's ids ignore case and punctuation,
-  so two scenarios of a feature whose names give one id (the same name twice, `HTTP request` and
-  `Http request`, an Outline's rows its name doesn't tell apart) fail the feature, each named
-  with the id: give each its own name (an Outline a `<placeholder>` in its name);
-- is listed under **the stories file's title, then the feature**: `Example/Greeting/Feature: Greeting`
-  (the title written in the stories file, or Storybook's automatic one if it writes none; then the
-  feature's keyword and name; a feature without a name, its file's name without the extension:
-  `Feature:` in `Greeting.feature` is `Feature: Greeting`). Several features on one stories file are
-  told apart by their names: give each its own. A `/` in a feature's name is listed as a `|`
-  (`Feature: Log in/out` as `Feature: Log in|out`): Storybook splits a title at each `/`.
-  How the sidebar shows it: [Running](/modes/storybook/running#in-storybooks-ui).
-
-The stories file's own stories stay ordinary stories, listed under its title.
+## The feature
 
 ```gherkin filename="src/stories/Greeting.feature"
 Feature: Greeting
@@ -66,7 +33,6 @@ Feature: Greeting
   Background:
     Given the stories of "./Greeting.stories.ts"
 
-  @smoke
   Scenario: Saying hello
     Given the "Ada" story
     When I click the "Say hello" button
@@ -81,13 +47,12 @@ Feature: Greeting
       | name  |
       | Ada   |
       | Grace |
-
-  Scenario: Greeting the world
-    Given the "Basic" story
-    When I click the "Say hello" button
-    Then I see the text "Hello, World!"
-    And its "onGreet" handler was called
 ```
+
+## Its stories file
+
+Your stories file stays as it is: each scenario renders the story it names, with its `args`,
+`render` and `decorators`, and the meta's.
 
 ```ts filename="src/stories/Greeting.stories.ts"
 import type { Meta, StoryObj } from "@storybook/react-vite";
@@ -103,112 +68,28 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-// "Saying hello" and the Outline's first row render it, with these args;
-// the tags of "Saying hello" are ["people", "@smoke"]
-export const Ada: Story = {
-  tags: ["people"],
-  args: { name: "Ada" },
-};
-
-// The Outline's second row
-export const Grace: Story = {
-  args: { name: "Grace" },
-};
-
-// "Greeting the world": the meta's args as they are
-export const Basic: Story = {};
+export const Ada: Story = { args: { name: "Ada" } };
+export const Grace: Story = { args: { name: "Grace" } };
 ```
 
-The Outline gives each row its own story with a column (`<name>`).
+## The Storybook steps
 
-Every scenario names its story: there's no story taken for granted. `Given the "default" story`
-renders the stories file's meta (its `component` with its `args`), for a scenario that needs no story
-of its own or a stories file that has only a meta. `"default"`, in lowercase, is the meta: not a
-story named `Default`. A story step in the Background names the story of every scenario in it.
-
-## Storybook steps
-
-The Storybook steps are ordinary step definitions of yours, worded as you like, with one of the
-plugin's placeholders in their expression. Their code does nothing: the plugin reads the
-expressions to link each scenario before anything runs.
+Two step definitions of yours, worded as you like, with the plugin's placeholders. Their code does
+nothing: the plugin reads them to link each scenario to its story.
 
 ```ts filename="features/steps/stories.ts"
 import { Given } from "@cucumber/cucumber";
 
 Given("the stories of {storybook:storiesFile}", (_file: string) => {});
 Given("the {storybook:story} story", (_story: string) => {});
-Given("the unmounted {storybook:storyUnmounted} story", (_story: string) => {});
 ```
 
-| Placeholder | Names | Links |
-| --- | --- | --- |
-| `{storybook:storiesFile}` | a path | the feature to that stories file |
-| `{storybook:story}` | an export name, or `"default"` for the meta | the scenario to that story, rendered before the steps |
-| `{storybook:storyUnmounted}` | an export name, or `"default"` for the meta | the scenario to that story, not rendered: a step mounts it |
+- Write the values **in quotes**: `Given the "Ada" story`.
+- The **stories file step** goes once in the Background, relative to the feature with `./`.
+- **Every scenario names its story**, an export of the stories file; `"default"` is the meta.
 
-In Storybook, each placeholder matches as cucumber's `{string}`: write the value **in quotes** in the
-feature (`Given the "Ada" story`, `Given the stories of "./Greeting.stories.ts"`; double or single),
-and the step gets it without them. The plugin defines no parameter type of its own, so your regular
-expressions' groups and your own parameter types work as anywhere else.
-
-- **The stories file step, once per feature, in its Background**: it must reach every scenario. Its
-  path is relative to the feature with `./` or `../`, else from the project's root
-  (`Given the stories of "src/stories/Greeting.stories.ts"`). A feature runs on one stories file.
-- **One story step per scenario**: in the scenario, or in the Background for all of them. A
-  scenario without steps of its own gets no Background steps, so it can't name its story.
-- **Write each expression as a string literal**, directly as the first argument of `Given`, `When`,
-  `Then` or `defineStep`, in a file of `import`: the plugin finds them in your support files without
-  running them. A Storybook step anywhere else (in a module a support file imports) isn't found, and
-  links nothing. One placeholder per step definition; cucumber's built-in parameter types
-  (`{string}`, `{int}`, …) are fine beside it, your own aren't.
-- **Node and browser projects don't know the placeholders**: a step using one is an undefined
-  parameter type there. If those projects run the same feature files, give them steps of the same
-  wording with `{string}`, which do nothing, in a file only their `import` globs load:
-
-  ```ts filename="features/steps-vitest/stories.ts"
-  import { Given } from "@cucumber/cucumber";
-
-  Given("the stories of {string}", (_file: string) => {});
-  Given("the {string} story", (_story: string) => {});
-  ```
-
-A link the plugin can't make is an error, with every such error of the feature listed: no stories
-file step, two of them, a missing stories file, a scenario without its story step, a story the
-stories file doesn't have (its stories listed), two stories named in one scenario, a step two
-Storybook steps match. Each one, and what to do:
-[Troubleshooting](/guides/troubleshooting#a-feature-that-cant-be-linked).
-
-## Mounting
-
-A scenario's story is rendered before its steps, as Storybook renders a story before its `play`:
-
-```gherkin
-Scenario: Mounted
-  Given the "ThePage" story
-  Then I see the page
-```
-
-A scenario on an unmounted story isn't: a step of yours mounts it, after any setup before it:
-
-```gherkin
-Scenario: Unmounted
-  Given the unmounted "ThePage" story
-  And the API answers with an error
-  When I mount the story
-  Then I see the error message
-```
-
-```ts filename="features/steps/stories.ts"
-import { When } from "@cucumber/cucumber";
-import type { StoryWorld } from "../support/world.ts";
-
-When("I mount the story", async (world: StoryWorld) => {
-  await world.story.mount();
-});
-```
-
-The plugin never mounts an unmounted story itself. In Storybook's UI, a story that ends without being
-mounted fails (Storybook's `NoStoryMountedError`).
+All the rules, unmounted stories and the errors:
+[Storybook steps](/guides/storybook/stories-and-steps#storybook-steps).
 
 ## Steps for stories
 
@@ -241,29 +122,14 @@ When("I click the {string} button", async (world: StoryWorld, name: string) => {
 Then("I see the text {string}", async (world: StoryWorld, text: string) => {
   await expect(world.story.canvas.getByText(text)).toBeVisible();
 });
-
-Then("its {string} handler was called", async (world: StoryWorld, handler: string) => {
-  await expect(world.story.args[handler]).toHaveBeenCalled();
-});
 ```
 
-- Use a getter, not a field set in the constructor: it reads the story when the step runs.
-- Import `expect`, `fn` and `userEvent` from `storybook/test`, not from Vitest: the same steps run in
-  Storybook's UI, where there is no Vitest.
-- Keep these steps in their own folder if node or browser projects share your `import` globs.
+Import `expect` and `userEvent` from `storybook/test`, not from Vitest: the same steps run in
+Storybook's UI, where there is no Vitest.
 
-## Stories files a feature can use
+## In depth
 
-A feature's stories file is read as Storybook reads CSF, without running it, so it must be **CSF 3
-in JavaScript or TypeScript** (`.js`, `.jsx`, `.mjs`, `.ts`, `.tsx`, `.mts`, …):
-
-- **CSF factories** (`meta.story()`, experimental in Storybook 10) aren't supported yet: a feature on
-  such a file fails with an error saying so.
-- **Svelte CSF** (`.stories.svelte`) and **Vue SFC stories** (`.stories.vue`) aren't JavaScript until
-  their addon compiles them. Write the feature's stories file as `X.stories.ts` with your component
-  as `component`: Svelte and Vue components work as usual.
-- **MDX** files are docs, with no stories to play.
-
-Write a story's `tags` and the meta's `title` and `tags` as literals. A stories file without a
-`title` has Storybook's automatic one, and its features are listed under that. Storybook makes one
-only for a file its `stories` patterns match: a stories file they don't list needs a written `title`.
+- [Stories and steps](/guides/storybook/stories-and-steps): a scenario's story, its name, id and
+  title; every Storybook step rule; unmounted stories; which stories files work.
+- [Storybook tags](/guides/storybook/tags): a story's tags and its test's.
+- [Features in docs pages](/guides/storybook/docs): a stories file's features on its docs page.

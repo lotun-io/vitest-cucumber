@@ -3,5 +3,6 @@ export default {
   results: "Results and failures",
   "support-code": "Support code",
   projects: "Projects and monorepos",
+  storybook: "Storybook in depth",
   troubleshooting: "Troubleshooting",
 };

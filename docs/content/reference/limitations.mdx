@@ -1,3 +1,5 @@
+import { Callout } from "nextra/components";
+
 # Limitations
 
 ## Not supported
@@ -22,6 +24,8 @@ In every mode:
 - **Timeouts** are per step and hook, as Cucumber's, Vitest's `testTimeout` and `hookTimeout` their
   defaults: [Timeouts](/guides/support-code#timeouts).
 - **A feature file with no scenarios** fails (`No test found in suite`).
+- **A hook's `result` is a copy**: writing to it doesn't change a scenario's outcome, which
+  Cucumber doesn't support either ([cucumber-js#1724](https://github.com/cucumber/cucumber-js/issues/1724)).
 
 ## In a page (browser mode and Storybook)
 
@@ -38,15 +42,51 @@ default `isolate: true`, it's reported as usual.
 
 ## Storybook
 
-- Storybook 10, with the [frameworks](/modes/storybook#frameworks) its Vitest addon supports (Vite
+- Storybook 10, with the [frameworks](#storybook-frameworks) its Vitest addon supports (Vite
   only); classic previews only (not `definePreview`).
 - A feature file needs one stories file, which its Background names (a stories file step), and
-  each scenario a story step: [Storybook steps](/modes/storybook/features#storybook-steps). The
+  each scenario a story step: [Storybook steps](/guides/storybook/stories-and-steps#storybook-steps). The
   stories file is CSF 3 written in JavaScript or TypeScript (one with only a meta is enough),
   its `tags` and `title` written as literals. Not CSF factories, `.stories.svelte` or `.stories.vue`:
-  [Stories files a feature can use](/modes/storybook/features#stories-files-a-feature-can-use).
+  [Stories files a feature can use](/guides/storybook/stories-and-steps#stories-files-a-feature-can-use).
 - A stories file that no pattern of Storybook's `stories` matches needs a `title` written in its
   meta: its features are listed under its title.
+
+## Storybook frameworks
+
+Storybook's Vitest addon runs story tests with Storybook's Vite builder only, and its setup accepts
+these frameworks. The plugin supports the same list.
+
+| Framework | Package |
+| --- | --- |
+| React | `@storybook/react-vite` |
+| Next.js | `@storybook/nextjs-vite` |
+| React Native Web | `@storybook/react-native-web-vite` |
+| TanStack React | `@storybook/tanstack-react` |
+| Preact | `@storybook/preact-vite` |
+| Vue 3 | `@storybook/vue3-vite` |
+| Svelte | `@storybook/svelte-vite` |
+| SvelteKit | `@storybook/sveltekit` |
+| Angular | `@storybook/angular-vite` |
+| Web Components | `@storybook/web-components-vite` |
+| HTML | `@storybook/html-vite` |
+| SolidJS | `storybook-solidjs-vite` (community) |
+
+<Callout type="info">
+  **SolidJS**: `vite-plugin-solid` sets Vitest's `environment` to `jsdom` unless you set one, and
+  Vitest stops with "Cannot find dependency 'jsdom'" if it isn't installed, even though story tests
+  run in the browser. Install `jsdom`, or set `test.environment` in the Storybook test project.
+</Callout>
+
+Not supported:
+
+- **Webpack frameworks** (`@storybook/nextjs`, `@storybook/angular`, `@storybook/react-webpack5`,
+  `@storybook/vue3-webpack5`, …): the plugin is a Vite plugin, and the Vitest addon needs Vite too.
+  Next.js and Angular have Vite frameworks: `@storybook/nextjs-vite`, `@storybook/angular-vite`.
+- **Vite frameworks the addon doesn't accept**, such as the community frameworks for Analog, Astro
+  and Nuxt: scenarios run as the addon's story tests, so a framework the addon doesn't support isn't
+  supported here either.
+- **React Native on a device** (`@storybook/react-native`): no Vite, no Vitest addon.
 
 ## File names
 

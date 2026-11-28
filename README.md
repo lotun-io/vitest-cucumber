@@ -24,7 +24,7 @@ npm install -D @lotun/vitest-cucumber@beta @cucumber/cucumber vitest
 
 - [Uses the official `@cucumber/cucumber` package](https://lotun-io.github.io/vitest-cucumber/guides/support-code#what-works): your steps, hooks and World import from it, with Cucumber's API unchanged
 - [Every scenario, and every row of a Scenario Outline, is a Vitest test](https://lotun-io.github.io/vitest-cucumber/guides/running#how-scenarios-become-tests)
-- [Scenarios as Storybook stories](https://lotun-io.github.io/vitest-cucumber/modes/storybook): played in Vitest, in Storybook's UI and in static builds, with [a stories file's features on its docs page](https://lotun-io.github.io/vitest-cucumber/modes/storybook/docs)
+- [Scenarios as Storybook stories](https://lotun-io.github.io/vitest-cucumber/modes/storybook): played in Vitest, in Storybook's UI and in static builds, with [a stories file's features on its docs page](https://lotun-io.github.io/vitest-cucumber/guides/storybook/docs)
 - [Cucumber runs inside the browser page](https://lotun-io.github.io/vitest-cucumber/modes/browser): your steps, hooks and World in Chromium, Firefox or WebKit, with Vitest's browser mode
 - [Run one scenario by its Gherkin line, by tag or by name](https://lotun-io.github.io/vitest-cucumber/guides/running#filtering)
 - [Failures at the step's line in the feature file](https://lotun-io.github.io/vitest-cucumber/guides/results#a-failing-step), and [Cucumber's snippets for undefined steps](https://lotun-io.github.io/vitest-cucumber/guides/results#undefined-pending-and-ambiguous-steps)

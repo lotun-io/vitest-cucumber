@@ -34,7 +34,7 @@ no server.
 
 In the sidebar, each feature is a group of its own under the stories file's component, after that
 file's docs page and stories. Here two features run on `Header.stories.ts`, each naming it with a
-[stories file step](/modes/storybook/features#storybook-steps): `Header.feature` next to it, and
+[stories file step](/guides/storybook/stories-and-steps#storybook-steps): `Header.feature` next to it, and
 `features/header/Session.feature`:
 
 <StorybookSidebar
@@ -90,7 +90,7 @@ npx vitest run -t "Saying hello"                 # by name
 ```
 
 `--tagsFilter` reads a scenario's test tags. Storybook's sidebar tag filter and the addon's `tags`
-option read its story's tags ([Storybook tags](#storybook-tags), below):
+option read its story's tags ([Storybook tags](/guides/storybook/tags)):
 
 ```ts
 storybookTest({ configDir, tags: { include: ["@smoke"] } }),
@@ -100,118 +100,18 @@ A scenario the addon's `tags` leave out is a skipped test in Vitest.
 
 ## Storybook tags
 
-In a Storybook project a scenario has two sets of tags, both made from its Gherkin tags (the
-feature's, the rule's, the scenario's own and its `Examples` block's, in that order):
-
-- **Its story's tags**, which Storybook reads: its sidebar's tag filter, the addon's `tags` option,
-  and Storybook's own tags, such as `dev` (listed in the sidebar) and `test` (run by the addon).
-- **Its test's tags**, which Vitest reads: `--tagsFilter`, and a tag's options in `test.tags`.
-
-### Writing them
-
-A plain Gherkin tag keeps its `@` (`@smoke`). Written `@tag(<name>)`
-([Plain tag names](/guides/running#plain-tag-names)), it's `<name>`, as Storybook names tags, and
-`@tag(!<name>)` takes a tag off, as in a stories file. So `@dev` is just a tag named `@dev`, while
-Storybook's `dev` is `@tag(dev)`. Every story has `dev` and `test`, so `@tag(!dev)` and
-`@tag(!test)` are the ones you'll write most.
-
-### What the test doesn't get
-
-The story gets every tag. The test gets them without Storybook's, which say what a story is in
-Storybook, not what a test is:
-
-- Storybook's [built-in tags](https://storybook.js.org/docs/writing-stories/tags) (`dev`, `test`,
-  `autodocs`, …), with or without `!`;
-- a tag the scenario takes off with `@tag(!smoke)`: the test has neither `smoke` nor `!smoke`, even
-  if a later `@tag(smoke)` puts it back on the story.
-
-Every other tag is the test's too:
-
-| A scenario's tags | Its story's tags | Its test's tags |
-| --- | --- | --- |
-| `@tag(smoke)`, `@tag(slow)` | `smoke`, `slow` | `smoke`, `slow` |
-| `@tag(smoke)`, `@tag(slow)`, then `@tag(!smoke)` | `slow` | `slow` |
-| `@tag(!smoke)`, then `@tag(smoke)` | `smoke` (put back) | none |
-
-`@tag(!smoke)` takes off only a tag written `@tag(smoke)`: a plain `@smoke` is another tag. In node
-and browser mode there are no stories, so no Storybook tags: every tag is a test tag,
-`@tag(<name>)` as `<name>`.
-
-### Only in Storybook's UI
-
-`@tag(!test)`: the scenario is listed in Storybook (`storybook dev`, a static build), and opening it
-there plays it. In Vitest it's a skipped test.
-
-```gherkin filename="src/stories/Greeting.feature"
-Feature: Greeting
-
-  Background:
-    Given the stories of "./Greeting.stories.ts"
-
-  @tag(!test)
-  Scenario: A greeting still being designed
-    Given the "Ada" story
-    Then I see "Hello, Ada!"
-```
-
-### Only in Vitest
-
-`@tag(!dev)`: Vitest runs the scenario as a story test, and Storybook's sidebar doesn't list it.
-
-```gherkin filename="src/stories/Greeting.feature"
-Feature: Greeting
-
-  Background:
-    Given the stories of "./Greeting.stories.ts"
-
-  @tag(!dev)
-  Scenario: A name with a thousand characters
-    Given the "LongName" story
-    Then the greeting fits its box
-```
-
-### On a feature or a rule
-
-The tags work wherever Gherkin tags do (a feature, a rule, a scenario, an `Examples` block), and
-the closest one wins. Tag a feature `@tag(!dev)` to keep all of it out of the sidebar, then one of
-its scenarios `@tag(dev)` to list that one:
-
-```gherkin filename="src/stories/Checkout.feature"
-@tag(!dev)
-Feature: Checkout edge cases
-
-  Background:
-    Given the stories of "./Checkout.stories.ts"
-
-  Scenario: An empty cart
-    Given the "Empty" story
-
-  @tag(dev)
-  Scenario: The usual order
-    Given the "Filled" story
-```
-
-A scenario's tag also wins over the tags of the story it runs on and of the stories file's meta:
-Storybook gets it after those.
+A scenario's Gherkin tags are its story's tags, and its test's but Storybook's own:
+`@tag(!dev)` keeps a scenario out of the sidebar, `@tag(!test)` out of story tests, and neither is
+a Vitest tag. Both sets, and how to write them: [Storybook tags](/guides/storybook/tags).
 
 ## Vitest and Storybook's UI
 
-The same scenarios, in two hosts. What differs:
-
-| | In Vitest (story tests) | In Storybook's UI (`storybook dev`, a static build) |
-| --- | --- | --- |
-| `BeforeAll` | once per page, as in [browser mode](/modes/browser) | once, when the preview loads |
-| `AfterAll` | when the page is done | only when Storybook reloads its configuration in place, not when you close the tab |
-| [Timeouts](/guides/support-code#timeouts) | each step and hook has its own, Vitest's `testTimeout` the default | none, unless a definition sets its own `timeout` |
-| [Attachments](/guides/support-code#attachments) | the test's annotations | notes on a failed story |
-| A skipped scenario | a skipped test | a passed story, with a "Skipped" step |
-
-- Don't make scenarios depend on each other: a story plays alone in Storybook's UI.
-- The Vitest addon turns Vitest's file writing off, so `world.attach`'s data is dropped in story
-  tests (its name is kept). Set `test.api.allowWrite: true` in the project if you need it.
+The same scenarios run in both, with a few differences (`BeforeAll`, timeouts, attachments, a
+skipped scenario): [Vitest and Storybook's UI](/guides/storybook/stories-and-steps#vitest-and-storybooks-ui).
+Don't make scenarios depend on each other: a story plays alone in Storybook's UI.
 
 ## A broken feature
 
 A feature file cucumber can't parse, or whose links the plugin can't make, is reported with every
 error it has. In Vitest only its own file fails; `storybook dev` and `storybook build` stop, as
-for a broken stories file. See [Troubleshooting](/guides/troubleshooting#storybook).
+for a broken stories file. See [Troubleshooting](/guides/troubleshooting#a-feature-that-cant-be-linked).

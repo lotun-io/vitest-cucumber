@@ -320,6 +320,9 @@ Feature: Storybook
 
         Scenario: BeforeAll ran
           Then the BeforeAll hook ran first
+
+        Scenario: Worker variables
+          Then cucumber's worker variables are set
       """
     And a file named "src/Attachments.feature" with:
       """
@@ -550,6 +553,15 @@ Feature: Storybook
         expect(world.parameters.beforeAll).toBe(true);
       });
 
+      // Cucumber's worker variables, as a page reads them: in story tests Vitest's worker, in
+      // Storybook's preview its one worker.
+      Then("cucumber's worker variables are set", () => {
+        const env = import.meta.env as Record<string, string | undefined>;
+        expect(env.CUCUMBER_PARALLEL).toBe("true");
+        expect(env.CUCUMBER_WORKER_ID).toMatch(/^\d+$/);
+        expect(env.CUCUMBER_TOTAL_WORKERS).toMatch(/^\d+$/);
+      });
+
       // Two definitions of one step: it's ambiguous.
       Given("an ambiguous step", () => undefined);
       Given(/^an ambiguous step$/, () => undefined);
@@ -623,6 +635,7 @@ Feature: Storybook
       | Checks > Skipped                                                              | skipped |
       | Checks > Logging                                                              | passed  |
       | Checks > BeforeAll ran                                                        | passed  |
+      | Checks > Worker variables                                                     | passed  |
       | Attachments > Attaching                                                       | passed  |
       | Attachments > Attaching, then failing                                         | failed  |
       | Hooks > Before and After                                                      | passed  |
@@ -705,6 +718,7 @@ Feature: Storybook
       | checks-feature-checks--skipped                                                          | PASS   | Skipped                                                                     |                 |
       | checks-feature-checks--logging                                                          | PASS   | Given a logging step                                                        |                 |
       | checks-feature-checks--before-all-ran                                                   | PASS   | Then the BeforeAll hook ran first                                           |                 |
+      | checks-feature-checks--worker-variables                                                 | PASS   | Then cucumber's worker variables are set                                    |                 |
       | attachments-feature-attachments--attaching                                              | PASS   | Given a step that attaches                                                  | log: a log line |
       | attachments-feature-attachments--attaching-then-failing                                 | FAIL   | log: a log line                                                             |                 |
       | attachments-feature-attachments--attaching-then-failing                                 | FAIL   | attachment: text/plain                                                      |                 |

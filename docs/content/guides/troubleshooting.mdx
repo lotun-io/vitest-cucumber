@@ -102,7 +102,7 @@ Error: [@lotun/vitest-cucumber] feature file can't be linked to stories:
 ```
 
 The plugin links each scenario of a feature file to a story from its
-[Storybook steps](/modes/storybook/features#storybook-steps), before anything runs. A link it can't
+[Storybook steps](/guides/storybook/stories-and-steps#storybook-steps), before anything runs. A link it can't
 make fails the feature's stories, with every such error listed (in Storybook's own process, it stops
 its index: `storybook dev` lists the error, `storybook build` fails). Each error, and what to do:
 
@@ -127,7 +127,7 @@ NoStoryMountedError: No component is mounted in your story.
 
 Storybook's error, in its Interactions panel: a scenario plays an unmounted story
 (`{storybook:storyUnmounted}`) and none of its steps mounts it. Call `mount()` in a step:
-[Mounting](/modes/storybook/features#mounting).
+[Mounting](/guides/storybook/stories-and-steps#mounting).
 
 ## TypeScript
 

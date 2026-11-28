@@ -4,7 +4,7 @@ import { Callout } from "nextra/components";
 
 Your step definitions, hooks, World and parameter types use
 [`@cucumber/cucumber`](https://github.com/cucumber/cucumber-js)'s API, unchanged. The plugin adds
-one thing to it: an arrow function can take [the World as an argument](#the-world-in-an-arrow-function).
+one thing to it: an arrow function can take [the World as an argument](#world-in-an-arrow-function).
 The plugin loads the files the [`import`](/reference/options#import) option lists, in every mode.
 They can be TypeScript (or TSX): Vite transforms them, with no loader or `requireModule` to set up.
 
@@ -12,7 +12,7 @@ They can be TypeScript (or TSX): Vite transforms them, with no loader or `requir
 
 | Cucumber API | Node | Browser | Storybook |
 | --- | :-: | :-: | :-: |
-| [The World as an arrow function's first argument](#the-world-in-an-arrow-function) (the plugin's own) | ✅ | ✅ | ✅ |
+| [World as an arrow function's first argument](#world-in-an-arrow-function) (the plugin's own) | ✅ | ✅ | ✅ |
 | `Given` / `When` / `Then` / `defineStep` (Cucumber expressions, regular expressions) | ✅ | ✅ | ✅ |
 | `Before` / `After` / `BeforeStep` / `AfterStep` (tags, names, timeouts) | ✅ | ✅ | ✅ |
 | `BeforeAll` / `AfterAll` | ✅ | ✅ | ✅ |
@@ -43,7 +43,7 @@ What isn't supported fails where it's used, with the plugin's error:
 ## World
 
 Each scenario gets a new World, shared by its steps and its `Before`/`After`/`BeforeStep`/`AfterStep`
-hooks. An arrow function takes it [as its first argument](#the-world-in-an-arrow-function), named
+hooks. An arrow function takes it [as its first argument](#world-in-an-arrow-function), named
 `world`, which is how these docs write steps and hooks. Cucumber's own form works too: a `function`
 gets the World as `this`.
 
@@ -63,7 +63,7 @@ setWorldConstructor(CartWorld);
 
 A World constructor that throws fails every scenario.
 
-### The World in an arrow function
+### World in an arrow function
 
 An arrow function whose first parameter is named `world` gets the World as that argument, before
 the arguments Cucumber gives it. This is the plugin's own addition: Cucumber itself doesn't run
@@ -175,8 +175,9 @@ a copy.
 ## Hooks
 
 `Before` and `After` run around each scenario, `BeforeStep` and `AfterStep` around each step, with
-the scenario's World as [an arrow function's `world`](#the-world-in-an-arrow-function) (or as a `function`'s `this`).
-With `tags`, only for the scenarios that match:
+the scenario's World as [an arrow function's `world`](#world-in-an-arrow-function) (or as a `function`'s `this`).
+With `tags`, a Cucumber [tag expression](https://cucumber.io/docs/cucumber/api/#tag-expressions),
+only for the scenarios that match:
 
 ```ts filename="features/support/hooks.ts"
 import { After, Before } from "@cucumber/cucumber";
@@ -187,10 +188,23 @@ Before({ tags: "@with-apples" }, (world: CartWorld) => {
   world.items = ["apples"];
 });
 
+// Only for scenarios tagged @tag(slow): the tag is `slow`
+Before({ tags: "slow" }, (world: CartWorld) => {
+  world.log("a slow scenario");
+});
+
 After((world: CartWorld) => {
   world.log(`${world.items.length} items`);
 });
 ```
+
+A tag expression names a `@tag(<name>)` tag by its name, never `@tag(…)`:
+[Plain tag names](/guides/running#plain-tag-names). Write it with `and`, `or`, `not` and
+parentheses (`"@smoke and not slow"`), and the same text works in Vitest's `--tagsFilter` too
+([Filtering](/guides/running#filtering)).
+
+An `After` or `AfterStep` hook's `result` is a copy, for reading (a screenshot when it failed):
+writing to it changes nothing. To pass something to a later hook, keep it on the World.
 
 ## BeforeAll and AfterAll
 
@@ -219,13 +233,16 @@ run.
 
 As in Cucumber's parallel mode, every worker has:
 
-| Variable                 | Value                                   |
-| ------------------------ | --------------------------------------- |
-| `CUCUMBER_WORKER_ID`     | the worker's id, unique in the run      |
-| `CUCUMBER_TOTAL_WORKERS` | Vitest's `maxWorkers`                   |
-| `CUCUMBER_PARALLEL`      | `"true"`                                |
+| Variable                 | Value                                                              |
+| ------------------------ | ------------------------------------------------------------------ |
+| `CUCUMBER_WORKER_ID`     | the worker's id, `"1"` up to the total (Cucumber's start at `"0"`) |
+| `CUCUMBER_TOTAL_WORKERS` | Vitest's `maxWorkers`                                              |
+| `CUCUMBER_PARALLEL`      | `"true"`                                                           |
 
-They're set before your support code loads. Where you read them depends on the mode:
+They're set before your support code loads. The id is Vitest's pool id: unique among the workers
+running at once, so a later worker may have an earlier one's id. Storybook's own preview
+(`storybook dev`, a static build) is one page, so one worker: `CUCUMBER_WORKER_ID` and
+`CUCUMBER_TOTAL_WORKERS` are `"1"`. Where you read them depends on the mode:
 
 ```ts
 // Node mode

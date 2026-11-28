@@ -4,8 +4,10 @@
 // the support module (the placeholder's import, by an id of its own: `./supportModule.ts`; made again
 // as support files are added or deleted: `./devWatch.ts`), and a feature file Storybook's
 // `stories` list as its stories module (its stories file's meta, a story per scenario:
-// `../stories/featureStories.ts`). In `storybook dev`: definition locations (`./locate.ts`), and the
-// dev server's watcher (`./devWatch.ts`: the features made again as a file changes their stories module).
+// `../stories/featureStories.ts`), and cucumber's worker variables in every module's
+// `import.meta.env` (`CUCUMBER_WORKER_ID`, …: `../../../utils/workerEnvironment.ts`). In
+// `storybook dev`: definition locations (`./locate.ts`), and the dev server's watcher
+// (`./devWatch.ts`: the features made again as a file changes their stories module).
 // A feature that can't be used has its error on its plan, and its module gives it (`../../feature/plans.ts`).
 import path from "node:path";
 import type { Plugin } from "vitest/config";
@@ -15,6 +17,10 @@ import type {
 } from "../../../types/storybook.ts";
 import { locatedEvent, locateEvent } from "../../../utils/previewLocate.ts";
 import { slash } from "../../../utils/slash.ts";
+import {
+  previewWorker,
+  workerEnvironment,
+} from "../../../utils/workerEnvironment.ts";
 import {
   pageExcluded,
   resolvePageCucumber,
@@ -57,7 +63,15 @@ export const storybookPreviewPlugin = (options: PresetOptions): Plugin => {
     // preview throws the original errors and sends no messages: no Vitest serialization), and the
     // support files for Vite's scanner, which Storybook gives the stories (a feature file among
     // them, which it can't read): whole paths, Storybook's Vite root being its own to choose.
+    // Cucumber's worker variables in every module's `import.meta.env` (Vite writes a define of
+    // `import.meta.env.<name>` into each, in `storybook dev` and a build): outside Vitest, each
+    // module has an `import.meta.env` of its own, so the platform's can't reach the support code.
     config: () => ({
+      define: Object.fromEntries(
+        Object.entries(workerEnvironment(previewWorker)).map(
+          ([name, value]) => [`import.meta.env.${name}`, JSON.stringify(value)],
+        ),
+      ),
       optimizeDeps: {
         include: runtimeDependencies,
         exclude: pageExcluded,

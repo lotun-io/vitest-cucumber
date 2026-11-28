@@ -134,7 +134,7 @@ Then("the result is {int}", (world: Calculator, expected: number) => {
 Each scenario gets a new `Calculator`, its [World](/guides/support-code#world): the place to keep
 state between steps. A step gets it as its first argument when that parameter is named `world`.
 Cucumber's own form, a `function` with the World as `this`, works too:
-[The World in an arrow function](/guides/support-code#the-world-in-an-arrow-function).
+[World in an arrow function](/guides/support-code#world-in-an-arrow-function).
 
 Any assertion library works; Vitest's `expect` gives you its diffs.
 

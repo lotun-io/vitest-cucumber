@@ -3,7 +3,12 @@
 // `log` and `link` emit attachments while a step or hook runs, its parameters a clone of the world
 // parameters), then each test step in order with its messages (`testStepStarted`, `testStepFinished`).
 // Once a result isn't `PASSED`, later steps are skipped and Before hooks too, After hooks still run
-// (they get the worst result so far, its object as it is: a hook can change it, as cucumber's can).
+// (they get the worst result so far). A hook's `result` (an After hook's, an AfterStep hook's) is a
+// copy of its own (the user's call, 2026-11-28): cucumber hands over the recorded result itself, so
+// a hook that writes to it changes the run's verdict but not what was already reported (and in
+// parallel runs not even the reports), which its maintainers don't support (cucumber-js#1724:
+// "rewrite history doesn't seem workable"). Here a hook reads it, and shares what it needs through
+// the World.
 // A step runs between the `BeforeStep` hooks that apply (by tags) and the `AfterStep` hooks (in
 // reverse), unless a BeforeStep hook failed. Each definition gets cucumber's parameters (a step: its
 // arguments' values, then its data table or doc string; a hook: its hook parameter), after the World
@@ -289,6 +294,10 @@ export const runTestCase = async (
   const beforeStepHooks = applying(support.beforeStepHooks);
   const afterStepHooks = applying([...support.afterStepHooks].reverse());
 
+  /** A result as a hook gets it: a copy of its own, nothing the hook writes reaching the run. */
+  const resultForHook = (result: TestStepResult | undefined) =>
+    result && structuredClone(result);
+
   const runStepHooks = async (
     testStepId: string,
     hooks: readonly StepHook[],
@@ -307,7 +316,10 @@ export const runTestCase = async (
     const results: TestStepResult[] = [];
     for (const hook of hooks) {
       const { result } = await invoke(hook, () =>
-        hookInvocation(hookParameter),
+        hookInvocation({
+          ...hookParameter,
+          result: resultForHook(hookParameter.result),
+        }),
       );
       results.push(result);
     }
@@ -425,7 +437,7 @@ export const runTestCase = async (
           pickle,
           testCaseStartedId,
           ...(didWeRunStepsYet && {
-            result: worstResult(),
+            result: resultForHook(worstResult()),
             error,
             willBeRetried: willBeRetried(),
           }),

@@ -2,5 +2,6 @@ export default {
   index: "Setup",
   features: "Writing features",
   running: "Running",
-  docs: "Features in docs",
+  // The old address of `/guides/storybook/docs` (moved 2026-11-27): kept for links to it, not listed.
+  docs: { display: "hidden" },
 };

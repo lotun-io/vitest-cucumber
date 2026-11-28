@@ -1,4 +1,4 @@
-import { Callout, Steps, Tabs } from "nextra/components";
+import { Steps, Tabs } from "nextra/components";
 
 # Storybook
 
@@ -19,7 +19,8 @@ Storybook runs stories:
 
 Your stories files stay as they are: the plugin reads them, never changes them.
 
-Works with Storybook 10 and every framework its Vitest addon supports: see [Frameworks](#frameworks).
+Works with Storybook 10 and every framework its Vitest addon supports (React, Vue, Svelte,
+Angular, Web Components, …): [the full list](/reference/limitations#storybook-frameworks).
 
 ## Install
 
@@ -75,8 +76,9 @@ export default config;
 ```
 
 List your feature files in `stories` (`.feature`, and `.feature.md` for Markdown ones): each is a
-stories file of its own. Story tests run what `stories` lists too. The pattern covers both places a
-feature file may be in: [next to its stories file, or in `features/`](/modes/storybook/features#feature-files-become-stories).
+stories file of its own, and story tests run them too. The pattern covers both places a feature file
+may be in: next to its stories file, or in `features/`. With a `titlePrefix` on your entries:
+[Title prefix](/guides/storybook/stories-and-steps#title-prefix).
 
 `cucumber()` from `@lotun/vitest-cucumber/storybook/node` is the addon, with the plugin's
 [options](/reference/options): Storybook and its story tests both use them. Write them inline, or
@@ -146,74 +148,13 @@ They type Cucumber's hooks for arrow functions that take the World:
 
 </Steps>
 
-## Title prefix
-
-If your `stories` entries have a `titlePrefix`, give the feature files' entries the same prefix as
-the stories files' entry:
-
-```ts filename=".storybook/main.ts"
-stories: [
-  { directory: "../src", files: "**/*.stories.@(js|jsx|mjs|ts|tsx)", titlePrefix: "App" },
-  // Feature files next to their stories files
-  { directory: "../src", files: "**/*.@(feature|feature.md)", titlePrefix: "App" },
-  // Feature files in features/
-  { directory: "../features", files: "**/*.@(feature|feature.md)", titlePrefix: "App" },
-],
-```
-
-Storybook puts an entry's prefix in front of the title of every file that entry matches, and a
-feature file is matched by its own entry, wherever its stories file is. With the same prefix on
-each, a feature is listed under its stories file (`App/Example/Greeting`, then
-`Feature: Greeting`). Without it on a features' entry, those features are listed outside `App`,
-apart from their stories files.
-
-An entry has one prefix: with stories files under several prefixes, keep the features of each in a
-folder of their own, with an entry and its prefix (`features/app` with `App`, `features/admin`
-with `Admin`).
-
-## Frameworks
-
-Storybook's Vitest addon runs story tests with Storybook's Vite builder only, and its setup accepts
-these frameworks. The plugin supports the same list.
-
-| Framework | Package |
-| --- | --- |
-| React | `@storybook/react-vite` |
-| Next.js | `@storybook/nextjs-vite` |
-| React Native Web | `@storybook/react-native-web-vite` |
-| TanStack React | `@storybook/tanstack-react` |
-| Preact | `@storybook/preact-vite` |
-| Vue 3 | `@storybook/vue3-vite` |
-| Svelte | `@storybook/svelte-vite` |
-| SvelteKit | `@storybook/sveltekit` |
-| Angular | `@storybook/angular-vite` |
-| Web Components | `@storybook/web-components-vite` |
-| HTML | `@storybook/html-vite` |
-| SolidJS | `storybook-solidjs-vite` (community) |
-
-<Callout type="info">
-  **SolidJS**: `vite-plugin-solid` sets Vitest's `environment` to `jsdom` unless you set one, and
-  Vitest stops with "Cannot find dependency 'jsdom'" if it isn't installed, even though story tests
-  run in the browser. Install `jsdom`, or set `test.environment` in the Storybook test project.
-</Callout>
-
-### Not supported
-
-- **Webpack frameworks** (`@storybook/nextjs`, `@storybook/angular`, `@storybook/react-webpack5`,
-  `@storybook/vue3-webpack5`, …): the plugin is a Vite plugin, and the Vitest addon needs Vite too.
-  Next.js and Angular have Vite frameworks: `@storybook/nextjs-vite`, `@storybook/angular-vite`.
-- **Vite frameworks the addon doesn't accept**, such as the community frameworks for Analog, Astro
-  and Nuxt: scenarios run as the addon's story tests, so a framework the addon doesn't support isn't
-  supported here either.
-- **React Native on a device** (`@storybook/react-native`): no Vite, no Vitest addon.
-
 ## Next
 
-- [Writing features](/modes/storybook/features): which stories file a feature uses, the Storybook
-  steps, mounting, steps that use the story.
-- [Running](/modes/storybook/running): in Vitest, in Storybook's UI, filters, and what differs
-  between the two.
-- [Features in docs](/modes/storybook/docs): a stories file's features on its docs page.
+- [Writing features](/modes/storybook/features): a first feature, its Storybook steps, steps that
+  use the story.
+- [Running](/modes/storybook/running): in Vitest, in Storybook's UI, and filters.
+- [Storybook in depth](/guides/storybook/stories-and-steps): stories and steps, Storybook tags,
+  features in docs pages.
 
 Full example:
 [`example/storybook`](https://github.com/lotun-io/vitest-cucumber/tree/main/example/storybook).

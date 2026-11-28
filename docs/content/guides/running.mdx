@@ -81,7 +81,10 @@ npx vitest run -t "Cart > Checkout"              # by name: feature > rule > out
   [tags](https://vitest.dev/guide/test-tags), `@` included, and inherited as in Cucumber (a
   Feature's, a Rule's and an Examples block's tags apply to their scenarios). You don't need to
   declare them in `test.tags`. A tag without the `@` is written `@tag(<name>)`: see
-  [Plain tag names](#plain-tag-names).
+  [Plain tag names](#plain-tag-names). `--tagsFilter` takes
+  [Vitest's syntax](https://vitest.dev/guide/test-tags#syntax), which has Cucumber's tag
+  expression words too: `"@smoke and not @slow"` is the same as `"@smoke && !@slow"`, and works as
+  it is in a hook's `tags` ([Hooks](/guides/support-code#hooks)).
 - **[By name](https://vitest.dev/guide/filtering#filtering-by-test-name)**: `-t` matches the full
   name, so `-t "Arithmetic > Doubling"` runs every scenario of that rule.
 
@@ -133,7 +136,7 @@ test: { tags: [{ name: "slow", timeout: 30_000 }] },
 
 It's that tag for cucumber too: a hook's tag expression names it, `Before({ tags: "slow" }, …)`,
 and cucumber's messages show it. In Storybook, `@tag(<name>)` is also how you write
-[Storybook's own tags](/modes/storybook/running#storybook-tags) (`@tag(!dev)`).
+[Storybook's own tags](/guides/storybook/tags) (`@tag(!dev)`).
 
 The name can't have a space or an `@`: Gherkin refuses a tag with a space ("A tag may not contain
 whitespace", the feature file fails), and starts a new tag at every `@`, so `@tag(!@smoke)` is two

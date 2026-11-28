@@ -22,7 +22,7 @@ The package's types also type `@cucumber/cucumber`'s hooks (`Before`, `After`, `
 `AfterStep`, `BeforeAll`, `AfterAll`) for an arrow function that takes the World as its first
 argument. A project gets them with `"types": ["@lotun/vitest-cucumber"]` in the `tsconfig.json`
 that checks its support code.
-[The World in an arrow function](/guides/support-code#the-world-in-an-arrow-function).
+[World in an arrow function](/guides/support-code#world-in-an-arrow-function).
 
 ## `@lotun/vitest-cucumber/storybook/node`
 
@@ -65,7 +65,7 @@ featuresOf(storiesFile: string): readonly FeatureSource[]
 The feature files whose scenarios run on a stories file: the ones naming it in their stories file
 step. `storiesFile` is its path from the project's root, as Storybook's `parameters.fileName`
 (`./src/Header.stories.ts`). In story tests (Vitest), none. The same array until a stories file's
-features change. Example: [Features in docs](/modes/storybook/docs).
+features change. Example: [Features in docs pages](/guides/storybook/docs).
 
 ```ts
 featuresOf("./src/Header.stories.ts");

@@ -7,6 +7,7 @@
 // Storybook's preview has none for a play function (it runs until it ends, or the story changes); a
 // definition's own `timeout` still applies. No colors (no Vitest). Preview only.
 /// <reference types="vite/client" />
+import { previewWorker } from "../../../utils/workerEnvironment.ts";
 import { importPageSupport } from "../../browser/importPageSupport.ts";
 import { createPlatform } from "../../platform/createPlatform.ts";
 import { originalThrown } from "../../platform/errors/thrown.ts";
@@ -19,9 +20,10 @@ const previewTimeouts = { test: -1, hook: -1 };
 
 export const platform = createPlatform({
   // One run: the page's (no Vitest), one worker.
-  worker: () => ({ workerId: "1", totalWorkers: 1, projectName: "" }),
-  // Through a variable: Vite would replace a literal `import.meta.env.<name>` at build time. None
-  // outside Vite (Node loading this module: the unit tests).
+  worker: () => ({ ...previewWorker, projectName: "" }),
+  // This module's own `import.meta.env` (none outside Vite: Node loading it, the unit tests). Every
+  // other module has its own, outside Vitest: the support code reads cucumber's worker variables
+  // from what the preview's Vite plugin defines for every module (`previewPlugin.ts`).
   env: (import.meta.env as Record<string, unknown> | undefined) ?? {},
   importSupport: (importSupport) => importPageSupport(version, importSupport),
   locate,

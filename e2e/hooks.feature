@@ -122,9 +122,21 @@ Feature: Hooks
       | browser   |
       | storybook |
 
-  # As in cucumber's parallel mode: the run's outcome is the rewritten result.
-  Scenario Outline: An After hook rewriting a failed result passes the run, as in cucumber's parallel mode (<mode>)
-    Given a file named "features/rewrite.feature" with:
+  # A hook's `result` is a copy of its own (cucumber hands over the recorded result, whose changes
+  # its maintainers don't support: cucumber-js#1724): writing to it changes nothing, a failed
+  # scenario stays failed and a passing one passes.
+  Scenario Outline: An After hook's result is a copy: writing to it changes no scenario's outcome (<mode>)
+    Given a file named "features/markFailed.ts" with:
+      """
+      import { After, Status } from "@cucumber/cucumber";
+
+      After({ tags: "@markFailed" }, ({ result }) => {
+        if (result) {
+          result.status = Status.FAILED;
+        }
+      });
+      """
+    And a file named "features/rewrite.feature" with:
       """
       Feature: Rewrite
         Background:
@@ -133,16 +145,20 @@ Feature: Hooks
         @rewrite
         Scenario: rewritten
           Given a failing step
+        @markFailed
+        Scenario: marked failed
+          Given a passing step
       """
     When I run vitest in <mode> mode
-    Then it passes
-    And the feature file "features/rewrite.feature" passes
+    Then it fails
     And it runs the scenarios:
-      | NAME      | STATUS |
-      | rewritten | passed |
+      | NAME          | STATUS |
+      | rewritten     | failed |
+      | marked failed | passed |
     And Vitest reports the tests:
-      | NAME                | STATE  |
-      | Rewrite > rewritten | passed |
+      | NAME                    | STATE  |
+      | Rewrite > rewritten     | failed |
+      | Rewrite > marked failed | passed |
 
     Examples:
       | mode      |
@@ -188,9 +204,8 @@ Feature: Hooks
       | node    | passed | doesn't contain |
       | browser | passed | doesn't contain |
 
-  # An AfterStep hook's rewrite of its step's result is the step's, as in cucumber (serial or
-  # parallel): the step passes, and the next one runs (a skipped one would skip the scenario).
-  Scenario Outline: An AfterStep hook rewriting a failed step's result passes it, and the next step runs (<mode>)
+  # An AfterStep hook's `result` is a copy too: its step stays failed, and the next one is skipped.
+  Scenario Outline: An AfterStep hook's result is a copy: a failed step stays failed (<mode>)
     Given a file named "features/rewriteStep.ts" with:
       """
       import { AfterStep, Status } from "@cucumber/cucumber";
@@ -211,10 +226,10 @@ Feature: Hooks
           And a passing step
       """
     When I run vitest in <mode> mode
-    Then it passes
+    Then it fails
     And Vitest reports the tests:
       | NAME                     | STATE  |
-      | Rewrite > rewritten step | passed |
+      | Rewrite > rewritten step | failed |
 
     Examples:
       | mode      |

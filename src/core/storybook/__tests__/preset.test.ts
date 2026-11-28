@@ -379,6 +379,21 @@ test("the preview's packages are pre-bundled at startup: the runtime's, cucumber
   );
 });
 
+test("the preview's modules have cucumber's worker variables: one page, one worker", async () => {
+  vi.stubEnv("VITEST", "");
+  const { plugins } = await viteFinal({}, options);
+  vi.unstubAllEnvs();
+  const config = (plugins?.at(-1) as Plugin).config as () => {
+    define: Record<string, string>;
+  };
+  // Vite writes each into every module's `import.meta.env`, in `storybook dev` and a build.
+  expect(config().define).toEqual({
+    "import.meta.env.CUCUMBER_PARALLEL": '"true"',
+    "import.meta.env.CUCUMBER_TOTAL_WORKERS": '"1"',
+    "import.meta.env.CUCUMBER_WORKER_ID": '"1"',
+  });
+});
+
 describe("`storybook dev`: the dev server's watcher", () => {
   /** The preview plugin, as `viteFinal` gives it to Storybook's Vite. */
   const previewPlugin = async () => {

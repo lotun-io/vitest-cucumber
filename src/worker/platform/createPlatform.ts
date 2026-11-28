@@ -4,7 +4,7 @@
 // imported (`Platform["use"]`), so collecting test files (`vitest list`) runs none of it. The
 // worker's or page's first file loads it as it runs (`Platform["load"]`, the worker fixture: Vitest
 // gives every run new workers and pages, so one lives within one run), the host's pieces in order:
-// it reads its worker's run, sets cucumber's worker variables (`./workerEnvironment.ts`), imports the
+// it reads its worker's run, sets cucumber's worker variables (`../../utils/workerEnvironment.ts`), imports the
 // support code, which records its calls (`../cucumber/registry.ts`), closes the registry (a later
 // call fails), locates each call, then builds the support code (`../runner/supportCode.ts`), its
 // ids the run's (`../runner/supportIds.ts`), and the runner, with the run's options and the host's
@@ -29,6 +29,7 @@ import type {
 } from "../../types/platform.ts";
 import type { SupportCall } from "../../types/supportCode.ts";
 import { pluginError } from "../../utils/errors.ts";
+import { workerEnvironment } from "../../utils/workerEnvironment.ts";
 import { registry } from "../cucumber/registry.ts";
 import { createRunner } from "../runner/runner.ts";
 import { buildSupportCode } from "../runner/supportCode.ts";
@@ -37,7 +38,6 @@ import { errorsOf, summaryFailureOf } from "./errors/testErrors.ts";
 import { annotationsOf } from "./scenario/annotations.ts";
 import { skipOf } from "./scenario/skipped.ts";
 import { summaryOf } from "./summary/summary.ts";
-import { workerEnvironment } from "./workerEnvironment.ts";
 import { workerLabel } from "./workerLabel.ts";
 
 /** The platform on `host`. */
