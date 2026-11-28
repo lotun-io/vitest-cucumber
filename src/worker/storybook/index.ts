@@ -24,7 +24,7 @@ export const story = <Context = unknown>(): Context => {
   const context = currentStory();
   if (context === undefined) {
     throw pluginError(
-      "no story is running (`story()` works in a step of a scenario's story)",
+      "no story is running, story() works only in a scenario's step or hook",
     );
   }
   return context as Context;

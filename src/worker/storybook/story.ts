@@ -52,7 +52,7 @@ export const runStory = async (
 ) => {
   if (!runner) {
     throw pluginError(
-      "no cucumber runner in this page (is `cucumber({ … })` from `@lotun/vitest-cucumber/storybook/node` in Storybook's addons?)",
+      "no cucumber runner in this page, add cucumber({ … }) from @lotun/vitest-cucumber/storybook/node to the addons in .storybook/main.ts",
       { quiet: true },
     );
   }

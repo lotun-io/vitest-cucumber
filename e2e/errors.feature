@@ -117,7 +117,7 @@ Feature: Errors before the run
     And the feature file "features/a.feature" fails
     And the output contains:
       """
-      [@lotun/vitest-cucumber] Given's second argument should be an object or a function
+      [@lotun/vitest-cucumber] Given's second argument should be its options (an object) or its code (a function)
         features/steps.ts:4
       """
 
@@ -129,7 +129,7 @@ Feature: Errors before the run
 
   # Cucumber's methods the plugin doesn't support, recorded as the definitions are, refused as the
   # support code is built: `setDefaultTimeout` (Vitest's timeouts are the defaults),
-  # `setParallelCanAssign` (Vitest assigns the feature files). The plugin's error, with what to use
+  # `setParallelCanAssign` (Vitest decides which worker runs each feature file). The plugin's error, with what to use
   # instead and the call's location.
   Scenario Outline: A cucumber method the plugin doesn't support fails its feature files, with its location (<mode>: <method>)
     Given a file named "features/steps.ts" with:
@@ -161,13 +161,13 @@ Feature: Errors before the run
       """
 
     Examples:
-      | mode      | method               | code                              | instead                                                       |
-      | node      | setDefaultTimeout    | setDefaultTimeout(1000);          | Vitest's testTimeout and hookTimeout are the default timeouts |
-      | node      | setParallelCanAssign | setParallelCanAssign(() => true); | Vitest assigns the feature files to its workers               |
-      | browser   | setDefaultTimeout    | setDefaultTimeout(1000);          | Vitest's testTimeout and hookTimeout are the default timeouts |
-      | browser   | setParallelCanAssign | setParallelCanAssign(() => true); | Vitest assigns the feature files to its workers               |
-      | storybook | setDefaultTimeout    | setDefaultTimeout(1000);          | Vitest's testTimeout and hookTimeout are the default timeouts |
-      | storybook | setParallelCanAssign | setParallelCanAssign(() => true); | Vitest assigns the feature files to its workers               |
+      | mode      | method               | code                              | instead                                            |
+      | node      | setDefaultTimeout    | setDefaultTimeout(1000);          | set Vitest's testTimeout and hookTimeout instead   |
+      | node      | setParallelCanAssign | setParallelCanAssign(() => true); | Vitest decides which worker runs each feature file |
+      | browser   | setDefaultTimeout    | setDefaultTimeout(1000);          | set Vitest's testTimeout and hookTimeout instead   |
+      | browser   | setParallelCanAssign | setParallelCanAssign(() => true); | Vitest decides which worker runs each feature file |
+      | storybook | setDefaultTimeout    | setDefaultTimeout(1000);          | set Vitest's testTimeout and hookTimeout instead   |
+      | storybook | setParallelCanAssign | setParallelCanAssign(() => true); | Vitest decides which worker runs each feature file |
 
   # A BeforeAll or AfterAll hook on the coordinator (once per run): refused as cucumber's checks refuse
   # a definition (Vitest's workers run them), with what to use instead and its location.

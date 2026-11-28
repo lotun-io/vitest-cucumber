@@ -21,27 +21,31 @@ interface Validation {
   message(method: string, args: Args): string;
 }
 
-const optionsValidation = (argument: string): Validation => ({
+/** The options argument (`argument`: which one); `tags`: a string of tags may be given instead. */
+const optionsValidation = (argument: string, tags = false): Validation => ({
   predicate: ({ options }) => typeof options === "object" && options !== null,
   message: (method) =>
-    `${method}'s ${argument} argument should be an object or a function`,
+    `${method}'s ${argument} argument should be its options (an object)${tags ? ", its tags (a string)" : ""} or its code (a function)`,
 });
 
 const optionsTimeoutValidation: Validation = {
   predicate: ({ options }) =>
     options?.timeout == null || typeof options.timeout === "number",
-  message: (method) => `${method}'s timeout option should be a number`,
+  message: (method) =>
+    `${method}'s timeout option should be a number of milliseconds`,
 };
 
 const fnValidation = (argument: string): Validation => ({
   predicate: ({ code }) => typeof code === "function",
-  message: (method) => `${method}'s ${argument} argument should be a function`,
+  message: (method) =>
+    `${method}'s ${argument} argument should be its code (a function)`,
 });
 
 const tagsValidation: Validation = {
   predicate: ({ options }) =>
     options?.tags == null || typeof options.tags === "string",
-  message: (method) => `${method}'s tags option should be a string`,
+  message: (method) =>
+    `${method}'s tags option should be a tag expression (a string)`,
 };
 
 /** The plugin's: a test run hook runs in each worker (cucumber's default, `on` left out, too). */
@@ -50,7 +54,7 @@ const onWorkerValidation: Validation = {
   message: (method, { options }) =>
     options?.on === "COORDINATOR"
       ? `${method}({ on: "COORDINATOR" }) isn't supported, use Vitest's globalSetup for once-per-run setup`
-      : `${method}'s on option should be "WORKER"`,
+      : `${method}'s on option can only be "WORKER"`,
 };
 
 const validations = {
@@ -61,13 +65,13 @@ const validations = {
     fnValidation("second"),
   ],
   defineTestCaseHook: [
-    optionsValidation("first"),
+    optionsValidation("first", true),
     tagsValidation,
     optionsTimeoutValidation,
     fnValidation("second"),
   ],
   defineTestStepHook: [
-    optionsValidation("first"),
+    optionsValidation("first", true),
     tagsValidation,
     optionsTimeoutValidation,
     fnValidation("second"),
@@ -77,7 +81,7 @@ const validations = {
       predicate: ({ pattern }) =>
         pattern instanceof RegExp || typeof pattern === "string",
       message: (method) =>
-        `${method}'s first argument should be a string or a regular expression`,
+        `${method}'s first argument should be its expression (a string or a regular expression)`,
     },
     optionsValidation("second"),
     optionsTimeoutValidation,

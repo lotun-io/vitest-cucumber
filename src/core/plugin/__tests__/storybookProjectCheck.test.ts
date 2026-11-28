@@ -16,7 +16,7 @@ test("a Storybook project: cucumber() there is refused, with or without the addo
     expect(() => {
       checkNotInStorybookProject(plugins);
     }).toThrow(
-      "[@lotun/vitest-cucumber] remove cucumber() from this Storybook project, use the addon in .storybook/main.ts",
+      "[@lotun/vitest-cucumber] cucumber() doesn't go in a Storybook project's Vitest config, add it to the addons in .storybook/main.ts",
     );
   }
 });

@@ -545,7 +545,7 @@ Feature: The support code's API
     Then it fails
     And the test "Late > late" fails with:
       """
-      [@lotun/vitest-cucumber] "Given" was called after the support code loaded
+      [@lotun/vitest-cucumber] Given was called after the support code loaded, define steps and hooks as a support file loads (at its top level)
       """
 
     Examples:

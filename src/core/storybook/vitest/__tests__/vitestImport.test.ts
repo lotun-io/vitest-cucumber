@@ -59,6 +59,6 @@ describe("a feature's stories module after the addon's transform: its Vitest imp
         testUtils,
         lines: 1,
       }),
-    ).toThrow("aren't declared as the plugin expects");
+    ).toThrow("aren't written as the plugin expects");
   });
 });

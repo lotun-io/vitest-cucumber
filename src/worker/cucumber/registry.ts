@@ -19,7 +19,9 @@ export const registry = {
 /** Throws once the support code has loaded: `method` was called too late. */
 const checkLoading = (method: string) => {
   if (registry.loaded) {
-    throw pluginError(`"${method}" was called after the support code loaded`);
+    throw pluginError(
+      `${method} was called after the support code loaded, define steps and hooks as a support file loads (at its top level)`,
+    );
   }
 };
 

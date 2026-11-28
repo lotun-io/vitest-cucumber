@@ -430,7 +430,7 @@ Feature: Running feature files
     Then it fails
     And the test "A > importing the API" fails with:
       """
-      [@lotun/vitest-cucumber] cucumber's API (`@cucumber/cucumber/api`, `@cucumber/cucumber/lib/…`) isn't available in a browser's page
+      [@lotun/vitest-cucumber] @cucumber/cucumber/api and @cucumber/cucumber/lib/… aren't available in a browser page
       """
 
     Examples:

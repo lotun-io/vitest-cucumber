@@ -219,7 +219,7 @@ describe("Storybook's indexers, and ours for a feature file", () => {
         }),
       ),
     ).rejects.toThrow(
-      /- elsewhere\/Unlisted\.stories\.ts has no title: none is written in its meta, and no pattern of Storybook's "stories" matches it .*\n {4}src\/Unlisted\.feature:3$/,
+      /- elsewhere\/Unlisted\.stories\.ts has no title, give its meta a "title" or match the file with a pattern in Storybook's "stories"\n {4}src\/Unlisted\.feature:3$/,
     );
   });
 });

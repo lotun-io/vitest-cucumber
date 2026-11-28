@@ -150,7 +150,7 @@ test("an error a Background's step gives every scenario is listed once", async (
   const { storybook } = project();
   const plan = await storybook.storybookPlanOf(id);
   const message = "error" in plan ? plan.error.message : "";
-  expect(message).toContain('has no story "Nope" (its stories: Primary)');
+  expect(message).toContain('has no story "Nope" (it has Primary)');
   expect(message.match(/has no story "Nope"/g)).toHaveLength(1);
 });
 
@@ -162,7 +162,7 @@ test("a feature naming no stories file is stopped by its links' error, and linke
   const { storybook, fileChanged } = project();
   const plan = await storybook.storybookPlanOf(id);
   expect("error" in plan && plan.error.message).toContain(
-    "feature file can't be linked to stories\n  - the feature names no stories file: a feature file names its stories file once, in its Background, with a stories file step\n    c.feature:2",
+    "feature file can't be linked to stories\n  - the feature names no stories file, add a stories file step to its Background\n    c.feature:2",
   );
   expect(storybook.links.has(id)).toBe(true);
   expect(storybook.links.storiesFileOf(id)).toBeUndefined();
@@ -391,7 +391,7 @@ test("two features on one stories file with the same label: refused, each naming
     error: {
       message: expect.stringMatching(
         new RegExp(
-          `src/Dup\\.stories\\.ts already has a "Feature: Login", the same id "[^\\n]*\\n {4}${literal(other)}:\\d+\\n {4}${literal(feature)}:\\d+$`,
+          `src/Dup\\.stories\\.ts already has a feature named "Feature: Login", rename one of them \\(story id "[^\\n]*\\n {4}${literal(other)}:\\d+\\n {4}${literal(feature)}:\\d+$`,
         ),
       ) as string,
     },

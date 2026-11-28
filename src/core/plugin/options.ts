@@ -37,7 +37,9 @@ export const configurationOf = (
     !globs.every((glob): glob is string => typeof glob === "string")
   ) {
     throw pluginError(
-      `the "import" option is required, an array of your support code's globs, e.g. ["features/**/*.ts"]`,
+      globs === undefined
+        ? `the "import" option is missing, give it your support code's globs`
+        : `the "import" option should be an array of your support code's globs`,
       { quiet: true },
     );
   }
@@ -54,7 +56,7 @@ export const configurationOf = (
   const { language } = configuration;
   if (!Object.hasOwn(dialects, language)) {
     throw pluginError(
-      `the "language" option "${language}" isn't a Gherkin language`,
+      `the "language" option "${language}" isn't a Gherkin language, use one of Gherkin's language codes`,
       { quiet: true },
     );
   }

@@ -95,7 +95,7 @@ Feature: Storybook errors
     Then it fails
     And the output contains:
       """
-        - src/Linked.stories.ts has no story "Primry" (its stories: Primary)
+        - src/Linked.stories.ts has no story "Primry" (it has Primary)
           src/Linked.feature:5
       """
     And Vitest reports the tests:
@@ -139,7 +139,7 @@ Feature: Storybook errors
     Then it fails
     And the output contains:
       """
-        - src/Linked.stories.ts has no story "Primry" (its stories: Primary)
+        - src/Linked.stories.ts has no story "Primry" (it has Primary)
           src/Linked.feature:5
       """
     And Vitest reports the tests:
@@ -172,7 +172,7 @@ Feature: Storybook errors
     Then it fails
     And the output contains:
       """
-      the same id "page-feature-page" (Storybook's ids ignore case and punctuation): give one of them another name
+      rename one of them (story id "page-feature-page", Storybook's ids ignore case and punctuation)
       """
 
   # A feature's scenarios with one story id would be one story in Storybook (its index keeps the
@@ -220,14 +220,14 @@ Feature: Storybook errors
     Then it fails
     And the output contains:
       """
-      [@lotun/vitest-cucumber] feature file's scenarios can't all be stories
-        - Scenario: "HTTP request" and Scenario: "Http request!" would be the same story in Storybook (id "cart-feature-cart--http-request")
+      [@lotun/vitest-cucumber] feature file has scenarios with the same story id
+        - Scenario: "HTTP request" and Scenario: "Http request!" have the same story id "cart-feature-cart--http-request", rename one of them
           src/Cart.feature:5
           src/Cart.feature:8
-        - Scenario: "Scenario" and Scenario: "Scenario" would be the same story in Storybook (id "cart-feature-cart--scenario")
+        - Scenario: "Scenario" and Scenario: "Scenario" have the same story id "cart-feature-cart--scenario", rename one of them
           src/Cart.feature:11
           src/Cart.feature:14
-        - Example: "Pay" and Example: "Pay" would be the same story in Storybook (id "cart-feature-cart--pay")
+        - Example: "Pay" and Example: "Pay" have the same story id "cart-feature-cart--pay", rename one of them
           src/Cart.feature:22
           src/Cart.feature:23
       """
@@ -272,17 +272,17 @@ Feature: Storybook errors
     Then it fails
     And the output contains:
       """
-        - the feature names no stories file: a feature file names its stories file once, in its Background, with a stories file step
+        - the feature names no stories file, add a stories file step to its Background
           src/Unnamed.feature:1
       """
     And the output contains:
       """
-        - the scenario "No story" names no story: a story step names its story (its stories file's, or "default": its meta)
+        - the scenario "No story" names no story, add a story step (a story of the stories file, or "default" for its meta)
           src/Storyless.feature:4
       """
     And the output contains:
       """
-        - the scenario "No steps" names no stories file and no story: it has no steps (a Background's steps reach only a scenario with steps of its own)
+        - the scenario "No steps" has no steps, give it a story step (a Background's steps only reach a scenario with steps)
           src/Storyless.feature:6
       """
     And Vitest reports the tests:
@@ -331,7 +331,7 @@ Feature: Storybook errors
     Then it fails
     And the output contains:
       """
-      [@lotun/vitest-cucumber] remove cucumber() from this Storybook project
+      [@lotun/vitest-cucumber] cucumber() doesn't go in a Storybook project's Vitest config
       """
 
     Examples:
@@ -388,7 +388,7 @@ Feature: Storybook errors
       | Page > A step | skipped |
     And the output contains:
       """
-      [@lotun/vitest-cucumber] Given's second argument should be an object or a function
+      [@lotun/vitest-cucumber] Given's second argument should be its options (an object) or its code (a function)
         features/steps.ts:4
       """
     # In a static build, the definition's location is its call site as the browser has it (no server,
@@ -396,16 +396,16 @@ Feature: Storybook errors
     And the worker's kept Vitests are closed
     When I build its Storybook
     Then its stories show:
-      | STORY                     | STATUS | SHOWS                                                     |
-      | page-feature-page--a-step | FAIL   | Given's second argument should be an object or a function |
-      | page-feature-page--a-step | FAIL   | assets/steps-                                             |
+      | STORY                     | STATUS | SHOWS                                                                              |
+      | page-feature-page--a-step | FAIL   | Given's second argument should be its options (an object) or its code (a function) |
+      | page-feature-page--a-step | FAIL   | assets/steps-                                                                      |
     # In `storybook dev`, the dev server maps it with the module's source map, as Vitest does in
     # browser mode: the definition's own line.
     When I start its Storybook dev server
     Then its stories show:
-      | STORY                     | STATUS | SHOWS                                                     |
-      | page-feature-page--a-step | FAIL   | Given's second argument should be an object or a function |
-      | page-feature-page--a-step | FAIL   | features/steps.ts:4                                       |
+      | STORY                     | STATUS | SHOWS                                                                              |
+      | page-feature-page--a-step | FAIL   | Given's second argument should be its options (an object) or its code (a function) |
+      | page-feature-page--a-step | FAIL   | features/steps.ts:4                                                                |
 
   # `e2e/hooksGlobal.feature` has story tests' failing BeforeAll hooks.
   Scenario: A failing BeforeAll hook fails the preview's stories

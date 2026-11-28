@@ -141,7 +141,7 @@ describe("a feature file, linked to its stories file", () => {
     expect(errorsOf(unlisted)).toEqual([
       {
         message:
-          'src/Card.stories.ts has no title: none is written in its meta, and no pattern of Storybook\'s "stories" matches it (give its meta a "title", or list the file in "stories")',
+          'src/Card.stories.ts has no title, give its meta a "title" or match the file with a pattern in Storybook\'s "stories"',
         at: ["src/Card.feature:3"],
       },
     ]);
@@ -155,11 +155,11 @@ describe("a feature file, linked to its stories file", () => {
     expect(errorsOf(named)).toEqual([
       {
         message:
-          'src/Card.stories.ts has no title: none is written in its meta, and no pattern of Storybook\'s "stories" matches it (give its meta a "title", or list the file in "stories")',
+          'src/Card.stories.ts has no title, give its meta a "title" or match the file with a pattern in Storybook\'s "stories"',
         at: ["features/card.feature:3"],
       },
       {
-        message: 'src/Card.stories.ts has no story "Plan" (its stories: Plain)',
+        message: 'src/Card.stories.ts has no story "Plan" (it has Plain)',
         at: ["features/card.feature:4"],
       },
     ]);
@@ -181,7 +181,7 @@ describe("a feature file, linked to its stories file", () => {
       errors: [
         {
           message:
-            "the feature names no stories file: a feature file names its stories file once, in its Background, with a stories file step",
+            "the feature names no stories file, add a stories file step to its Background",
           at: ["features/plain.feature:1"],
         },
       ],
@@ -197,7 +197,7 @@ describe("a feature file, linked to its stories file", () => {
       errors: [
         {
           message:
-            "the stories file \"src/Gone.stories.ts\" doesn't exist (src/Gone.stories.ts, from the project's root)",
+            'the stories file "src/Gone.stories.ts" doesn\'t exist (looked for src/Gone.stories.ts)',
           at: ["features/plain.feature:3"],
         },
       ],
@@ -233,12 +233,12 @@ describe("a feature file, linked to its stories file", () => {
       errors: [
         {
           message:
-            'src/Button.stories.ts has no story "Primry" (its stories: Primary, Secondary)',
+            'src/Button.stories.ts has no story "Primry" (it has Primary, Secondary)',
           at: ["src/Button.feature:5"],
         },
         {
           message:
-            'src/Button.stories.ts already has a "Its label", the same id "button-its-label": give one of them another name',
+            'src/Button.stories.ts already has a feature named "Its label", rename one of them (story id "button-its-label")',
           at: ["features/other.feature:1", "src/Button.feature:1"],
         },
       ],
@@ -273,7 +273,7 @@ describe("a feature file, linked to its stories file", () => {
     ).toEqual({
       errors: [
         {
-          message: `src/Button.stories.ts already has a "Its label", the same id "button-its-label" (Storybook's ids ignore case and punctuation): give one of them another name`,
+          message: `src/Button.stories.ts already has a feature named "its label!", rename one of them (story id "button-its-label", Storybook's ids ignore case and punctuation)`,
           at: ["features/other.feature:1", "src/Button.feature:1"],
         },
       ],
@@ -297,7 +297,7 @@ describe("a feature file, linked to its stories file", () => {
     expect(errorsOf(linked)).toEqual([
       {
         message:
-          'src/Button.stories.ts has no story "Primry" (its stories: Primary, Secondary)',
+          'src/Button.stories.ts has no story "Primry" (it has Primary, Secondary)',
         at: ["src/Button.feature:5"],
       },
     ]);
@@ -325,7 +325,7 @@ describe("a feature file, linked to its stories file", () => {
     expect(errorsOf(linked)).toEqual([
       {
         message:
-          "the feature has 2 stories file steps: a feature file names its stories file once, in its Background",
+          "the feature has 2 stories file steps, keep one, in its Background",
         at: ["features/forms.feature:4", "features/forms.feature:9"],
       },
     ]);
@@ -350,7 +350,7 @@ describe("a feature file, linked to its stories file", () => {
     expect(errorsOf(linked)).toEqual([
       {
         message:
-          "src/Button.stories.ts uses CSF factories, which the plugin doesn't support yet: the feature's scenarios need its stories in CSF 3",
+          "src/Button.stories.ts uses CSF factories, which the plugin doesn't support yet, write its stories in CSF 3",
         at: ["src/Button.feature:3"],
       },
     ]);

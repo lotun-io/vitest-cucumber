@@ -63,7 +63,7 @@ describe("a Storybook project's plugins in story tests (the preset's viteFinal g
   test("the addon listed by its name, or its entry without `import`: the plugin's error, with what to give", () => {
     const { vitestCucumber: _, ...withoutOptions } = options;
     expect(() => createStorybookPlugin(withoutOptions)).toThrow(
-      '[@lotun/vitest-cucumber] the "import" option is required, an array of your support code\'s globs, e.g. ["features/**/*.ts"]',
+      '[@lotun/vitest-cucumber] the "import" option is missing, give it your support code\'s globs',
     );
   });
 

@@ -68,23 +68,26 @@ test("the world parameters: a JSON copy, as the Worlds get them", () => {
 });
 
 test("no `import`, or not an array of strings: the plugin's error, with what to give", () => {
-  const error = {
+  const missing = {
     message:
-      '[@lotun/vitest-cucumber] the "import" option is required, an array of your support code\'s globs, e.g. ["features/**/*.ts"]',
+      '[@lotun/vitest-cucumber] the "import" option is missing, give it your support code\'s globs',
   };
   // `cucumber()` from JavaScript, or a Storybook addon entry without options.
-  expect(thrownFor()).toMatchObject(error);
-  expect(thrownFor({})).toMatchObject(error);
-  expect(thrownFor({ strict: false })).toMatchObject(error);
+  expect(thrownFor()).toMatchObject(missing);
+  expect(thrownFor({})).toMatchObject(missing);
+  expect(thrownFor({ strict: false })).toMatchObject(missing);
   for (const globs of [null, "features/**/*.ts", [1], [["features"]]]) {
-    expect(thrownFor({ import: globs })).toMatchObject(error);
+    expect(thrownFor({ import: globs })).toMatchObject({
+      message:
+        '[@lotun/vitest-cucumber] the "import" option should be an array of your support code\'s globs',
+    });
   }
 });
 
 test("a `language` Gherkin doesn't have: the plugin's error", () => {
   expect(thrownFor({ import: [], language: "klingon" })).toMatchObject({
     message:
-      '[@lotun/vitest-cucumber] the "language" option "klingon" isn\'t a Gherkin language',
+      '[@lotun/vitest-cucumber] the "language" option "klingon" isn\'t a Gherkin language, use one of Gherkin\'s language codes',
   });
   // An object's own members aren't languages.
   expect(thrownFor({ import: [], language: "toString" })).toBeDefined();
@@ -95,7 +98,7 @@ test("world parameters JSON refuses: the plugin's error", () => {
   expect(
     thrownFor({ import: [], worldParameters: { limit: 10n } }),
   ).toMatchObject({
-    message: `[@lotun/vitest-cucumber] the "worldParameters" option can't be converted to JSON`,
+    message: `[@lotun/vitest-cucumber] the "worldParameters" option can't be converted to JSON, give it plain data (objects, arrays, strings, numbers, booleans)`,
   });
 });
 

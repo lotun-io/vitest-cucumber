@@ -321,7 +321,7 @@ Feature: Plugin options
     Then it fails
     And the output contains:
       """
-      [@lotun/vitest-cucumber] the "import" option is required, an array of your support code's globs, e.g. ["features/**/*.ts"]
+      [@lotun/vitest-cucumber] the "import" option is missing, give it your support code's globs
       """
 
   # Unlike cucumber (each feature file's closest `features` folder, else its own, everything in it),
@@ -379,7 +379,7 @@ Feature: Plugin options
     And it runs no scenarios
     And the output contains:
       """
-        - the feature names no stories file: a feature file names its stories file once, in its Background, with a stories file step
+        - the feature names no stories file, add a stories file step to its Background
           features/a.feature:1
       """
 

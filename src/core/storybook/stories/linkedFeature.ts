@@ -88,14 +88,18 @@ export const linkedFeatureOf = async ({
     if (sameLabel.length === 0) {
       return [];
     }
-    const id =
-      title === undefined ? "" : `, the same id "${idOf(`${title}/${label}`)}"`;
-    const why = sameLabel.some(({ label: theirs }) => theirs !== label)
-      ? " (Storybook's ids ignore case and punctuation)"
-      : "";
+    const theirs = [...new Set(sameLabel.map((other) => other.label))];
+    const details = [
+      ...(title === undefined
+        ? []
+        : [`story id "${idOf(`${title}/${label}`)}"`]),
+      ...(theirs.some((other) => other !== label)
+        ? ["Storybook's ids ignore case and punctuation"]
+        : []),
+    ];
     return [
       {
-        message: `${storiesUri} already has a "${label}"${id}${why}: give one of them another name`,
+        message: `${storiesUri} already has a feature named ${theirs.map((other) => `"${other}"`).join(" and ")}, rename one of them${details.length > 0 ? ` (${details.join(", ")})` : ""}`,
         at: [
           ...sameLabel.map(
             ({ file, line }) =>
@@ -136,7 +140,7 @@ export const linkedFeatureOf = async ({
   }
   if (stories.factories) {
     return stopped(undefined, {
-      message: `${storiesUri} uses CSF factories, which the plugin doesn't support yet: the feature's scenarios need its stories in CSF 3`,
+      message: `${storiesUri} uses CSF factories, which the plugin doesn't support yet, write its stories in CSF 3`,
       at: [at],
     });
   }
@@ -148,7 +152,7 @@ export const linkedFeatureOf = async ({
     ...(title === undefined
       ? [
           {
-            message: `${storiesUri} has no title: none is written in its meta, and no pattern of Storybook's "stories" matches it (give its meta a "title", or list the file in "stories")`,
+            message: `${storiesUri} has no title, give its meta a "title" or match the file with a pattern in Storybook's "stories"`,
             at: [at],
           },
         ]
@@ -157,7 +161,7 @@ export const linkedFeatureOf = async ({
       exportName !== undefined && !known.has(exportName)
         ? [
             {
-              message: `${storiesUri} has no story "${exportName}" (its stories: ${stories.exports.join(", ") || "none"})`,
+              message: `${storiesUri} has no story "${exportName}" (it has ${stories.exports.join(", ") || "none"})`,
               at: [`${uri}:${String(storyLine)}`],
             },
           ]

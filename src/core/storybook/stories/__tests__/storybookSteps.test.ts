@@ -78,12 +78,12 @@ describe("Storybook steps, from the support code", () => {
     ]);
     expect(errors).toEqual([
       {
-        message: `the Storybook step "the {color} {storybook:story} story" uses {color}: a Storybook step may use only the plugin's placeholders and cucumber's built-in parameter types ({word}, {string}, {int}, …)`,
+        message: `the Storybook step "the {color} {storybook:story} story" uses {color}, a Storybook step can only use cucumber's built-in parameter types beside its placeholder ({string}, {int}, {word}, …)`,
         at: ["/p/steps.ts:1"],
       },
       {
         message:
-          "the Storybook step `the ${word} {storybook:story} story` can't be read: write its expression as a string literal",
+          "the Storybook step `the ${word} {storybook:story} story` can't be read, write its expression as a plain string",
         at: ["/p/steps.ts:2"],
       },
     ]);
@@ -114,11 +114,11 @@ describe("Storybook steps, from the support code", () => {
     ]);
     expect(errors).toEqual([
       {
-        message: `the Storybook step "the {storybook:story} story of {storybook:storiesFile}" uses {storybook:story}, {storybook:storiesFile}: a Storybook step uses one of the plugin's placeholders, once (a story, an unmounted story, or a stories file)`,
+        message: `the Storybook step "the {storybook:story} story of {storybook:storiesFile}" has 2 placeholders ({storybook:story}, {storybook:storiesFile}), keep one`,
         at: ["/p/steps.ts:1"],
       },
       {
-        message: `the Storybook step "the {storybook:story} next to {storybook:story}" uses {storybook:story}, {storybook:story}: a Storybook step uses one of the plugin's placeholders, once (a story, an unmounted story, or a stories file)`,
+        message: `the Storybook step "the {storybook:story} next to {storybook:story}" has 2 placeholders ({storybook:story}, {storybook:story}), keep one`,
         at: ["/p/steps.ts:2"],
       },
     ]);
@@ -294,7 +294,7 @@ describe("Storybook steps, from the support code", () => {
       expect(found?.unparsable, code).toContain(message);
       expect(stepsOf([code, "/p/a.ts"]).errors, code).toEqual([
         {
-          message: `the support file can't be parsed: ${found?.unparsable ?? ""}`,
+          message: `the support file can't be parsed (${found?.unparsable ?? ""})`,
           at: [`/p/a.ts:${String(line)}`],
         },
       ]);

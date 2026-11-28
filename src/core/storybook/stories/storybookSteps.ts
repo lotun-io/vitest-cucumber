@@ -217,14 +217,14 @@ export const storybookStepsOf = (scans: Scan[]) => {
   for (const { at, source, unreadable, unparsable } of scans.flat()) {
     if (unparsable !== undefined) {
       errors.push({
-        message: `the support file can't be parsed: ${unparsable}`,
+        message: `the support file can't be parsed (${unparsable})`,
         at: [at],
       });
       continue;
     }
     if (source === undefined) {
       errors.push({
-        message: `the Storybook step ${unreadable ?? ""} can't be read: write its expression as a string literal`,
+        message: `the Storybook step ${unreadable ?? ""} can't be read, write its expression as a plain string`,
         at: [at],
       });
       continue;
@@ -235,7 +235,7 @@ export const storybookStepsOf = (scans: Scan[]) => {
     const used = names.filter((name) => kinds.has(name));
     if (used.length > 1) {
       errors.push({
-        message: `the Storybook step "${source}" uses ${used.map((name) => `{${name}}`).join(", ")}: a Storybook step uses one of the plugin's placeholders, once (a story, an unmounted story, or a stories file)`,
+        message: `the Storybook step "${source}" has ${String(used.length)} placeholders (${used.map((name) => `{${name}}`).join(", ")}), keep one`,
         at: [at],
       });
       continue;
@@ -245,7 +245,7 @@ export const storybookStepsOf = (scans: Scan[]) => {
     );
     if (unknown.length > 0) {
       errors.push({
-        message: `the Storybook step "${source}" uses ${unknown.map((name) => `{${name}}`).join(", ")}: a Storybook step may use only the plugin's placeholders and cucumber's built-in parameter types ({word}, {string}, {int}, …)`,
+        message: `the Storybook step "${source}" uses ${unknown.map((name) => `{${name}}`).join(", ")}, a Storybook step can only use cucumber's built-in parameter types beside its placeholder ({string}, {int}, {word}, …)`,
         at: [at],
       });
       continue;

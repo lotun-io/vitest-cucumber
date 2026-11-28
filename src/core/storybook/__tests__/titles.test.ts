@@ -223,7 +223,7 @@ describe("a stories file that writes no title: Storybook's automatic one", () =>
       ),
     });
     await expect(indexOf("features/unlisted.feature")).rejects.toThrow(
-      '  - elsewhere/Unlisted.stories.ts has no title: none is written in its meta, and no pattern of Storybook\'s "stories" matches it (give its meta a "title", or list the file in "stories")\n    features/unlisted.feature:3',
+      '  - elsewhere/Unlisted.stories.ts has no title, give its meta a "title" or match the file with a pattern in Storybook\'s "stories"\n    features/unlisted.feature:3',
     );
   });
 });

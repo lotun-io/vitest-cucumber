@@ -15,7 +15,7 @@ export const jsonWorldParameters = (
     return JSON.parse(JSON.stringify(worldParameters));
   } catch (error) {
     throw pluginError(
-      `the "worldParameters" option can't be converted to JSON`,
+      `the "worldParameters" option can't be converted to JSON, give it plain data (objects, arrays, strings, numbers, booleans)`,
       { cause: error, quiet: true },
     );
   }

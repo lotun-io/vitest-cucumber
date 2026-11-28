@@ -56,14 +56,14 @@ describe("steps", () => {
       build([{ method: "Given", args: ["a step", 42], location: at(7) }]),
     ).toThrow(
       new Error(
-        "[@lotun/vitest-cucumber] Given's second argument should be an object or a function\n  features/steps.ts:7",
+        "[@lotun/vitest-cucumber] Given's second argument should be its options (an object) or its code (a function)\n  features/steps.ts:7",
       ),
     );
     expect(() =>
       build([{ method: "When", args: [42, () => undefined], location: at(8) }]),
     ).toThrow(
       new Error(
-        "[@lotun/vitest-cucumber] When's first argument should be a string or a regular expression\n  features/steps.ts:8",
+        "[@lotun/vitest-cucumber] When's first argument should be its expression (a string or a regular expression)\n  features/steps.ts:8",
       ),
     );
     expect(() =>
@@ -73,7 +73,7 @@ describe("steps", () => {
     ).toThrow(
       expect.objectContaining({
         message:
-          "[@lotun/vitest-cucumber] Then's third argument should be a function\n  features/steps.ts:9",
+          "[@lotun/vitest-cucumber] Then's third argument should be its code (a function)\n  features/steps.ts:9",
         stack: "",
       }),
     );
@@ -82,16 +82,29 @@ describe("steps", () => {
 
 test("null options: the plugin's error, not a TypeError (cucumber's own check lets null by)", () => {
   const code = () => undefined;
+  const withTags =
+    "its options (an object), its tags (a string) or its code (a function)";
+  const plain = "its options (an object) or its code (a function)";
   for (const [method, args, message] of [
-    ["Given", ["a step", null, code], "Given's second argument"],
-    ["Before", [null, code], "Before's first argument"],
-    ["AfterStep", [null, code], "AfterStep's first argument"],
-    ["BeforeAll", [null, code], "BeforeAll's first argument"],
+    [
+      "Given",
+      ["a step", null, code],
+      `Given's second argument should be ${plain}`,
+    ],
+    ["Before", [null, code], `Before's first argument should be ${withTags}`],
+    [
+      "AfterStep",
+      [null, code],
+      `AfterStep's first argument should be ${withTags}`,
+    ],
+    [
+      "BeforeAll",
+      [null, code],
+      `BeforeAll's first argument should be ${plain}`,
+    ],
   ] as const) {
     expect(() => build([{ method, args: [...args], location: at(5) }])).toThrow(
-      new Error(
-        `[@lotun/vitest-cucumber] ${message} should be an object or a function\n  features/steps.ts:5`,
-      ),
+      new Error(`[@lotun/vitest-cucumber] ${message}\n  features/steps.ts:5`),
     );
   }
 });
@@ -330,7 +343,7 @@ test("a BeforeAll or AfterAll hook on the coordinator: refused, with what to use
     ]),
   ).toThrow(
     new Error(
-      '[@lotun/vitest-cucumber] BeforeAll\'s on option should be "WORKER"\n  features/steps.ts:5',
+      '[@lotun/vitest-cucumber] BeforeAll\'s on option can only be "WORKER"\n  features/steps.ts:5',
     ),
   );
   // A worker's hook, `on` given or left out (cucumber's default).
@@ -347,7 +360,7 @@ test("the methods the plugin doesn't support: refused, with what to use instead,
     build([{ method: "setDefaultTimeout", args: [1000], location: at(3) }]),
   ).toThrow(
     new Error(
-      "[@lotun/vitest-cucumber] setDefaultTimeout isn't supported, Vitest's testTimeout and hookTimeout are the default timeouts\n  features/steps.ts:3",
+      "[@lotun/vitest-cucumber] setDefaultTimeout isn't supported, set Vitest's testTimeout and hookTimeout instead\n  features/steps.ts:3",
     ),
   );
   expect(() =>
@@ -360,7 +373,7 @@ test("the methods the plugin doesn't support: refused, with what to use instead,
     ]),
   ).toThrow(
     new Error(
-      "[@lotun/vitest-cucumber] setParallelCanAssign isn't supported, Vitest assigns the feature files to its workers\n  features/steps.ts:6",
+      "[@lotun/vitest-cucumber] setParallelCanAssign isn't supported, Vitest decides which worker runs each feature file\n  features/steps.ts:6",
     ),
   );
 });

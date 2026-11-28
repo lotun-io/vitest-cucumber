@@ -26,7 +26,7 @@ test("internal (a bug of the plugin's): its stack, its message asking to report 
 test("unsupported: the user's call keeps its stack", () => {
   const error = unsupportedError("setDefaultTimeout");
   expect(error.message).toBe(
-    "[@lotun/vitest-cucumber] setDefaultTimeout isn't supported",
+    "[@lotun/vitest-cucumber] setDefaultTimeout isn't supported in a browser page",
   );
   expect(error.stack).toContain("errors.test.ts");
 });

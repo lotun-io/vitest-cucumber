@@ -114,7 +114,7 @@ export const storybookPlanFrom = async ({
   if (sameIds.length > 0) {
     return {
       error: locatedErrors(
-        "feature file's scenarios can't all be stories",
+        "feature file has scenarios with the same story id",
         sameIds,
       ),
     };

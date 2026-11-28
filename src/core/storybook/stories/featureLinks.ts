@@ -109,7 +109,7 @@ export const featureLinksOf = ({
       const matches = steps.match(step.text);
       if (matches.length > 1) {
         errors.push({
-          message: `"${step.text}" matches ${String(matches.length)} Storybook steps`,
+          message: `the step "${step.text}" matches ${String(matches.length)} Storybook steps, word them so it matches one`,
           at: [...matches.map(({ at }) => at), placeOf(stepLine)],
         });
         ambiguous = true;
@@ -131,7 +131,7 @@ export const featureLinksOf = ({
     const [storyStep] = story;
     if (story.length > 1) {
       errors.push({
-        message: `${scenario} names a story twice: a scenario has one, its Backgrounds' steps included`,
+        message: `${scenario} names ${String(story.length)} stories, keep one story step (the Background's steps count too)`,
         at: [...story.map(({ line: at }) => placeOf(at)), placeOf(line)],
       });
     }
@@ -149,31 +149,18 @@ export const featureLinksOf = ({
   }
   // A scenario that doesn't name both (without any stories file step: the feature's error, below).
   for (const { scenario, line, stories, story, steps: hasSteps } of lacking) {
-    const what = [
-      ...(stories && storiesSteps.size > 0 ? ["stories file"] : []),
-      ...(story ? ["story"] : []),
-    ];
-    const why = hasSteps
-      ? [
-          ...(what.includes("stories file")
-            ? [
-                "the feature's stories file step reaches each scenario in its Background",
-              ]
-            : []),
-          ...(story
-            ? [
-                `a story step names its story (its stories file's, or "${metaStory}": its meta)`,
-              ]
-            : []),
-        ]
-      : [
-          "it has no steps (a Background's steps reach only a scenario with steps of its own)",
-        ];
-    if (what.length > 0) {
-      errors.push({
-        message: `${scenario} names no ${what.join(" and no ")}: ${why.join("; ")}`,
-        at: [placeOf(line)],
-      });
+    const noFile = stories && storiesSteps.size > 0;
+    const message = !hasSteps
+      ? `${scenario} has no steps, give it a story step (a Background's steps only reach a scenario with steps)`
+      : noFile && story
+        ? `${scenario} names no stories file and no story, move the stories file step to the feature's Background and add a story step`
+        : noFile
+          ? `${scenario} names no stories file, move the stories file step to the feature's Background`
+          : story
+            ? `${scenario} names no story, add a story step (a story of the stories file, or "${metaStory}" for its meta)`
+            : undefined;
+    if (message !== undefined && (noFile || story)) {
+      errors.push({ message, at: [placeOf(line)] });
     }
   }
   // Its stories file: one step naming it, once.
@@ -183,7 +170,7 @@ export const featureLinksOf = ({
         {
           error: {
             message:
-              "the feature has no scenarios: in Storybook, a feature's scenarios are its stories",
+              "the feature has no scenarios, add one (each scenario is a story)",
             at: [placeOf(document.feature?.location.line ?? 1)],
           },
         }
@@ -207,7 +194,7 @@ export const featureLinksOf = ({
   const exists = existsSync(named.file);
   if (!exists) {
     errors.push({
-      message: `the stories file "${named.written}" doesn't exist (${slash(path.relative(root, named.file))}, from ${named.relative ? "the feature file's folder" : "the project's root"})`,
+      message: `the stories file "${named.written}" doesn't exist (looked for ${slash(path.relative(root, named.file))})`,
       at: [placeOf(named.line)],
     });
   }
@@ -257,11 +244,11 @@ const storiesFileOf = ({
   | { error: Located } => {
   /** A place in the feature file: its line. */
   const placeOf = (line: number) => `${uri}:${String(line)}`;
-  const once = "a feature file names its stories file once, in its Background";
   if (storiesSteps.size === 0) {
     return {
       error: {
-        message: `the feature names no stories file: ${once}, with a stories file step`,
+        message:
+          "the feature names no stories file, add a stories file step to its Background",
         at: [placeOf(featureLine)],
       },
     };
@@ -270,7 +257,7 @@ const storiesFileOf = ({
   if (found.length > 1) {
     return {
       error: {
-        message: `the feature has ${String(found.length)} stories file steps: ${once}`,
+        message: `the feature has ${String(found.length)} stories file steps, keep one, in its Background`,
         at: found.map(([line]) => placeOf(line)),
       },
     };
@@ -280,7 +267,7 @@ const storiesFileOf = ({
   if (more.length > 0) {
     return {
       error: {
-        message: `the stories file step names ${String(files.size)} stories files (${[...files].join(", ")}): a feature file runs on one stories file, split it into one per stories file`,
+        message: `the stories file step names ${String(files.size)} stories files (${[...files].join(", ")}), split the feature into one per stories file`,
         at: [placeOf(line)],
       },
     };
@@ -288,7 +275,7 @@ const storiesFileOf = ({
   if (written.startsWith("/")) {
     return {
       error: {
-        message: `the stories file "${written}" starts with "/": write it from the project's root, or from the feature file's folder with "./" or "../"`,
+        message: `the stories file "${written}" starts with "/", drop the "/" to start from the project's root, or start it with "./" or "../" from the feature's folder`,
         at: [placeOf(line)],
       },
     };

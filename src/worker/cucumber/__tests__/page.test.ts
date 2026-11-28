@@ -132,7 +132,8 @@ describe("the support code's other exports", () => {
 });
 
 describe("the runner's exports, stand-ins that throw", () => {
-  const reason = "[@lotun/vitest-cucumber] Formatter isn't supported";
+  const reason =
+    "[@lotun/vitest-cucumber] Formatter isn't supported in a browser page";
 
   test("a call, `new`, reading, writing or testing a property", () => {
     const stand = Formatter as unknown as Record<string, unknown> &

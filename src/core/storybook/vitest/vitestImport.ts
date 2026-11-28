@@ -75,7 +75,7 @@ export const vitestFromFeature = ({
     const found = testImportOf(code);
     if (!found) {
       throw pluginError(
-        `Storybook's story tests of ${file} aren't declared as the plugin expects (\`test\` imported from "vitest"), so its scenarios' stories can't be declared as Vitest tests (your Storybook may be newer than the plugin supports)`,
+        `Storybook's story tests of ${file} aren't written as the plugin expects, your Storybook may be newer than the plugin supports (no \`test\` imported from "vitest")`,
         { quiet: true },
       );
     }

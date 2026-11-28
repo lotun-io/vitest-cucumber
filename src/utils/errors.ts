@@ -89,6 +89,6 @@ export const locatedErrors = (header: string, items: readonly Located[]) => {
   return pluginError([header, ...new Set(lines)].join("\n"), { quiet: true });
 };
 
-/** The plugin's error for a part of cucumber's API it doesn't support, in every mode (its call's stack). */
+/** The plugin's error for a part of cucumber's API a browser page can't have (its call's stack). */
 export const unsupportedError = (name: string) =>
-  pluginError(`${name} isn't supported`);
+  pluginError(`${name} isn't supported in a browser page`);

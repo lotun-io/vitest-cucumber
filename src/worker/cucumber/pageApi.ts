@@ -8,7 +8,7 @@ import { pluginError } from "../../utils/errors.ts";
 
 const unavailable = (): never => {
   throw pluginError(
-    "cucumber's API (`@cucumber/cucumber/api`, `@cucumber/cucumber/lib/…`) isn't available in a browser's page (the page runs the plugin's own copy of cucumber's runtime)",
+    "@cucumber/cucumber/api and @cucumber/cucumber/lib/… aren't available in a browser page",
     { quiet: true },
   );
 };

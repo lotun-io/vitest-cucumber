@@ -57,7 +57,7 @@ test("names differing in case or punctuation only: one id, an error naming each 
 `),
   ).toEqual([
     {
-      message: `Scenario: "HTTP request" and Scenario: "Http request!" would be the same story in Storybook (id "example-cart-feature-cart--http-request")`,
+      message: `Scenario: "HTTP request" and Scenario: "Http request!" have the same story id "example-cart-feature-cart--http-request", rename one of them`,
       at: ["src/Cart.feature:2", "src/Cart.feature:4"],
     },
   ]);
@@ -77,11 +77,11 @@ test("the same name twice, whatever the keyword: an error per id, each scenario 
 `),
   ).toEqual([
     {
-      message: `Example: "Log in" and Scenario: "Log in" would be the same story in Storybook (id "example-cart-feature-cart--log-in")`,
+      message: `Example: "Log in" and Scenario: "Log in" have the same story id "example-cart-feature-cart--log-in", rename one of them`,
       at: ["src/Cart.feature:2", "src/Cart.feature:4"],
     },
     {
-      message: `Scenario: "Log out" and Scenario: "Log out" would be the same story in Storybook (id "example-cart-feature-cart--log-out")`,
+      message: `Scenario: "Log out" and Scenario: "Log out" have the same story id "example-cart-feature-cart--log-out", rename one of them`,
       at: ["src/Cart.feature:6", "src/Cart.feature:8"],
     },
   ]);
@@ -99,7 +99,7 @@ test("an Outline's rows its name doesn't tell apart: an error, with what tells t
 `),
   ).toEqual([
     {
-      message: `Example: "Pay" and Example: "Pay" would be the same story in Storybook (id "example-cart-feature-cart--pay")`,
+      message: `Example: "Pay" and Example: "Pay" have the same story id "example-cart-feature-cart--pay", rename one of them`,
       at: ["src/Cart.feature:6", "src/Cart.feature:7"],
     },
   ]);
@@ -118,7 +118,7 @@ Funktionalität: Cart
 `),
   ).toEqual([
     {
-      message: `Beispiel: "Bezahlen" and Beispiel: "Bezahlen" would be the same story in Storybook (id "example-cart-feature-cart--bezahlen")`,
+      message: `Beispiel: "Bezahlen" and Beispiel: "Bezahlen" have the same story id "example-cart-feature-cart--bezahlen", rename one of them`,
       at: ["src/Cart.feature:7", "src/Cart.feature:8"],
     },
   ]);
@@ -132,7 +132,7 @@ test("a scenario named as the feature's own story: an error naming that story", 
 `),
   ).toEqual([
     {
-      message: `the plugin's own story of the feature and Scenario: "Vitest cucumber feature" would be the same story in Storybook (id "example-cart-feature-cart--vitest-cucumber-feature")`,
+      message: `Scenario: "Vitest cucumber feature" has the feature's own story id "example-cart-feature-cart--vitest-cucumber-feature", rename it`,
       at: ["src/Cart.feature:1", "src/Cart.feature:2"],
     },
   ]);
@@ -158,7 +158,7 @@ test("unnamed scenarios, by their keywords: one of each, no error; two of one, a
     ]),
   ).toEqual([
     {
-      message: `Scenario: "Scenario" and Scenario: "Scenario" would be the same story in Storybook (id "example-cart-feature-cart--scenario")`,
+      message: `Scenario: "Scenario" and Scenario: "Scenario" have the same story id "example-cart-feature-cart--scenario", rename one of them`,
       at: ["src/Cart.feature:2", "src/Cart.feature:9"],
     },
   ]);

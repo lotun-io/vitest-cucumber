@@ -73,24 +73,36 @@ export const sameIdErrorsOf = ({
 }): Located[] => {
   const kinds = kindsOf(document);
   const featureLine = document.feature?.location.line ?? 1;
-  /** Each id's stories: what each is, where. */
-  const byId = new Map<string, { what: string; at: string }[]>();
+  /** Each id's stories: what each is (none: the feature's own story), where. */
+  const byId = new Map<string, { what?: string; at: string }[]>();
   const all = [{ export: own, line: featureLine, name: undefined }, ...stories];
   for (const story of all) {
     const id = ids.toId(metaId, ids.storyNameFromExport(story.export));
     const what =
       story.name === undefined
-        ? "the plugin's own story of the feature"
+        ? undefined
         : `${kinds.get(story.line) ?? "Scenario"}: ${JSON.stringify(story.name)}`;
     byId.set(id, [
       ...(byId.get(id) ?? []),
-      { what, at: `${uri}:${String(story.line)}` },
+      {
+        ...(what !== undefined && { what }),
+        at: `${uri}:${String(story.line)}`,
+      },
     ]);
   }
   return [...byId]
     .filter(([, same]) => same.length > 1)
-    .map(([id, same]) => ({
-      message: `${same.map(({ what }) => what).join(" and ")} would be the same story in Storybook (id ${JSON.stringify(id)})`,
-      at: same.map(({ at }) => at),
-    }));
+    .map(([id, same]) => {
+      const scenarios = same.flatMap(({ what }) =>
+        what === undefined ? [] : [what],
+      );
+      const names = scenarios.join(" and ");
+      const quoted = JSON.stringify(id);
+      // The feature's own story among them: its scenarios are the ones to rename.
+      const message =
+        scenarios.length < same.length
+          ? `${names} ${scenarios.length > 1 ? "have" : "has"} the feature's own story id ${quoted}, rename ${scenarios.length > 1 ? "them" : "it"}`
+          : `${names} have the same story id ${quoted}, rename ${same.length > 2 ? "all but one" : "one"} of them`;
+      return { message, at: same.map(({ at }) => at) };
+    });
 };

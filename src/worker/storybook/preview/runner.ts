@@ -49,7 +49,7 @@ export const createPreviewRunner = ({
   const ensureBeforeAll = async () => {
     if (!importSupport) {
       throw pluginError(
-        "the preview's support code isn't served (is `cucumber({ … })` from `@lotun/vitest-cucumber/storybook/node` in Storybook's addons?)",
+        "the preview's support code isn't served, add cucumber({ … }) from @lotun/vitest-cucumber/storybook/node to the addons in .storybook/main.ts",
         { quiet: true },
       );
     }

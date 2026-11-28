@@ -156,7 +156,7 @@ describe("the preview's runner", () => {
 describe("the preview's annotation, without the preset (its support module the placeholder)", () => {
   const notServed = {
     message:
-      "[@lotun/vitest-cucumber] the preview's support code isn't served (is `cucumber({ … })` from `@lotun/vitest-cucumber/storybook/node` in Storybook's addons?)",
+      "[@lotun/vitest-cucumber] the preview's support code isn't served, add cucumber({ … }) from @lotun/vitest-cucumber/storybook/node to the addons in .storybook/main.ts",
   };
 
   test("Storybook's `beforeAll`: the support code loads first, its error said", async () => {

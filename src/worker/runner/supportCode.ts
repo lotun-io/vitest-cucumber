@@ -36,11 +36,11 @@ const stepMethods = new Set(["Given", "When", "Then", "defineStep"]);
  * error has the call's location, in every mode), each with what to use instead.
  */
 const unsupportedMethods = new Map([
+  ["setDefaultTimeout", "set Vitest's testTimeout and hookTimeout instead"],
   [
-    "setDefaultTimeout",
-    "Vitest's testTimeout and hookTimeout are the default timeouts",
+    "setParallelCanAssign",
+    "Vitest decides which worker runs each feature file",
   ],
-  ["setParallelCanAssign", "Vitest assigns the feature files to its workers"],
 ]);
 
 /**
