@@ -80,6 +80,52 @@ describe("steps", () => {
   });
 });
 
+test("an expression cucumber can't compile: the plugin's error at the call, cucumber's reason, the expression as written", () => {
+  expect(() =>
+    build([
+      {
+        method: "Given",
+        args: ["the extra ({string}) story", () => undefined],
+        location: at(6),
+      },
+    ]),
+  ).toThrow(
+    expect.objectContaining({
+      message:
+        "[@lotun/vitest-cucumber] Given's expression \"the extra ({string}) story\" isn't a valid cucumber expression (An optional may not contain a parameter type.)\n  features/steps.ts:6",
+      stack: "",
+    }),
+  );
+  // A Storybook host's (its placeholders compiled as `{string}`): the expression as written.
+  expect(() =>
+    buildSupportCode(
+      [
+        {
+          method: "Given",
+          args: ["the extra ({storybook:story}) story", () => undefined],
+          location: at(8),
+        },
+      ],
+      {
+        newId: IdGenerator.incrementing(),
+        expressionOf: storybookExpressionOf,
+      },
+    ),
+  ).toThrow(
+    "[@lotun/vitest-cucumber] Given's expression \"the extra ({storybook:story}) story\" isn't a valid cucumber expression (An optional may not contain a parameter type.)\n  features/steps.ts:8",
+  );
+  // An undefined parameter type isn't refused here: cucumber reports it as the step runs.
+  expect(() =>
+    build([
+      {
+        method: "Given",
+        args: ["a {flavor}", () => undefined],
+        location: at(7),
+      },
+    ]),
+  ).not.toThrow();
+});
+
 test("null options: the plugin's error, not a TypeError (cucumber's own check lets null by)", () => {
   const code = () => undefined;
   const withTags =

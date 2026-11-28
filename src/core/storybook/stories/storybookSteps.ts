@@ -30,6 +30,7 @@ import {
   type PropertyKey,
   Visitor,
 } from "oxc-parser";
+import { cucumberExpressionReason } from "../../../utils/cucumberExpressionReason.ts";
 import type { Located } from "../../../utils/errors.ts";
 import {
   storybookExpressionOf,
@@ -182,18 +183,6 @@ export const scanSupportCode = (code: string, file: string) => {
   });
 };
 
-/**
- * Why cucumber refuses an expression: its error's reason, the line after its pointer (`^`); the
- * rest quotes the expression as Storybook's hosts define it (`{string}`), not as written.
- */
-const reasonOf = (error: unknown) => {
-  const lines = (error instanceof Error ? error.message : String(error)).split(
-    "\n",
-  );
-  const pointer = lines.findIndex((line) => /^\s*\^/.test(line));
-  return lines[pointer + 1] ?? lines[0] ?? "";
-};
-
 /** The expressions of one support file's scan. */
 type Scan = ReturnType<typeof scanSupportCode>;
 
@@ -259,7 +248,7 @@ export const storybookStepsOf = (scans: Scan[]) => {
       );
     } catch (error) {
       errors.push({
-        message: `the Storybook step "${source}" isn't a valid cucumber expression (${reasonOf(error)})`,
+        message: `the Storybook step "${source}" isn't a valid cucumber expression (${cucumberExpressionReason(error)})`,
         at: [at],
       });
       continue;

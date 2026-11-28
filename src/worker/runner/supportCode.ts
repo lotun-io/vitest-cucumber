@@ -22,6 +22,10 @@ import type {
   SupportCode,
   WorldConstructor,
 } from "../../types/supportCode.ts";
+import {
+  cucumberExpressionReason,
+  isCucumberExpressionError,
+} from "../../utils/cucumberExpressionReason.ts";
 import { locatedError, pluginError } from "../../utils/errors.ts";
 import { createQuery } from "./query.ts";
 import { takesFirst } from "./thisFirst.ts";
@@ -62,6 +66,13 @@ export const buildSupportCode = (
   },
 ): SupportCode => {
   const builder = buildCoreSupportCode({ newId });
+  /** Each step's cucumber expression: as written, as compiled, its call (an error's place). */
+  const stepExpressions: {
+    method: string;
+    written: string;
+    compiled: string;
+    where: string;
+  }[] = [];
   const definitions = new Map<unknown, Definition>();
   const beforeStepHooks: StepHook[] = [];
   const afterStepHooks: StepHook[] = [];
@@ -126,12 +137,14 @@ export const buildSupportCode = (
           location: where,
         });
         const { timeout, wrapperOptions } = options as Options;
+        // A cucumber expression as its host has it (a Storybook host's placeholders rewritten).
+        const compiled =
+          typeof pattern === "string" ? expressionOf(pattern) : undefined;
+        if (typeof pattern === "string" && compiled !== undefined) {
+          stepExpressions.push({ method, written: pattern, compiled, where });
+        }
         builder.step({
-          // A cucumber expression as its host has it (a Storybook host's placeholders rewritten).
-          pattern:
-            typeof pattern === "string"
-              ? expressionOf(pattern)
-              : (pattern as RegExp),
+          pattern: compiled ?? (pattern as RegExp),
           fn: handleOf({
             code: wrap(code as Code, wrapperOptions),
             timeout: timeout as number | undefined,
@@ -244,7 +257,27 @@ export const buildSupportCode = (
     }
   }
 
-  const library = builder.build();
+  /** The support code, built: cucumber compiles each step's expression here. */
+  const build = () => {
+    try {
+      return builder.build();
+    } catch (error) {
+      // An expression cucumber can't parse: the plugin's error at its step's call, its reason,
+      // the expression as written (cucumber's message quotes it as compiled, on its third line).
+      const compiled = isCucumberExpressionError(error)
+        ? error.message.split("\n")[2]
+        : undefined;
+      const step = stepExpressions.find((each) => each.compiled === compiled);
+      if (step) {
+        throw locatedError(
+          `${step.method}'s expression "${step.written}" isn't a valid cucumber expression (${cucumberExpressionReason(error)})`,
+          [step.where],
+        );
+      }
+      throw error;
+    }
+  };
+  const library = build();
   return {
     library,
     query: createQuery(library.toEnvelopes()),
