@@ -51,8 +51,11 @@ const pluginsOf = () => {
   } & Hooks)[];
   const byName = new Map(plugins.map((plugin) => [plugin.name, plugin]));
   const configResolved = byName.get("vitest-cucumber:browser")
-    ?.configResolved as (config: { root: string }) => void;
-  configResolved({ root: project });
+    ?.configResolved as (config: {
+    root: string;
+    server: { fs: { allow: string[] } };
+  }) => void;
+  configResolved({ root: project, server: { fs: { allow: [project] } } });
   return { plugins, byName };
 };
 

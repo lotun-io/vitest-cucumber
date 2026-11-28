@@ -22,6 +22,7 @@ import {
 } from "../feature/plans.ts";
 import type { PlannedFeature } from "../runs/runStart.ts";
 import { testRunsOf, type ProjectSource } from "../runs/testRuns.ts";
+import { ownModule } from "../utils/ownModule.ts";
 import { withoutQuery } from "../utils/withoutQuery.ts";
 import { colorsOf } from "./colors.ts";
 import { cucumberVersion } from "./cucumberVersion.ts";
@@ -262,6 +263,9 @@ export const createPlugin = (
       vitestState.add(vitest, project);
       testRunsOf(vitest).register(project, source);
       await declareProjectTags(project);
+      // The plugin's setup file first, before the project's own (`../../worker/platform/setupFile.ts`:
+      // the host's timers and clock saved, so a setup file's fake timers don't reach the runtime).
+      project.config.setupFiles.unshift(ownModule("worker/platform/setupFile"));
 
       // A feature module contains the plugin's options and support files, not just the file's
       // content, so Vitest's file system cache must not keep it (a Storybook one's id has a query).

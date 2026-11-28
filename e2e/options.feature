@@ -753,6 +753,64 @@ Feature: Plugin options
       | browser   |
       | storybook |
 
+  # A setup file's fake timers (`vi.useFakeTimers()`, which runs before the support code and the
+  # plugin's runtime load) don't reach the runtime: the plugin's own setup file, first in every
+  # project's `setupFiles`, saved the real timers, so a step's timeout still fires.
+  Scenario Outline: A setup file's fake timers don't stop a step's timeout (<mode>)
+    Given the Vitest config:
+      """
+      import { cucumber } from "@lotun/vitest-cucumber";
+      import { playwright } from "@vitest/browser-playwright";
+
+      export default {
+        plugins: [cucumber({ import: ["features/**/*.ts"] })],
+        test: {
+          include: ["features/**/*.feature"],
+          setupFiles: ["fake.ts"],
+          browser: {
+            enabled: <browser>,
+            headless: true,
+            provider: playwright(),
+            instances: [{ browser: "chromium" }],
+            screenshotFailures: false,
+          },
+        },
+      };
+      """
+    And a file named "fake.ts" with:
+      """
+      import { vi } from "vitest";
+
+      vi.useFakeTimers();
+      """
+    And a file named "features/steps.ts" with:
+      """
+      import { Given } from "@cucumber/cucumber";
+
+      Given("a step that never ends", { timeout: 200 }, () => new Promise(() => {}));
+      """
+    And a file named "features/a.feature" with:
+      """
+      Feature: A
+        Background:
+          Given the stories of "./a.stories.tsx"
+          And the "default" story
+        Scenario: never ending
+          Given a step that never ends
+      """
+    When I run vitest in <mode> mode
+    Then it fails
+    And the test "A > never ending" fails with:
+      """
+      function timed out, ensure the promise resolves within 200 milliseconds
+      """
+
+    Examples:
+      | mode      | browser |
+      | node      | false   |
+      | browser   | true    |
+      | storybook | true    |
+
   Scenario Outline: Vitest's hookTimeout is a BeforeAll hook's default timeout (<mode>)
     Given a file named "features/steps.ts" with:
       """

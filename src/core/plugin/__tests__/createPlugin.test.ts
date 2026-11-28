@@ -9,6 +9,7 @@ import type {
   VitestPluginContext,
 } from "vitest/node";
 import { slash } from "../../../utils/slash.ts";
+import { ownModule } from "../../utils/ownModule.ts";
 import { createPlugin } from "../createPlugin.ts";
 
 test("a wrong option: the plugin's error as the plugin is made", () => {
@@ -104,6 +105,7 @@ const setUp = async ({
       isolate: true,
       testTimeout: 5000,
       hookTimeout: 10_000,
+      setupFiles: ["/p/setup.ts"],
     },
     globTestFiles: () => Promise.resolve({ testFiles: [cart, login, other] }),
     provide: (key: string, value: unknown) => {
@@ -153,7 +155,7 @@ const setUp = async ({
 };
 
 test("a project set up: every feature file's tags declared on it, its workers given the plugin's context, a feature module kept out of Vitest's file system cache, the runs' reporter added", async () => {
-  const { tagNames, provided, cacheKeys, reporters } = await setUp();
+  const { tagNames, provided, cacheKeys, reporters, project } = await setUp();
   expect(tagNames()).toEqual(["@smoke", "@slow"]);
   expect(provided.vitestCucumber).toMatchObject({
     command: { port: 0, token: "" },
@@ -171,6 +173,11 @@ test("a project set up: every feature file's tags declared on it, its workers gi
   expect(cacheKey?.({ id: `${cart}?vitest-cucumber-storybook` })).toBe(false);
   expect(cacheKey?.({ id: other })).toBeUndefined();
   expect(reporters).toHaveLength(1);
+  // The plugin's setup file before the project's own (it saves the real timers).
+  expect(project.config.setupFiles).toEqual([
+    ownModule("worker/platform/setupFile"),
+    "/p/setup.ts",
+  ]);
 });
 
 test("a run's start: what was read for the last one is read again, each of its feature files' modules made again, its tags declared", async () => {

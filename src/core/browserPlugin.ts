@@ -13,6 +13,7 @@ import {
   pageExcluded,
   resolvePageCucumber,
 } from "./browser/pageModules.ts";
+import { serveOwnFiles } from "./browser/servedOwnFiles.ts";
 import { createPlugin } from "./plugin/createPlugin.ts";
 import { checkNotInStorybookProject } from "./plugin/storybookProjectCheck.ts";
 import { ownModule } from "./utils/ownModule.ts";
@@ -56,7 +57,14 @@ export const createBrowserHooks = (options: Partial<CucumberOptions>) => {
         },
       };
     },
-    configResolved: core.configResolved,
+    configResolved: (config: {
+      root: string;
+      server: { fs: { allow: string[] } };
+    }) => {
+      core.configResolved(config);
+      // The plugin's setup file served wherever the plugin is (`./browser/servedOwnFiles.ts`).
+      serveOwnFiles(config);
+    },
     configureVitest: core.configureVitest,
     resolveId: resolvePageCucumber,
   };

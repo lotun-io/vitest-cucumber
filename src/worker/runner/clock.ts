@@ -1,14 +1,14 @@
-// Cucumber's stopwatch and timestamps (a port of 13.3.0's `lib/runtime/stopwatch.ts`), on the clock
-// the page had when this module loaded: a test's fake timers don't change a result's duration or a
-// message's timestamp. Page-safe.
+// Cucumber's stopwatch and timestamps (a port of 13.3.0's `lib/runtime/stopwatch.ts`), on the host's
+// real clock (`./realTimers.ts`, saved before a project's setup files could fake it): a test's fake
+// timers don't change a result's duration or a message's timestamp. Page-safe.
 import { TimeConversion, type Duration } from "@cucumber/messages";
+import { realTimers } from "./realTimers.ts";
 
-const RealDate = Date;
-const performance = globalThis.performance;
+const { now, performanceNow } = realTimers();
 
 /** Now, as a message's timestamp. */
 export const timestamp = () =>
-  TimeConversion.millisecondsSinceEpochToTimestamp(RealDate.now());
+  TimeConversion.millisecondsSinceEpochToTimestamp(now());
 
 /** A zero duration (a result that didn't run). */
 export const noDuration = (): Duration =>
@@ -16,7 +16,7 @@ export const noDuration = (): Duration =>
 
 /** Starts a stopwatch: call the result for the duration since. */
 export const startStopwatch = () => {
-  const started = performance.now();
+  const started = performanceNow();
   return (): Duration =>
-    TimeConversion.millisecondsToDuration(performance.now() - started);
+    TimeConversion.millisecondsToDuration(performanceNow() - started);
 };

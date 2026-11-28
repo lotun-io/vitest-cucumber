@@ -1,11 +1,9 @@
-// Cucumber's `wrapPromiseWithTimeout` (a copy of 13.3.0's `lib/time.ts`), on the timers the platform had
-// when this module loaded (cucumber's `methods`): not a test's fakes. The runtime's timeouts, and the
-// stand-ins' export of it. Page-safe.
+// Cucumber's `wrapPromiseWithTimeout` (a copy of 13.3.0's `lib/time.ts`), on the host's real timers
+// (cucumber's `methods`: `./realTimers.ts`, saved before a project's setup files could fake them): not
+// a test's fakes. The runtime's timeouts, and the stand-ins' export of it. Page-safe.
+import { realTimers } from "./realTimers.ts";
 
-const timers = {
-  setTimeout: globalThis.setTimeout.bind(globalThis),
-  clearTimeout: globalThis.clearTimeout.bind(globalThis),
-};
+const timers = realTimers();
 
 /** Rejects if `promise` takes longer than `timeoutInMilliseconds`, with `timeoutMessage`. */
 export const wrapPromiseWithTimeout = async <T>(
@@ -13,7 +11,7 @@ export const wrapPromiseWithTimeout = async <T>(
   timeoutInMilliseconds: number,
   timeoutMessage = "",
 ): Promise<T> => {
-  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  let timeoutId: unknown;
   if (timeoutMessage === "") {
     timeoutMessage = `Action did not complete within ${String(timeoutInMilliseconds)} milliseconds`;
   }
